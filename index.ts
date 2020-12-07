@@ -36,7 +36,8 @@ mongoose.connection.openUri(
 
 // const client = mongoose.connection
 //     .openUri(process.env.CUSTOMCONNSTR_COSMOS_CONNSTR, {
-//         useNewUrlParser: true
+//         useNewUrlParser: true,
+//         useUnifiedTopology: true
 //     })
 //     .then(() => console.log('Connection to CosmosDB successful'))
 //     .catch(err => console.error(err));
