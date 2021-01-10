@@ -1,29 +1,61 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { ICellar } from './cellar';
 
 export interface IRole extends Document {
-	_cellar: ICellar['_id'];
 	name: string,
 	type: string,
+	permissions: IPermission[],
 	deleted: boolean
 }
 
-let tiposValidos = {
-	values: ['ADMIN', 'BODEGA', 'FARMACIA', 'REPARTIDOR'],
-	message: '{VALUE} no es un tipo permitido'
+export interface IPermission {
+	name: string;
+    label: string;
+    parent: string;
+    level: number;
+    options: string[];
+}
+
+const tiposValidos = {
+	values: ['FACTORY', 'PHARMA', 'ADMIN', 'DELIVERY'],
+	message: '{VALUE} no es un estado permitido'
 };
 
 const roleSchema: Schema = new Schema({
-	_cellar: { type: Schema.Types.ObjectId, required: true },
 	name: {
 		type: String,
 		required: [true, 'El nombre es necesario'],
 	},
 	type: {
 		type: String,
-		enum: tiposValidos.values,
-		default: 'ADMIN'
+		default: 'PHARMA',
+		enum: tiposValidos.values
 	},
+	permissions: [
+		{
+			name: {
+				type: String,
+				required: [true, 'El nombre es necesario'],
+			},
+			label: {
+				type: String,
+				required: [true, 'La etiqueta  es necesaria'],
+			},
+			parent: {
+				type: String,
+				required: false,
+			},
+			level: {
+				type: Number,
+				required: false,
+			},
+			options: [
+				{
+					type: String,
+					required: false,
+				},
+			],
+		},
+	],
 	deleted: {
 		type: Boolean,
 		default: false,

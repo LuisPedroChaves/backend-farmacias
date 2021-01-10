@@ -1,17 +1,29 @@
 import mongoose, {Schema, Document} from 'mongoose';
 import uniqueValidator from 'mongoose-unique-validator';
+import { IRole } from './role';
+import { ICellar } from './cellar';
 
 export interface IUser extends Document {
-	// _role:
-	// name: string,
-	// firs
+	_role: IRole['_id'];
+	_cellar: ICellar['_id'];
+	name: string,
+	username: string,
+	password: string,
+	imageIndex: number,
+	email: string,
+	deleted: boolean
 }
 
 const userSchema = new Schema({
 	_role: {
 		type: Schema.Types.ObjectId,
 		ref: 'Role',
-		default: null,
+		required: [true, 'El rol es necesario']
+	},
+	_cellar: {
+		type: Schema.Types.ObjectId,
+		ref: 'Cellar',
+		default: null
 	},
 	name: {
 		type: String,
@@ -44,4 +56,4 @@ userSchema.plugin(uniqueValidator, {
 	message: '{PATH} debe ser único',
 });
 
-export default mongoose.model('User', userSchema);
+export default mongoose.model<IUser>('User', userSchema);
