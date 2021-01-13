@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { mdAuth } from '../middleware/auth';
 import Role from '../models/role';
 
 // var mdAuth = require('../middleware/auth');
@@ -8,8 +9,7 @@ import Role from '../models/role';
 const roleRouter = Router();
 
 /* #region  GET */
-// appRouter.get('/', mdAuth.verificaToken, (req: Request, res: Response) => {
-roleRouter.get('/', (req: Request, res: Response) => {
+roleRouter.get('/', mdAuth, (req: Request, res: Response) => {
 	Role.find(
 		{
 			deleted: false
@@ -37,8 +37,7 @@ roleRouter.get('/', (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  GET BY ID */
-// roleRouter.get('/:id', mdAuth.verificaToken, (req: Request, res: Response) => {
-roleRouter.get('/:id', (req: Request, res: Response) => {
+roleRouter.get('/:id', mdAuth, (req: Request, res: Response) => {
 	const id: string = req.params.id;
 
 	Role.findById(id, (err, role) => {
@@ -69,8 +68,7 @@ roleRouter.get('/:id', (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  PUT */
-// cellarRouter.put('/:id', mdAuth.verificaToken, (req: Request, res: Response) => {
-roleRouter.put('/:id', (req: Request, res: Response) => {
+roleRouter.put('/:id', mdAuth, (req: Request, res: Response) => {
 	const id = req.params.id;
 	const body = req.body;
 
@@ -116,8 +114,7 @@ roleRouter.put('/:id', (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  DELETE */
-// cellarRouter.put('/delete/:id', mdAuth.verificaToken, (req: Request, res: Response) => {
-roleRouter.delete('/:id', (req: Request, res: Response) => {
+roleRouter.delete('/:id', mdAuth, (req: Request, res: Response) => {
 	const id = req.params.id;
 
 	Role.findById(id, (err, role) => {
@@ -160,8 +157,7 @@ roleRouter.delete('/:id', (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  POST cellar */
-// cellarRouter.post('/', mdAuth.verificaToken, (req: Request, res: Response) => {
-roleRouter.post('/', (req: Request, res: Response) => {
+roleRouter.post('/', mdAuth, (req: Request, res: Response) => {
 	const body = req.body;
 
 	const role = new Role({

@@ -1,16 +1,15 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs'
-import User from '../models/user';
+import { mdAuth } from '../middleware/auth';
 
-// var mdAuth = require('../middleware/auth');
+import User from '../models/user';
 // import mongoose from 'mongoose';
 // var ObjectId = mongoose.Types.ObjectId;
 
 const userRouter = Router();
 
 /* #region  GET */
-// appRouter.get('/', mdAuth.verificaToken, (req: Request, res: Response) => {
-userRouter.get('/', (req: Request, res: Response) => {
+userRouter.get('/', mdAuth, (req: Request, res: Response) => {
 	User.find(
 		{
 			deleted: false,
@@ -38,8 +37,7 @@ userRouter.get('/', (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  PUT */
-// cellarRouter.put('/:id', mdAuth.verificaToken, (req: Request, res: Response) => {
-userRouter.put('/:id', (req: Request, res: Response) => {
+userRouter.put('/:id', mdAuth, (req: Request, res: Response) => {
 	const id = req.params.id;
 	const body = req.body;
 
@@ -89,8 +87,7 @@ userRouter.put('/:id', (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  DELETE */
-// cellarRouter.put('/delete/:id', mdAuth.verificaToken, (req: Request, res: Response) => {
-userRouter.delete('/:id', (req: Request, res: Response) => {
+userRouter.delete('/:id', mdAuth, (req: Request, res: Response) => {
 	const id = req.params.id;
 
 	User.findById(id, (err, user) => {
@@ -134,8 +131,7 @@ userRouter.delete('/:id', (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  POST cellar */
-// cellarRouter.post('/', mdAuth.verificaToken, (req: Request, res: Response) => {
-userRouter.post('/', (req: Request, res: Response) => {
+userRouter.post('/', mdAuth, (req: Request, res: Response) => {
 	const body = req.body;
 
 	const user = new User({

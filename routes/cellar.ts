@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { mdAuth } from '../middleware/auth'
 import Cellar from '../models/cellar';
 
 // var mdAuth = require('../middleware/auth');
@@ -8,8 +9,7 @@ import Cellar from '../models/cellar';
 const cellarRouter = Router();
 
 /* #region  GET */
-// appRouter.get('/', mdAuth.verificaToken, (req: Request, res: Response) => {
-cellarRouter.get('/', (req: Request, res: Response) => {
+cellarRouter.get('/', mdAuth, (req: Request, res: Response) => {
 	Cellar.find(
 		{
 			deleted: false
@@ -89,8 +89,7 @@ cellarRouter.get('/', (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  PUT */
-// cellarRouter.put('/:id', mdAuth.verificaToken, (req: Request, res: Response) => {
-cellarRouter.put('/:id', (req: Request, res: Response) => {
+cellarRouter.put('/:id', mdAuth, (req: Request, res: Response) => {
 	const id = req.params.id;
 	const body = req.body;
 
@@ -137,8 +136,7 @@ cellarRouter.put('/:id', (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  DELETE */
-// cellarRouter.put('/delete/:id', mdAuth.verificaToken, (req: Request, res: Response) => {
-cellarRouter.delete('/:id', (req: Request, res: Response) => {
+cellarRouter.put('/delete/:id', mdAuth, (req: Request, res: Response) => {
 	const id = req.params.id;
 
 	Cellar.findById(id, (err, cellar) => {
@@ -181,8 +179,7 @@ cellarRouter.delete('/:id', (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  POST cellar */
-// cellarRouter.post('/', mdAuth.verificaToken, (req: Request, res: Response) => {
-cellarRouter.post('/', (req: Request, res: Response) => {
+cellarRouter.post('/', mdAuth, (req: Request, res: Response) => {
 	const body = req.body;
 
 	const cellar = new Cellar({
