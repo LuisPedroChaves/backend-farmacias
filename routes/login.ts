@@ -38,6 +38,7 @@ loginRouter.post('/', (req: Request, res: Response) => {
 		deleted: false,
 	})
 		.populate('_role', '')
+		.populate('_cellar', '')
 		.exec((err, userBD) => {
 			if (err) {
 				return res.status(500).json({

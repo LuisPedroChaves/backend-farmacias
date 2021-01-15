@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express';
 import { mdAuth } from '../middleware/auth'
 import Cellar from '../models/cellar';
 
-// var mdAuth = require('../middleware/auth');
 // import mongoose from 'mongoose';
 // var ObjectId = mongoose.Types.ObjectId;
 
@@ -136,7 +135,7 @@ cellarRouter.put('/:id', mdAuth, (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  DELETE */
-cellarRouter.put('/delete/:id', mdAuth, (req: Request, res: Response) => {
+cellarRouter.delete('/delete/:id', mdAuth, (req: Request, res: Response) => {
 	const id = req.params.id;
 
 	Cellar.findById(id, (err, cellar) => {
