@@ -1,12 +1,13 @@
 import { Router, Request, Response } from 'express';
+// import mongoose from 'mongoose';
 import { mdAuth } from '../middleware/auth'
 import Order from '../models/order';
 import Customer from '../models/customer';
 
-// import mongoose from 'mongoose';
-// var ObjectId = mongoose.Types.ObjectId;
+import { IOrder } from '../models/order';
 
 const orderRouter = Router();
+// const ObjectId = mongoose.Types.ObjectId;
 
 /* #region  GET */
 orderRouter.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
@@ -39,7 +40,7 @@ orderRouter.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
         .sort({
             noOrder: -1
         })
-        .exec((err, orders) => {
+        .exec((err: any, orders: IOrder) => {
             if (err) {
                 return res.status(500).json({
                     ok: false,
@@ -56,47 +57,207 @@ orderRouter.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
+/* #region  GET / ID */
+orderRouter.get('/order/:id', mdAuth, (req: Request, res: Response) => {
+	const id = req.params.id;
+
+    Order.findById(id, (err, order) => {
+		if (err) {
+			return res.status(500).json({
+				ok: false,
+				mensaje: 'Error al buscar orden',
+				errors: err,
+			});
+		}
+
+		if (!order) {
+			return res.status(400).json({
+				ok: false,
+				mensaje: 'La orden con el id' + id + ' no existe',
+				errors: {
+					message: 'No existe una orden con ese ID',
+				},
+			});
+		}
+
+        res.status(200).json({
+            ok: true,
+            order,
+        });
+	});
+});
+/* #endregion */
+
 /* #region  PUT */
 orderRouter.put('/:id', mdAuth, (req: Request, res: Response) => {
     const id = req.params.id;
     const body = req.body;
 
-    Order.findById(id, (err, cellar) => {
+    Order.findById(id, (err, order) => {
         if (err) {
             return res.status(500).json({
                 ok: false,
-                mensaje: 'Error al buscar sucursal',
+                mensaje: 'Error al buscar orden',
                 errors: err
             });
         }
 
-        if (!cellar) {
+        if (!order) {
             return res.status(400).json({
                 ok: false,
-                mensaje: 'La sucursal con el id' + id + ' no existe',
+                mensaje: 'La orden con el id' + id + ' no existe',
                 errors: {
-                    message: 'No existe una sucursal con ese ID'
+                    message: 'No existe una orden con ese ID'
                 }
             });
         }
 
-        // cellar.name = body.name;
-        // cellar.address = body.address;
-        // cellar.description = body.description;
-        // cellar.type = body.type;
+        if (body.nit) {
+            body.nit = body.nit.replace(/\s/g, '');
+            body.nit = body.nit.replace(/-/g, '').toUpperCase();
+        }
 
-        cellar.save((err, cellar) => {
+        Customer.findOne({
+            nit: body.nit,
+            deleted: false
+        }).exec(async (err, _customer) => {
+            if (err) {
+                res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error al buscar cliente',
+                    errors: err,
+                });
+            }
+
+            if (!_customer) {
+                if (
+                    !body.nit ||
+                    body.nit === '' ||
+                    body.nit === 'C/F' ||
+                    body.nit === 'c/f' ||
+                    body.nit === 'cf' ||
+                    body.nit === 'CF'
+                ) {
+                    // El cliente no existe y no hay que guardarlo
+                    body.nit = 'CF';
+                } else {
+                    // hay que guaradar el cliente
+                    const customer = new Customer({
+                        name: body.name,
+                        nit: body.nit,
+                        phone: body.phone,
+                        address: body.address,
+                        town: body.town,
+                        department: body.department,
+                    });
+
+                    await customer
+                        .save()
+                        .then((NewCustomer) => {
+                            _customer = NewCustomer;
+                        })
+                        .catch((err) => {
+                            res.status(400).json({
+                                ok: false,
+                                mensaje: 'Error al crear cliente',
+                                errors: err,
+                            });
+                        });
+                }
+            } else if (_customer) {
+                _customer.name = body.name;
+                _customer.nit = body.nit;
+                _customer.phone = body.phone;
+                _customer.address = body.address;
+                _customer.town = body.town;
+                _customer.department = body.department;
+
+                await _customer.save((err, NewCustomer) => {
+                    if (err) {
+                        return res.status(400).json({
+                            ok: false,
+                            mensaje: 'Error al actualizar cliente',
+                            errors: err
+                        });
+                    }
+                    _customer = NewCustomer;
+                });
+            }
+
+            order._customer = _customer;
+            order._user = body._user;
+            order.nit = body.nit;
+            order.name = body.name;
+            order.phone = body.phone;
+            order.address = body.address;
+            order.town = body.town;
+            order.department = body.department;
+            order.details = body.details;
+            order.payment = body.payment;
+            order.total = body.total;
+
+            order.save((err, order) => {
+                if (err) {
+                    return res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al actualizar orden',
+                        errors: err
+                    });
+                }
+
+                res.status(200).json({
+                    ok: true,
+                    order
+                });
+            });
+
+        });
+    });
+});
+/* #endregion */
+
+/* #region  PUT */
+orderRouter.put('/state/:id', mdAuth, (req: Request, res: Response) => {
+    const id = req.params.id;
+    const body = req.body;
+
+    Order.findById(id, (err, order) => {
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error al buscar orden',
+                errors: err
+            });
+        }
+
+        if (!order) {
+            return res.status(400).json({
+                ok: false,
+                mensaje: 'La orden con el id' + id + ' no existe',
+                errors: {
+                    message: 'No existe una orden con ese ID'
+                }
+            });
+        }
+
+        order.noBill = body.noBill;
+        order.state = body.state;
+        order.timeDispatch = body.timeDispatch;
+        order.timeSend = body.timeSend;
+        order.timeDelivery = body.timeDelivery;
+
+        order.save((err, order) => {
             if (err) {
                 return res.status(400).json({
                     ok: false,
-                    mensaje: 'Error al actualizar sucursal',
+                    mensaje: 'Error al actualizar order',
                     errors: err
                 });
             }
 
             res.status(200).json({
                 ok: true,
-                cellar
+                order
             });
         });
     });
@@ -104,7 +265,7 @@ orderRouter.put('/:id', mdAuth, (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  DELETE */
-orderRouter.delete('/delete/:id', mdAuth, (req: Request, res: Response) => {
+orderRouter.delete('/:id', mdAuth, (req: Request, res: Response) => {
     const id = req.params.id;
 
     Order.findById(id, (err, order) => {
@@ -150,86 +311,104 @@ orderRouter.delete('/delete/:id', mdAuth, (req: Request, res: Response) => {
 orderRouter.post('/', mdAuth, (req: Request, res: Response) => {
     const body = req.body;
 
-	try {
-		if (body.nit) {
-			body.nit = body.nit.replace(/\s/g, '');
-			body.nit = body.nit.replace(/-/g, '').toUpperCase();
-		}
+    try {
+        if (body.nit) {
+            body.nit = body.nit.replace(/\s/g, '');
+            body.nit = body.nit.replace(/-/g, '').toUpperCase();
+        }
 
-		Customer.findOne({
-			$or: [{ nit: body.nit }, { name: body.name }],
-		}).exec(async (err, _customer) => {
-			if (err) {
-				res.status(500).json({
-					ok: false,
-					mensaje: 'Error al buscar cliente',
-					errors: err,
-				});
-			}
+        Customer.findOne({
+            nit: body.nit,
+            deleted: false
+        }).exec(async (err, _customer) => {
+            if (err) {
+                res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error al buscar cliente',
+                    errors: err,
+                });
+            }
 
-			if (!_customer) {
-				if (
-					!body.nit ||
-					body.nit === '' ||
-					body.nit === 'C/F' ||
-					body.nit === 'c/f' ||
-					body.nit === 'cf' ||
-					body.nit === 'CF'
-				) {
-					// El cliente no existe y no hay que guardarlo
-					body.nit = 'CF';
-				}
-					// hay que guaradar el cliente
-					const customer = new Customer({
-						name: body.name,
-						nit: body.nit,
-						phone: body.phone,
-						address: body.address,
-						town: body.town,
-						department: body.department,
-					});
+            if (!_customer) {
+                if (
+                    !body.nit ||
+                    body.nit === '' ||
+                    body.nit === 'C/F' ||
+                    body.nit === 'c/f' ||
+                    body.nit === 'cf' ||
+                    body.nit === 'CF'
+                ) {
+                    // El cliente no existe y no hay que guardarlo
+                    body.nit = 'CF';
+                } else {
+                    // hay que guaradar el cliente
+                    const customer = new Customer({
+                        name: body.name,
+                        nit: body.nit,
+                        phone: body.phone,
+                        address: body.address,
+                        town: body.town,
+                        department: body.department,
+                    });
 
-					await customer
-						.save()
-						.then((NewCustomer) => {
-							_customer = NewCustomer;
-						})
-						.catch((err) => {
-							res.status(400).json({
-								ok: false,
-								mensaje: 'Error al crear cliente',
-								errors: err,
-							});
-						});
-			}
+                    await customer
+                        .save()
+                        .then((NewCustomer) => {
+                            _customer = NewCustomer;
+                        })
+                        .catch((err) => {
+                            res.status(400).json({
+                                ok: false,
+                                mensaje: 'Error al crear cliente',
+                                errors: err,
+                            });
+                        });
+                }
+            }else if (_customer) {
+                _customer.name = body.name;
+                _customer.nit = body.nit;
+                _customer.phone = body.phone;
+                _customer.address = body.address;
+                _customer.town = body.town;
+                _customer.department = body.department;
 
-			Order.findOne(
-				{
-					_cellar: body._cellar,
+                await _customer.save((err, NewCustomer) => {
+                    if (err) {
+                        return res.status(400).json({
+                            ok: false,
+                            mensaje: 'Error al actualizar cliente',
+                            errors: err
+                        });
+                    }
+                    _customer = NewCustomer;
+                });
+            }
+
+            Order.findOne(
+                {
+                    _cellar: body._cellar,
                     deleted: false
-				},
-                'no serie',
+                },
+                'noOrder',
                 {
                     sort: {
                         noOrder: -1
                     }
                 },
-				function (err, order) {
-					if (err) {
-						return res.status(500).json({
-							ok: false,
-							mensaje: 'Error al buscar correlativo',
-							errors: err,
-						});
-					}
+                function (err, order) {
+                    if (err) {
+                        return res.status(500).json({
+                            ok: false,
+                            mensaje: 'Error al buscar correlativo',
+                            errors: err,
+                        });
+                    }
 
-					// Definiciones para la factura
-					let correlative = 0;
-					if (order) {
-						correlative = Number(order.noOrder) + 1;
-					}
-					body.nit = body.nit.replace(/\s/g, '');
-                    body.nit = body.nit.replace(/-/g, '').toUpperCase();
+                    // Definiciones para la factura
+                    let correlative = 0;
+                    if (order) {
+                        correlative = Number(order.noOrder) + 1;
+                    }
 
                     const newOrder = new Order({
                         _cellar: body._cellar,
@@ -237,6 +416,12 @@ orderRouter.post('/', mdAuth, (req: Request, res: Response) => {
                         _customer,
                         noOrder: correlative,
                         noBill: body.noBill,
+                        name: body.name,
+                        nit: body.nit,
+                        phone: body.phone,
+                        address: body.address,
+                        town: body.town,
+                        department: body.department,
                         details: body.details,
                         payment: body.payment,
                         total: body.total,
@@ -258,13 +443,13 @@ orderRouter.post('/', mdAuth, (req: Request, res: Response) => {
                                 errors: err,
                             });
                         });
-				}
-			);
-		});
-	} catch (err) {
-		// ERROR GLOBAL
+                }
+            );
+        });
+    } catch (err) {
+        // ERROR GLOBAL
         console.log("🚀 ~ file: order.ts ~ line 1248 ~ orderRouter.post ~ err", err)
-	}
+    }
 });
 /* #endregion */
 

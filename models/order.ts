@@ -8,19 +8,26 @@ import { IUser } from './user';
 
 export interface IOrder extends Document {
     _cellar: ICellar['_id'],
-    _customer: ICustomer['_id'],
+    _customer?: ICustomer['_id'],
     _user: IUser['_id'],
+    _delivery?: IUser['_id'],
     noOrder: string,
     noBill: string,
+    nit: string,
+    name: string,
+    phone: string,
+    address: string,
+    town: string,
+    department: string,
     details: string,
     payment: string,
     total: number,
     state: string,
-    createdAt: string,
+    date: Date,
     timeOrder: string,
-    timeDispatch: string,
-    timeSend: string,
-    timeDelivery: string,
+    timeDispatch: Date,
+    timeSend: Date,
+    timeDelivery: Date,
     deleted: boolean
 }
 
@@ -30,7 +37,7 @@ let pagosValidos = {
 };
 
 let estadosValidos = {
-    values: ['ORDEN', 'DESPACHO', 'ENVIO', 'ENTREGA'],
+    values: ['ORDEN', 'DESPACHO', 'ENVIO', 'ENTREGA', 'FIN'],
     message: '{VALUE} no es un tipo de pago permitido'
 };
 
@@ -48,13 +55,36 @@ const orderSchema: Schema = new Schema({
     _customer: {
         type: Schema.Types.ObjectId,
         ref: 'Customer',
-        required: [true, 'El cliente es necesario']
+        default: null
+    },
+    _delivery: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
     },
     noOrder: {
         type: Number,
         required: [true, 'El número de orden es necesaria'],
     },
     noBill: {
+        type: String,
+    },
+    nit: {
+        type: String,
+    },
+    name: {
+        type: String,
+    },
+    phone: {
+        type: String,
+    },
+    address: {
+        type: String,
+    },
+    town: {
+        type: String,
+    },
+    department: {
         type: String,
     },
     details: {
@@ -75,7 +105,7 @@ const orderSchema: Schema = new Schema({
         default: 'ORDEN'
     },
     date: {
-        type: String,
+        type: Date,
         default:  moment().tz("America/Guatemala").format()
     },
     timeOrder: {
@@ -83,16 +113,16 @@ const orderSchema: Schema = new Schema({
         default: ''
     },
     timeDispatch: {
-        type: String,
-        default: ''
+        type: Date,
+        default: null
     },
     timeSend: {
-        type: String,
-        default: ''
+        type: Date,
+        default: null
     },
     timeDelivery: {
-        type: String,
-        default: ''
+        type: Date,
+        default: null
     },
     deleted: {
         type: Boolean,
