@@ -57,6 +57,38 @@ orderRouter.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
+/* #region  GET */
+orderRouter.get('/dispatches/:_cellar', mdAuth, (req: Request, res: Response) => {
+    const _cellar = req.params._cellar;
+
+    Order.find(
+        {
+            _cellar,
+            state: 'ORDEN',
+            deleted: false
+        },
+        ''
+    )
+        .sort({
+            noOrder: -1
+        })
+        .exec((err: any, dispatches: IOrder) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando ordenes',
+                    errors: err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                dispatches
+            });
+        });
+});
+/* #endregion */
+
 /* #region  GET / ID */
 orderRouter.get('/order/:id', mdAuth, (req: Request, res: Response) => {
 	const id = req.params.id;
@@ -84,7 +116,9 @@ orderRouter.get('/order/:id', mdAuth, (req: Request, res: Response) => {
             ok: true,
             order,
         });
-	});
+    })
+    .populate('_user', '')
+    .populate('_delivery', '');
 });
 /* #endregion */
 
