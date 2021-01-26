@@ -36,6 +36,38 @@ userRouter.get('/', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
+/* #region  GET / ID */
+userRouter.get('/user/:id', mdAuth, (req: Request, res: Response) => {
+	const id = req.params.id;
+
+    User.findById(id, (err, user) => {
+		if (err) {
+			return res.status(500).json({
+				ok: false,
+				mensaje: 'Error al buscar usuario',
+				errors: err,
+			});
+		}
+
+		if (!user) {
+			return res.status(400).json({
+				ok: false,
+				mensaje: 'El usuario con el id' + id + ' no existe',
+				errors: {
+					message: 'No existe un usuario con ese ID',
+				},
+			});
+		}
+
+        res.status(200).json({
+            ok: true,
+            user,
+        });
+    })
+    .populate('_role', '')
+});
+/* #endregion */
+
 /* #region  PUT */
 userRouter.put('/:id', mdAuth, (req: Request, res: Response) => {
 	const id = req.params.id;

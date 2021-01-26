@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 // import mongoose from 'mongoose';
+import moment from 'moment-timezone';
 import { mdAuth } from '../middleware/auth'
 import Order from '../models/order';
 import Customer from '../models/customer';
@@ -89,36 +90,69 @@ orderRouter.get('/dispatches/:_cellar', mdAuth, (req: Request, res: Response) =>
 });
 /* #endregion */
 
+/* #region  GET */
+orderRouter.get('/routes/:_cellar', mdAuth, (req: Request, res: Response) => {
+    const _cellar = req.params._cellar;
+
+    Order.find(
+        {
+            _cellar,
+            state: 'DESPACHO',
+            deleted: false
+        },
+        ''
+    )
+        .populate('_delivery')
+        .sort({
+            noOrder: -1
+        })
+        .exec((err: any, orders: IOrder) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando ordenes',
+                    errors: err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                orders
+            });
+        });
+});
+/* #endregion */
+
 /* #region  GET / ID */
 orderRouter.get('/order/:id', mdAuth, (req: Request, res: Response) => {
-	const id = req.params.id;
+    const id = req.params.id;
 
     Order.findById(id, (err, order) => {
-		if (err) {
-			return res.status(500).json({
-				ok: false,
-				mensaje: 'Error al buscar orden',
-				errors: err,
-			});
-		}
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error al buscar orden',
+                errors: err,
+            });
+        }
 
-		if (!order) {
-			return res.status(400).json({
-				ok: false,
-				mensaje: 'La orden con el id' + id + ' no existe',
-				errors: {
-					message: 'No existe una orden con ese ID',
-				},
-			});
-		}
+        if (!order) {
+            return res.status(400).json({
+                ok: false,
+                mensaje: 'La orden con el id' + id + ' no existe',
+                errors: {
+                    message: 'No existe una orden con ese ID',
+                },
+            });
+        }
 
         res.status(200).json({
             ok: true,
             order,
         });
     })
-    .populate('_user', '')
-    .populate('_delivery', '');
+        .populate('_user', '')
+        .populate('_delivery', '');
 });
 /* #endregion */
 
@@ -276,7 +310,9 @@ orderRouter.put('/state/:id', mdAuth, (req: Request, res: Response) => {
 
         order.noBill = body.noBill;
         order.state = body.state;
-        order.timeDispatch = body.timeDispatch;
+        if (body.state === 'DESPACHO') {
+            order.timeDispatch = moment().tz("America/Guatemala").format();
+        }
         order.timeSend = body.timeSend;
         order.timeDelivery = body.timeDelivery;
 
@@ -398,7 +434,7 @@ orderRouter.post('/', mdAuth, (req: Request, res: Response) => {
                             });
                         });
                 }
-            }else if (_customer) {
+            } else if (_customer) {
                 _customer.name = body.name;
                 _customer.nit = body.nit;
                 _customer.phone = body.phone;

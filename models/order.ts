@@ -25,7 +25,7 @@ export interface IOrder extends Document {
     state: string,
     date: Date,
     timeOrder: string,
-    timeDispatch: Date,
+    timeDispatch: string,
     timeSend: Date,
     timeDelivery: Date,
     deleted: boolean
@@ -38,7 +38,7 @@ let pagosValidos = {
 
 let estadosValidos = {
     values: ['ORDEN', 'DESPACHO', 'ENVIO', 'ENTREGA', 'FIN'],
-    message: '{VALUE} no es un tipo de pago permitido'
+    message: '{VALUE} no es un estado permitido'
 };
 
 const orderSchema: Schema = new Schema({
