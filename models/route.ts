@@ -9,7 +9,7 @@ export interface IRoute extends Document {
     date: Date,
     details: IRouteDetail[],
     state: string,
-    timeFinish: Date,
+    timeFinish: string,
     deleted: boolean
 }
 
@@ -18,7 +18,7 @@ export interface IRouteDetail extends Document {
 }
 
 let estadosValidos = {
-    values: ['INICIO', 'RUTA', 'FIN', 'RECHASADA'],
+    values: ['INICIO', 'RUTA', 'FIN', 'RECHAZADA'],
     message: '{VALUE} no es un estado permitido'
 };
 

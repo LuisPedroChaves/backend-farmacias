@@ -313,8 +313,9 @@ orderRouter.put('/state/:id', mdAuth, (req: Request, res: Response) => {
         if (body.state === 'DESPACHO') {
             order.timeDispatch = moment().tz("America/Guatemala").format();
         }
-        order.timeSend = body.timeSend;
-        order.timeDelivery = body.timeDelivery;
+        if (body.state === 'ENTREGA') {
+            order.timeDelivery = moment().tz("America/Guatemala").format();
+        }
 
         order.save((err, order) => {
             if (err) {

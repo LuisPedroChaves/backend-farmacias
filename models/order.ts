@@ -26,8 +26,8 @@ export interface IOrder extends Document {
     date: Date,
     timeOrder: string,
     timeDispatch: string,
-    timeSend: Date,
-    timeDelivery: Date,
+    timeSend: string,
+    timeDelivery: string,
     deleted: boolean
 }
 
@@ -37,7 +37,7 @@ let pagosValidos = {
 };
 
 let estadosValidos = {
-    values: ['ORDEN', 'DESPACHO', 'ENVIO', 'ENTREGA', 'FIN'],
+    values: ['ORDEN', 'DESPACHO', 'ENVIO', 'ENTREGA'],
     message: '{VALUE} no es un estado permitido'
 };
 
