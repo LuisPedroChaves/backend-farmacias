@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { IUser } from './user';
 const Float = require('mongoose-float').loadType(mongoose, 2);
 
 export interface ICustomer extends Document {
@@ -11,11 +12,17 @@ export interface ICustomer extends Document {
  	company: string,
  	transport: string,
  	limitCredit: number,
- 	limitDaysCredit: number,
+	 limitDaysCredit: number,
+	 _seller?: IUser['_id'],
 	deleted: boolean
 }
 
 const customerSchema: Schema = new Schema({
+	_seller: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    },
 	name: {
 		type: String,
 		required: [true, 'El nombre es necesario'],
@@ -50,7 +57,7 @@ const customerSchema: Schema = new Schema({
     limitDaysCredit: {
         type: Number,
         default: 0
-    },
+	},
 	deleted: {
 		type: Boolean,
 		default: false,

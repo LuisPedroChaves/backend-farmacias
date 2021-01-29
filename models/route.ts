@@ -2,9 +2,11 @@ import mongoose, { Schema, Document } from 'mongoose';
 import moment from 'moment-timezone';
 import { IUser } from './user';
 import { IOrder } from './order';
+import { ICellar } from './cellar';
 
 export interface IRoute extends Document {
     _user: IUser['_id'];
+    _cellar: ICellar['_id'];
     noRoute: number,
     date: Date,
     details: IRouteDetail[],
@@ -27,6 +29,11 @@ const routeSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: [true, 'El usuario es necesario']
+    },
+    _cellar: {
+        type: Schema.Types.ObjectId,
+        ref: 'Cellar',
+        required: [true, 'La sucursal es necesaria']
     },
     noRoute: {
         type: Number,

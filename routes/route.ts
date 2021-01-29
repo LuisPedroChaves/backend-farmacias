@@ -11,12 +11,49 @@ const routeRouter = Router();
 // const ObjectId = mongoose.Types.ObjectId;
 
 /* #region  GET */
-routeRouter.get('/:_user', mdAuth, (req: Request, res: Response) => {
+routeRouter.get('/active/:_user', mdAuth, (req: Request, res: Response) => {
+    const _user = req.params._user;
+
+    Route.find(
+        {
+            _user: _user,
+            state: {
+                $in: ['INICIO', 'RUTA']
+            },
+            deleted: false
+        },
+        ''
+    )
+        .populate('_cellar')
+        .populate('details._order')
+        .sort({
+            date: -1
+        })
+        .exec((err: any, actives: IRoute) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando rutas',
+                    errors: err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                actives
+            });
+        });
+});
+/* #endregion */
+
+/* #region  GET */
+routeRouter.get('/:_user/:_cellar', mdAuth, (req: Request, res: Response) => {
     const mes: number = Number(req.query.month);
     let mes2 = 0;
     let año: number = Number(req.query.year);
     let año2: number = Number(req.query.year);
     const _user = req.params._user;
+    const _cellar = req.params._cellar;
 
     if (mes == 12) {
         mes2 = 1;
@@ -28,6 +65,7 @@ routeRouter.get('/:_user', mdAuth, (req: Request, res: Response) => {
     Route.find(
         {
             _user: _user,
+            _cellar: _cellar,
             date: {
                 $gte: new Date(año + ',' + mes),
                 $lt: new Date(año2 + ',' + mes2),
@@ -55,41 +93,6 @@ routeRouter.get('/:_user', mdAuth, (req: Request, res: Response) => {
             res.status(200).json({
                 ok: true,
                 routes
-            });
-        });
-});
-/* #endregion */
-
-/* #region  GET */
-routeRouter.get('/active/:_user', mdAuth, (req: Request, res: Response) => {
-    const _user = req.params._user;
-
-    Route.find(
-        {
-            _user: _user,
-            state: {
-                $in: ['INICIO', 'RUTA']
-            },
-            deleted: false
-        },
-        ''
-    )
-        .populate('details._order')
-        .sort({
-            date: -1
-        })
-        .exec((err: any, actives: IRoute) => {
-            if (err) {
-                return res.status(500).json({
-                    ok: false,
-                    mensaje: 'Error listando rutas',
-                    errors: err
-                });
-            }
-
-            res.status(200).json({
-                ok: true,
-                actives
             });
         });
 });
@@ -452,6 +455,7 @@ routeRouter.post('/', mdAuth, (req: Request, res: Response) => {
 
                 const newRoute = new Route({
                     _user: body._user,
+                    _cellar: body._cellar,
                     noRoute: correlative,
                     details: body.details,
                 });
