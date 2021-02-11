@@ -549,6 +549,7 @@ orderRouter.post('/', mdAuth, (req: Request, res: Response) => {
                         details: body.details,
                         payment: body.payment,
                         total: body.total,
+                        date: moment().tz("America/Guatemala").format(),
                         timeOrder: body.timeOrder
                     });
 

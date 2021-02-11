@@ -77,6 +77,7 @@ routeRouter.get('/:_user/:_cellar', mdAuth, (req: Request, res: Response) => {
         },
         ''
     )
+    .populate('_cellar')
     .populate('details._order')
         .sort({
             date: -1
