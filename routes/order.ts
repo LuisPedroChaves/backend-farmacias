@@ -11,6 +11,52 @@ const orderRouter = Router();
 // const ObjectId = mongoose.Types.ObjectId;
 
 /* #region  GET */
+orderRouter.get('/', mdAuth, (req: Request, res: Response) => {
+    const mes: number = Number(req.query.month);
+    let mes2 = 0;
+    let año: number = Number(req.query.year);
+    let año2: number = Number(req.query.year);
+
+    if (mes == 12) {
+        mes2 = 1;
+        año2 = año + 1;
+    } else {
+        mes2 = mes + 1;
+    }
+
+    Order.find(
+        {
+            date: {
+                $gte: new Date(año + ',' + mes),
+                $lt: new Date(año2 + ',' + mes2),
+            },
+        },
+        ''
+    )
+        .populate('_cellar', '')
+        .populate('_user', '')
+        .populate('_customer', '')
+        .sort({
+            noOrder: -1
+        })
+        .exec((err: any, orders: IOrder) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando ordenes',
+                    errors: err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                orders
+            });
+        });
+});
+/* #endregion */
+
+/* #region  GET */
 orderRouter.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
     const mes: number = Number(req.query.month);
     let mes2 = 0;
@@ -36,6 +82,7 @@ orderRouter.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
         },
         ''
     )
+        .populate('_cellar', '')
         .populate('_user', '')
         .populate('_customer', '')
         .sort({
@@ -152,6 +199,7 @@ orderRouter.get('/order/:id', mdAuth, (req: Request, res: Response) => {
         });
     })
         .populate('_user', '')
+        .populate('_userDeleted', '')
         .populate('_delivery', '');
 });
 /* #endregion */
@@ -252,6 +300,7 @@ orderRouter.put('/:id', mdAuth, (req: Request, res: Response) => {
                 });
             }
 
+            order._cellar = body._cellar;
             order._customer = _customer;
             order._user = body._user;
             order.nit = body.nit;
@@ -336,8 +385,10 @@ orderRouter.put('/state/:id', mdAuth, (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  DELETE */
-orderRouter.delete('/:id', mdAuth, (req: Request, res: Response) => {
+orderRouter.put('/delete/:id', mdAuth, (req: Request, res: Response) => {
     const id = req.params.id;
+    const body = req.body;
+    console.log("🚀 ~ file: order.ts ~ line 342 ~ orderRouter.put ~ body", body)
 
     Order.findById(id, (err, order) => {
         if (err) {
@@ -358,6 +409,8 @@ orderRouter.delete('/:id', mdAuth, (req: Request, res: Response) => {
             });
         }
 
+        order._userDeleted = body._userDeleted;
+        order.textDeleted = body.textDeleted;
         order.deleted = true;
 
         order.save((err, order) => {

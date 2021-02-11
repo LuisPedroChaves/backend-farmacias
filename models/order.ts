@@ -11,6 +11,7 @@ export interface IOrder extends Document {
     _customer?: ICustomer['_id'],
     _user: IUser['_id'],
     _delivery?: IUser['_id'],
+    _userDeleted?: IUser['_id'],
     noOrder: string,
     noBill: string,
     nit: string,
@@ -28,6 +29,7 @@ export interface IOrder extends Document {
     timeDispatch: string,
     timeSend: string,
     timeDelivery: string,
+    textDeleted?: string,
     deleted: boolean
 }
 
@@ -58,6 +60,11 @@ const orderSchema: Schema = new Schema({
         default: null
     },
     _delivery: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    },
+    _userDeleted: {
         type: Schema.Types.ObjectId,
         ref: 'User',
         default: null
@@ -123,6 +130,9 @@ const orderSchema: Schema = new Schema({
     timeDelivery: {
         type: Date,
         default: null
+    },
+    textDeleted: {
+        type: String,
     },
     deleted: {
         type: Boolean,
