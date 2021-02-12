@@ -107,7 +107,7 @@ saleRouter.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
-/* #region  PUT compra */
+/* #region  PUT venta */
 saleRouter.put('/:id', mdAuth, (req, res) => {
     const id = req.params.id;
     const body = req.body;
@@ -164,18 +164,60 @@ saleRouter.put('/:id', mdAuth, (req, res) => {
   });
   /* #endregion */
 
+  /* #region  DELETE */
+  saleRouter.delete('/:id', mdAuth, (req: Request, res: Response) => {
+	const id = req.params.id;
+
+	Sale.findById(id, (err, sale) => {
+		if (err) {
+			return res.status(500).json({
+				ok: false,
+				mensaje: 'Error al buscar venta',
+				errors: err,
+			});
+		}
+
+		if (!sale) {
+			return res.status(400).json({
+				ok: false,
+				mensaje: 'La venta con el id' + id + ' no existe',
+				errors: {
+					message: 'No existe una venta con ese ID',
+				},
+			});
+		}
+
+		sale.deleted = true;
+
+		sale.save((err, sale) => {
+			if (err) {
+				return res.status(400).json({
+					ok: false,
+					mensaje: 'Error al borrar venta',
+					errors: err,
+				});
+			}
+
+			res.status(200).json({
+				ok: true,
+				sale,
+			});
+		});
+	});
+});
+/* #endregion */
+
 /* #region  POST cellar */
 saleRouter.post('/', mdAuth, (req: Request, res: Response) => {
     const body = req.body;
 
     try {
-        if (body.nit) {
-            body.nit = body.nit.replace(/\s/g, '');
-            body.nit = body.nit.replace(/-/g, '').toUpperCase();
+        if (body.code) {
+            body.code = body.code.replace(/\s/g, '').toUpperCase();
         }
 
         Customer.findOne({
-            $or: [{ nit: body.nit }, { name: body.name }],
+            $or: [{ code: body.code }, { nit: body.nit }],
             deleted: false
         }).exec(async (err, _customer) => {
             if (err) {
@@ -195,11 +237,11 @@ saleRouter.post('/', mdAuth, (req: Request, res: Response) => {
                     body.nit === 'cf' ||
                     body.nit === 'CF'
                 ) {
-                    // El cliente no existe y no hay que guardarlo
                     body.nit = 'CF';
                 }
                 // hay que guaradar el cliente
                 const customer = new Customer({
+                    code: body.code,
                     name: body.name,
                     nit: body.nit,
                     phone: body.phone,
@@ -226,6 +268,7 @@ saleRouter.post('/', mdAuth, (req: Request, res: Response) => {
                         });
                     });
             } else if (_customer) {
+                _customer.code = body.code;
                 _customer.name = body.name;
                 _customer.nit = body.nit;
                 _customer.phone = body.phone;

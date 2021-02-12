@@ -281,7 +281,7 @@ customerRouter.get('/recivables/:id', mdAuth, (req: Request, res: Response) => {
 			]),
 		]).then(function (counts) {
 			let timeAvaliable = true;
-			let credit = 0;
+			let credit = customer.limitCredit;
 			if (counts[0].length > 0) {
 				let arrayCount = counts[0];
 				let objectCount = arrayCount[0];
@@ -300,11 +300,9 @@ customerRouter.get('/recivables/:id', mdAuth, (req: Request, res: Response) => {
 					let arrayCount2 = counts[2];
 					let objectCount2: any = arrayCount2[0];
 					let balance = parseFloat(objectCount.saldo) - parseFloat(objectCount2.pago);
-					credit = customer.limitCredit - balance;
+					credit = credit - balance;
 				}
 			}
-
-			console.log(counts[1]);
 
 			res.status(200).json({
 				ok: true,
@@ -340,6 +338,14 @@ customerRouter.put('/:id', mdAuth, (req: Request, res: Response) => {
 			});
 		}
 
+		if (body.code) {
+			body.code = body.code.replace(/\s/g, '').toUpperCase();
+		}
+		if (body.nit) {
+			body.nit = body.nit.replace(/\s/g, '');
+			body.nit = body.nit.replace(/-/g, '').toUpperCase();
+		}
+
 		customer.name = body.name;
 		customer.nit = body.nit;
 		customer.phone = body.phone;
@@ -347,6 +353,7 @@ customerRouter.put('/:id', mdAuth, (req: Request, res: Response) => {
 		customer.town = body.town;
 		customer.department = body.department;
 		customer.company = body.company;
+		customer.code = body.code;
 		customer.transport = body.transport;
 		customer.limitCredit = body.limitCredit;
 		customer.limitDaysCredit = body.limitDaysCredit;
@@ -417,6 +424,14 @@ customerRouter.delete('/:id', mdAuth, (req: Request, res: Response) => {
 customerRouter.post('/', mdAuth, (req: Request, res: Response) => {
 	const body = req.body;
 
+	if (body.code) {
+		body.code = body.code.replace(/\s/g, '').toUpperCase();
+	}
+	if (body.nit) {
+		body.nit = body.nit.replace(/\s/g, '');
+		body.nit = body.nit.replace(/-/g, '').toUpperCase();
+	}
+
 	const customer = new Customer({
 		name: body.name,
 		nit: body.nit,
@@ -425,6 +440,7 @@ customerRouter.post('/', mdAuth, (req: Request, res: Response) => {
 		town: body.town,
 		department: body.department,
 		company: body.company,
+		code: body.code,
 		transport: body.transport,
 		limitCredit: body.limitCredit,
 		limitDaysCredit: body.limitDaysCredit,

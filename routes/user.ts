@@ -162,6 +162,56 @@ userRouter.delete('/:id', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
+/* #region  LOGIN */
+userRouter.post('/login', mdAuth,  (req: Request, res: Response) => {
+	const body = req.body;
+
+	User.findOne({
+		username: body.username,
+		deleted: false,
+	})
+		.populate('_role', '')
+		.populate('_cellar', '')
+		.exec((err, userBD) => {
+			if (err) {
+				return res.status(500).json({
+					ok: false,
+					mensaje: 'Error al buscar usuario',
+					errors: err,
+				});
+			}
+
+			if (!userBD) {
+				return res.status(400).json({
+					ok: false,
+					mensaje: 'Credenciales incorrectas - email',
+					errors: err,
+				});
+			}
+
+			if (!bcrypt.compareSync(body.password, userBD.password)) {
+				return res.status(400).json({
+					ok: false,
+					mensaje: 'Credenciales incorrectas - password',
+					errors: err,
+				});
+			}
+
+			if (userBD._role.type !== 'ADMIN') {
+				return res.status(400).json({
+					ok: false,
+					mensaje: 'Credenciales incorrectas',
+					errors: err,
+				});
+			}
+
+            res.status(200).json({
+                ok: true
+            });
+		});
+});
+/* #endregion */
+
 /* #region  POST cellar */
 userRouter.post('/', mdAuth, (req: Request, res: Response) => {
 	const body = req.body;

@@ -1,14 +1,15 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { IUser } from './user';
 const Float = require('mongoose-float').loadType(mongoose, 2);
+import { IUser } from './user';
 
 export interface ICustomer extends Document {
 	name: string,
- 	nit: string,
- 	phone: string,
- 	address: string,
- 	town: string,
- 	department: string,
+	nit: string,
+	phone: string,
+	address: string,
+	town: string,
+	department: string,
+	code?: string,
  	company: string,
  	transport: string,
  	limitCredit: number,
@@ -45,6 +46,9 @@ const customerSchema: Schema = new Schema({
 		required: [true, 'El departamento es necesario'],
 	},
 	company: {
+		type: String,
+	},
+	code: {
 		type: String,
 	},
 	transport: {
