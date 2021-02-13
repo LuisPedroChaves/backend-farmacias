@@ -145,6 +145,121 @@ customerRouter.get('/recivables', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
+/* #region  GET */
+customerRouter.get('/recivablesBySeller/:id', mdAuth, (req: Request, res: Response) => {
+	const idSeller = req.params.id;
+	Customer.find({
+		_seller: idSeller,
+		deleted: false,
+	})
+		.populate('_seller')
+		.sort({ name: 1 })
+		.exec((err, customers) => {
+			if (err) {
+				return res.status(500).json({
+					ok: false,
+					mensaje: 'Error listando clientes',
+					errors: err,
+				});
+			}
+
+			const promises = customers.map((customer: any) => {
+				return new Promise(async (resolve, reject) => {
+					const timeAvaliable = await Sale.find(
+						{
+							_customer: customer._id,
+							paid: false,
+							deleted: false
+						},
+						'date',
+						{
+							sort: {
+								date: 1
+							}
+						}).limit(1).exec();
+					customer = customer.toObject();
+					customer.timeAvaliable = true;
+					if (timeAvaliable.length > 0) {
+						const date1 = new Date(moment(timeAvaliable[0].date).tz("America/Guatemala").format());
+						const date2 = new Date(moment().tz("America/Guatemala").format());
+						const days = Math.floor((date2.getTime() - date1.getTime()) / 86400000).toFixed(0);
+						if (parseInt(days) > customer.limitDaysCredit) {
+							customer.timeAvaliable = false;
+						}
+					}
+
+					customer.balance = 0;
+					const saldo = await Sale.aggregate([
+						{
+							$match: {
+								_customer: customer._id,
+								paid: false,
+								deleted: false
+							}
+						},
+						{
+							$group: {
+								_id: '$_customer',
+								total: { $sum: '$total' },
+							},
+						},
+					]);
+					if (saldo.length > 0) {
+						const balance = await Sale.aggregate([
+							{
+								$match: {
+									_customer: customer._id,
+									paid: false,
+									deleted: false
+								}
+							},
+							{
+								$unwind: {
+									path: '$balance',
+									preserveNullAndEmptyArrays: true,
+								},
+							},
+							{
+								$match: {
+									_customer: customer._id,
+									paid: false,
+									deleted: false
+								}
+							},
+							{
+								$group: {
+									_id: '$_customer',
+									pago: { $sum: '$balance.amount' },
+								},
+							},
+						]);
+						if (balance.length > 0) {
+							customer.balance = (saldo[0].total - parseFloat(balance[0].pago)).toFixed(2);
+						}
+					}
+					resolve(customer);
+				});
+			});
+
+			Promise.all(promises)
+				.then((results) => {
+					res.status(200).json({
+						ok: true,
+						customers: results,
+					});
+				})
+				.catch((error) => {
+					res.status(400).json({
+						ok: false,
+						mensaje:
+							'Error al obtener cuentas por cobrar',
+						errors: error,
+					});
+				});
+		});
+});
+/* #endregion */
+
 /* #region  GET / ID */
 customerRouter.get('/statements/:id', mdAuth, (req: Request, res: Response) => {
 	const id = req.params.id;
