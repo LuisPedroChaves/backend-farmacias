@@ -9,10 +9,12 @@ import customerRouter from './customer';
 import orderRouter from './order';
 import routeRouter from './route';
 import saleRouter from './sale';
+import internalOrderRouter from './internalOrder';
 
 const router = Router();
 
 // Rutas
+router.use('/internalOrder', internalOrderRouter);
 router.use('/sale', saleRouter);
 router.use('/route', routeRouter);
 router.use('/order', orderRouter);
