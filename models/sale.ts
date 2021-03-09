@@ -23,7 +23,8 @@ export interface ISaleBalance extends Document {
     receipt: string,
     document: string,
     payment: string,
-    amount: number
+    amount: number,
+    file: string
 }
 
 let pagosValidos = {
@@ -73,6 +74,9 @@ const saleSchema: Schema = new Schema({
         amount: {
             type: Float,
             required: [true, 'El monto es necesario']
+        },
+        file: {
+            type: String,
         },
     }],
     total: {
