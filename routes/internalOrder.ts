@@ -1,9 +1,14 @@
 import { Router, Request, Response } from 'express';
 import moment from 'moment-timezone';
+import Server from '../classes/serve';
 import { mdAuth } from '../middleware/auth'
 import InternalOrder from '../models/internalOrder';
 import { IInternalOrder } from '../models/internalOrder';
+import Cellar from '../models/cellar';
+import User from '../models/user';
 
+// WebSockets Server
+const SERVER = Server.instance;
 const internalOrderRouter = Router();
 
 /* #region  GET */
@@ -70,8 +75,8 @@ internalOrderRouter.get('/actives/:_delivery', mdAuth, (req: Request, res: Respo
         },
         ''
     )
-    .populate('_cellar')
-    .populate('_destination')
+        .populate('_cellar')
+        .populate('_destination')
         .sort({
             noOrder: -1
         })
@@ -93,46 +98,7 @@ internalOrderRouter.get('/actives/:_delivery', mdAuth, (req: Request, res: Respo
 /* #endregion */
 
 /* #region  GET */
-internalOrderRouter.get('/outgoing/:_cellar', mdAuth, (req: Request, res: Response) => {
-    const _cellar = req.params._cellar;
-    const type = String(req.query.type);
-
-    InternalOrder.find(
-        {
-            _cellar,
-            type,
-            state: {
-                $ne: 'ENTREGA'
-            },
-            deleted: false
-        },
-        ''
-    )
-        .populate('_user', '')
-        .populate('_delivery', '')
-        .populate('_destination', '')
-        .sort({
-            noOrder: -1
-        })
-        .exec((err: any, internalOrders: IInternalOrder) => {
-            if (err) {
-                return res.status(500).json({
-                    ok: false,
-                    mensaje: 'Error listando pedidos o traslados',
-                    errors: err
-                });
-            }
-
-            res.status(200).json({
-                ok: true,
-                internalOrders
-            });
-        });
-});
-/* #endregion */
-
-/* #region  GET */
-internalOrderRouter.get('/incoming/:_destination', mdAuth, (req: Request, res: Response) => {
+internalOrderRouter.get('/outgoing/:_destination', mdAuth, (req: Request, res: Response) => {
     const _destination = req.params._destination;
     const type = String(req.query.type);
 
@@ -147,7 +113,46 @@ internalOrderRouter.get('/incoming/:_destination', mdAuth, (req: Request, res: R
         },
         ''
     )
-    .populate('_cellar', '')
+        .populate('_user', '')
+        .populate('_delivery', '')
+        .populate('_cellar', '')
+        .sort({
+            noOrder: -1
+        })
+        .exec((err: any, internalOrders: IInternalOrder) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando pedidos o traslados',
+                    errors: err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                internalOrders
+            });
+        });
+});
+/* #endregion */
+
+/* #region  GET */
+internalOrderRouter.get('/incoming/:_cellar', mdAuth, (req: Request, res: Response) => {
+    const _cellar = req.params._cellar;
+    const type = String(req.query.type);
+
+    InternalOrder.find(
+        {
+            _cellar,
+            type,
+            state: {
+                $ne: 'ENTREGA'
+            },
+            deleted: false
+        },
+        ''
+    )
+        .populate('_destination', '')
         .populate('_user', '')
         .populate('_delivery', '')
         .sort({
@@ -297,6 +302,15 @@ internalOrderRouter.put('/state/:id', mdAuth, (req: Request, res: Response) => {
                 });
             }
 
+            Cellar.populate(internalOrder, { path: '_cellar' }, (err, result: IInternalOrder) => {
+                Cellar.populate(result, { path: '_destination' }, (err, result: IInternalOrder) => {
+                    User.populate(result, { path: '_user' }, (err, result: IInternalOrder) => {
+                        SERVER.io.in(result._cellar._id).emit('updateIncoming', result);
+                        SERVER.io.in(result._destination._id).emit('updateOutgoing', result);
+                    });
+                });
+            });
+
             res.status(200).json({
                 ok: true,
                 internalOrder
@@ -354,21 +368,34 @@ internalOrderRouter.put('/delete/:id', mdAuth, (req: Request, res: Response) => 
 
 /* #region  POST cellar */
 internalOrderRouter.post('/', mdAuth, (req: Request, res: Response) => {
-    const body = req.body;
+    const BODY = req.body;
 
     const newInternalOrder = new InternalOrder({
-        _cellar: body._cellar,
-        _user: body._user,
-        _destination: body._destination,
-        noOrder: body.noOrder,
+        _cellar: BODY._cellar,
+        _user: BODY._user,
+        _destination: BODY._destination,
+        noOrder: BODY.noOrder,
         date: moment().tz("America/Guatemala").format(),
-        details: body.details,
-        type: body.type,
+        details: BODY.details,
+        type: BODY.type,
+        state: BODY.state,
     });
 
     newInternalOrder
         .save()
         .then((internalOrder) => {
+            if (internalOrder.state === 'ENVIO') {
+                SERVER.io.in(internalOrder._cellar).emit('newInternalOrder', internalOrder);
+            }
+            Cellar.populate(internalOrder, { path: '_cellar' }, (err, result: IInternalOrder) => {
+                Cellar.populate(result, { path: '_destination' }, (err, result: IInternalOrder) => {
+                    User.populate(result, { path: '_user' }, (err, result: IInternalOrder) => {
+                        SERVER.io.in(result._cellar._id).emit('updateIncoming', result);
+                        SERVER.io.in(result._destination._id).emit('updateOutgoing', result);
+                    });
+                });
+            });
+
             res.status(200).json({
                 ok: true,
                 internalOrder,

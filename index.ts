@@ -5,7 +5,9 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import morgan from 'morgan';
 
-const server = new Server();
+// const server = new Server();
+// patrón Singleton
+const server = Server.instance;
 
 // BodyParser Configuración
 server.app.use(bodyParser.urlencoded({ extended: true }));

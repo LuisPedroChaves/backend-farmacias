@@ -133,9 +133,9 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
                                 });
                             }
 
-                            res.status(201).json({
+                            res.status(200).json({
                                 ok: true,
-                                balance
+                                newNameFile
                             });
                         }
                     );
