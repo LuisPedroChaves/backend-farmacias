@@ -3,10 +3,11 @@ import moment from 'moment-timezone';
 import { IUser } from './user';
 import { IOrder } from './order';
 import { ICellar } from './cellar';
+import { IInternalOrder } from './internalOrder';
 
 export interface IRoute extends Document {
     _user: IUser['_id'];
-    _cellar: ICellar['_id'];
+    _cellar?: ICellar['_id'];
     noRoute: number,
     date: Date,
     details: IRouteDetail[],
@@ -16,7 +17,8 @@ export interface IRoute extends Document {
 }
 
 export interface IRouteDetail extends Document {
-    _order: IOrder['_id'];
+    _order?: IOrder['_id'];
+    _internalOrder?: IInternalOrder['_id'];
 }
 
 let estadosValidos = {
@@ -33,7 +35,7 @@ const routeSchema = new Schema({
     _cellar: {
         type: Schema.Types.ObjectId,
         ref: 'Cellar',
-        required: [true, 'La sucursal es necesaria']
+        default: null
     },
     noRoute: {
         type: Number,
@@ -41,12 +43,18 @@ const routeSchema = new Schema({
     },
     date: {
         type: Date,
-        default:  moment().tz("America/Guatemala").format()
+        default: moment().tz("America/Guatemala").format()
     },
     details: [{
         _order: {
             type: Schema.Types.ObjectId,
-            ref: 'Order'
+            ref: 'Order',
+            default: null
+        },
+        _internalOrder: {
+            type: Schema.Types.ObjectId,
+            ref: 'InternalOrder',
+            default: null
         },
     }],
     state: {

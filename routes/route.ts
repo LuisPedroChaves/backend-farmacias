@@ -4,6 +4,8 @@ import moment from 'moment-timezone';
 import { mdAuth } from '../middleware/auth'
 import Route from '../models/route';
 import Order from '../models/order';
+import InternalOrder from '../models/internalOrder';
+import Cellar from '../models/cellar';
 
 import { IRoute, IRouteDetail } from '../models/route';
 
@@ -26,10 +28,11 @@ routeRouter.get('/active/:_user', mdAuth, (req: Request, res: Response) => {
     )
         .populate('_cellar')
         .populate('details._order')
+        .populate('details._internalOrder')
         .sort({
             date: -1
         })
-        .exec((err: any, actives: IRoute) => {
+        .exec(async (err: any, actives: IRoute[]) => {
             if (err) {
                 return res.status(500).json({
                     ok: false,
@@ -38,10 +41,52 @@ routeRouter.get('/active/:_user', mdAuth, (req: Request, res: Response) => {
                 });
             }
 
-            res.status(200).json({
-                ok: true,
-                actives
+            const promises = actives.map((active) => {
+                return new Promise((resolve, reject) => {
+                    const promises2 = active.details.map((detail) => {
+                        return new Promise((resolve, reject) => {
+                            if (detail._internalOrder) {
+                                Cellar.populate(detail, { path: '_internalOrder._cellar' }, async (err, result: any) => {
+                                    Cellar.populate(result, { path: '_internalOrder._destination' }, async (err, result: any) => {
+                                        resolve(result);
+                                    });
+                                });
+                            } else {
+                                resolve(detail);
+                            }
+                        });
+                    });
+
+                    Promise.all(promises2)
+                        .then((results: any) => {
+                            active.details = results;
+                            resolve(true);
+                        })
+                        .catch((error) => {
+                            res.status(400).json({
+                                ok: false,
+                                mensaje: 'Error al buscar sucursales y destinos',
+                                errors: error
+                            });
+                        });
+
+                });
             });
+
+            Promise.all(promises)
+                .then((results) => {
+                    res.status(200).json({
+                        ok: true,
+                        actives
+                    });
+                })
+                .catch((error) => {
+                    res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al buscar sucursales y destinos',
+                        errors: error
+                    });
+                });
         });
 });
 /* #endregion */
@@ -62,40 +107,120 @@ routeRouter.get('/:_user/:_cellar', mdAuth, (req: Request, res: Response) => {
         mes2 = mes + 1;
     }
 
-    Route.find(
-        {
-            _user: _user,
-            _cellar: _cellar,
-            date: {
-                $gte: new Date(año + ',' + mes),
-                $lt: new Date(año2 + ',' + mes2),
+    if (_cellar !== 'null') {
+        Route.find(
+            {
+                _user: _user,
+                _cellar: _cellar,
+                date: {
+                    $gte: new Date(año + ',' + mes),
+                    $lt: new Date(año2 + ',' + mes2),
+                },
+                state: {
+                    $in: ['FIN', 'RECHAZADA']
+                },
+                deleted: false
             },
-            state: {
-                $in: ['FIN', 'RECHAZADA']
-            },
-            deleted: false
-        },
-        ''
-    )
-    .populate('_cellar')
-    .populate('details._order')
-        .sort({
-            date: -1
-        })
-        .exec((err: any, routes: IRoute) => {
-            if (err) {
-                return res.status(500).json({
-                    ok: false,
-                    mensaje: 'Error listando rutas',
-                    errors: err
-                });
-            }
+            ''
+        )
+            .populate('_cellar')
+            .populate('details._order')
+            .sort({
+                date: -1
+            })
+            .exec((err: any, routes: IRoute[]) => {
+                if (err) {
+                    return res.status(500).json({
+                        ok: false,
+                        mensaje: 'Error listando rutas',
+                        errors: err
+                    });
+                }
 
-            res.status(200).json({
-                ok: true,
-                routes
+                res.status(200).json({
+                    ok: true,
+                    routes
+                });
             });
-        });
+    } else {
+        Route.find(
+            {
+                _user: _user,
+                date: {
+                    $gte: new Date(año + ',' + mes),
+                    $lt: new Date(año2 + ',' + mes2),
+                },
+                state: {
+                    $in: ['FIN', 'RECHAZADA']
+                },
+                deleted: false
+            },
+            ''
+        )
+            .populate('_cellar')
+            .populate('details._order')
+            .populate('details._internalOrder')
+            .sort({
+                date: -1
+            })
+            .exec((err: any, routes: IRoute[]) => {
+                if (err) {
+                    return res.status(500).json({
+                        ok: false,
+                        mensaje: 'Error listando rutas',
+                        errors: err
+                    });
+                }
+
+                const promises = routes.map((route) => {
+                    return new Promise((resolve, reject) => {
+                        const promises2 = route.details.map((detail) => {
+                            return new Promise((resolve, reject) => {
+                                if (detail._internalOrder) {
+                                    Cellar.populate(detail, { path: '_internalOrder._cellar' }, async (err, result: any) => {
+                                        Cellar.populate(result, { path: '_internalOrder._destination' }, async (err, result: any) => {
+                                            resolve(result);
+                                        });
+                                    });
+                                } else {
+                                    resolve(detail);
+                                }
+                            });
+                        });
+
+                        Promise.all(promises2)
+                            .then((results: any) => {
+                                console.log(results);
+                                route.details = results;
+                                resolve(true);
+                            })
+                            .catch((error) => {
+                                res.status(400).json({
+                                    ok: false,
+                                    mensaje: 'Error al buscar sucursales y destinos',
+                                    errors: error
+                                });
+                            });
+
+                    });
+                });
+
+                Promise.all(promises)
+                    .then((results) => {
+                        res.status(200).json({
+                            ok: true,
+                            routes
+                        });
+                    })
+                    .catch((error) => {
+                        res.status(400).json({
+                            ok: false,
+                            mensaje: 'Error al buscar sucursales y destinos',
+                            errors: error
+                        });
+                    });
+            });
+    }
 });
 /* #endregion */
 
@@ -126,25 +251,47 @@ routeRouter.put('/:id', mdAuth, (req: Request, res: Response) => {
         const promises = route.details.map((detail: IRouteDetail) => {
             return new Promise((resolve, reject) => {
 
-                Order.findById(detail._order, (err, order) => {
-                    if (err) {
-                        return reject('Error al buscar orden');
-                    }
-
-                    if (!order) {
-                        return reject('No existe una orden con ese ID');
-                    }
-
-                    order._delivery = null;
-
-                    order.save((err, order) => {
+                if (detail._order) {
+                    Order.findById(detail._order, (err, order) => {
                         if (err) {
-                            return reject('Error al actualizar orden');
+                            return reject('Error al buscar orden');
                         }
 
-                        resolve(true);
+                        if (!order) {
+                            return reject('No existe una orden con ese ID');
+                        }
+
+                        order._delivery = null;
+
+                        order.save((err, order) => {
+                            if (err) {
+                                return reject('Error al actualizar orden');
+                            }
+
+                            resolve(true);
+                        });
                     });
-                });
+                } else if (detail._internalOrder) {
+                    InternalOrder.findById(detail._internalOrder, (err, internalOrder) => {
+                        if (err) {
+                            return reject('Error al buscar pedido o traslado');
+                        }
+
+                        if (!internalOrder) {
+                            return reject('No existe un pedido o traslado con ese ID');
+                        }
+
+                        internalOrder._delivery = null;
+
+                        internalOrder.save((err, order) => {
+                            if (err) {
+                                return reject('Error al actualizar pedido o traslado');
+                            }
+
+                            resolve(true);
+                        });
+                    });
+                }
             });
         });
 
@@ -165,25 +312,49 @@ routeRouter.put('/:id', mdAuth, (req: Request, res: Response) => {
                     const promises = route.details.map((detail: IRouteDetail) => {
                         return new Promise((resolve, reject) => {
 
-                            Order.findById(detail._order, (err, order) => {
-                                if (err) {
-                                    return reject('Error al buscar orden');
-                                }
-
-                                if (!order) {
-                                    return reject('No existe una orden con ese ID');
-                                }
-
-                                order._delivery = route._user;
-
-                                order.save((err, order) => {
+                            if (detail._order) {
+                                Order.findById(detail._order, (err, order) => {
                                     if (err) {
-                                        return reject('Error al actualizar orden');
+                                        return reject('Error al buscar orden');
                                     }
 
-                                    resolve(true);
+                                    if (!order) {
+                                        return reject('No existe una orden con ese ID');
+                                    }
+
+                                    order._delivery = route._user;
+
+                                    order.save((err, order) => {
+                                        if (err) {
+                                            return reject('Error al actualizar orden');
+                                        }
+
+                                        resolve(true);
+                                    });
                                 });
-                            });
+
+                            } else if (detail._internalOrder) {
+                                InternalOrder.findById(detail._internalOrder, (err, internalOrder) => {
+                                    if (err) {
+                                        return reject('Error al buscar pedido o traslado');
+                                    }
+
+                                    if (!internalOrder) {
+                                        return reject('No existe un pedido o traslado con ese ID');
+                                    }
+
+                                    internalOrder._delivery = route._user;
+
+                                    internalOrder.save((err, order) => {
+                                        if (err) {
+                                            return reject('Error al actualizar pedido o traslado');
+                                        }
+
+                                        resolve(true);
+                                    });
+                                });
+                            }
+
                         });
                     });
 
@@ -256,26 +427,30 @@ routeRouter.put('/state/:id', mdAuth, (req: Request, res: Response) => {
                 const promises = route.details.map((detail: IRouteDetail) => {
                     return new Promise((resolve, reject) => {
 
-                        Order.findById(detail._order, (err, order) => {
-                            if (err) {
-                                return reject('Error al buscar orden');
-                            }
-
-                            if (!order) {
-                                return reject('No existe una orden con ese ID');
-                            }
-
-                            order.state = 'ENVIO';
-                            order.timeSend = moment().tz("America/Guatemala").format();
-
-                            order.save((err, order) => {
+                        if (detail._order) {
+                            Order.findById(detail._order, (err, order) => {
                                 if (err) {
-                                    return reject('Error al actualizar orden');
+                                    return reject('Error al buscar orden');
                                 }
 
-                                resolve(true);
+                                if (!order) {
+                                    return reject('No existe una orden con ese ID');
+                                }
+
+                                order.state = 'ENVIO';
+                                order.timeSend = moment().tz("America/Guatemala").format();
+
+                                order.save((err, order) => {
+                                    if (err) {
+                                        return reject('Error al actualizar orden');
+                                    }
+
+                                    resolve(true);
+                                });
                             });
-                        });
+                        } else {
+                            resolve(true);
+                        }
                     });
                 });
 
@@ -293,29 +468,52 @@ routeRouter.put('/state/:id', mdAuth, (req: Request, res: Response) => {
                             errors: error
                         });
                     });
-            }else if (route.state === 'RECHAZADA') {
+            } else if (route.state === 'RECHAZADA') {
                 const promises = route.details.map((detail: IRouteDetail) => {
                     return new Promise((resolve, reject) => {
 
-                        Order.findById(detail._order, (err, order) => {
-                            if (err) {
-                                return reject('Error al buscar orden');
-                            }
+                        if (detail._order) {
 
-                            if (!order) {
-                                return reject('No existe una orden con ese ID');
-                            }
-
-                            order._delivery = null;
-
-                            order.save((err, order) => {
+                            Order.findById(detail._order, (err, order) => {
                                 if (err) {
-                                    return reject('Error al actualizar orden');
+                                    return reject('Error al buscar orden');
                                 }
 
-                                resolve(true);
+                                if (!order) {
+                                    return reject('No existe una orden con ese ID');
+                                }
+
+                                order._delivery = null;
+
+                                order.save((err, order) => {
+                                    if (err) {
+                                        return reject('Error al actualizar orden');
+                                    }
+
+                                    resolve(true);
+                                });
                             });
-                        });
+                        } else if (detail._internalOrder) {
+                            InternalOrder.findById(detail._internalOrder, (err, internalOrder) => {
+                                if (err) {
+                                    return reject('Error al buscar pedido o traslado');
+                                }
+
+                                if (!internalOrder) {
+                                    return reject('No existe un pedido o traslado con ese ID');
+                                }
+
+                                internalOrder._delivery = null;
+
+                                internalOrder.save((err, order) => {
+                                    if (err) {
+                                        return reject('Error al actualizar pedido o traslado');
+                                    }
+
+                                    resolve(true);
+                                });
+                            });
+                        }
                     });
                 });
 
@@ -333,7 +531,7 @@ routeRouter.put('/state/:id', mdAuth, (req: Request, res: Response) => {
                             errors: error
                         });
                     });
-            }else {
+            } else {
                 res.status(200).json({
                     ok: true,
                     route
@@ -381,26 +579,48 @@ routeRouter.delete('/:id', mdAuth, (req: Request, res: Response) => {
             const promises = route.details.map((detail: IRouteDetail) => {
                 return new Promise((resolve, reject) => {
 
-                    Order.findById(detail._order, (err, order) => {
-                        if (err) {
-                            return reject('Error al buscar orden');
-                        }
-
-                        if (!order) {
-                            return reject('No existe una orden con ese ID');
-                        }
-
-                        order._delivery = null;
-                        order.state = 'DESPACHO';
-
-                        order.save((err, order) => {
+                    if (detail._order) {
+                        Order.findById(detail._order, (err, order) => {
                             if (err) {
-                                return reject('Error al actualizar orden');
+                                return reject('Error al buscar orden');
                             }
 
-                            resolve(true);
+                            if (!order) {
+                                return reject('No existe una orden con ese ID');
+                            }
+
+                            order._delivery = null;
+                            order.state = 'DESPACHO';
+
+                            order.save((err, order) => {
+                                if (err) {
+                                    return reject('Error al actualizar orden');
+                                }
+
+                                resolve(true);
+                            });
                         });
-                    });
+                    } else if (detail._internalOrder) {
+                        InternalOrder.findById(detail._internalOrder, (err, internalOrder) => {
+                            if (err) {
+                                return reject('Error al buscar pedido o traslado');
+                            }
+
+                            if (!internalOrder) {
+                                return reject('No existe un pedido o traslado con ese ID');
+                            }
+
+                            internalOrder._delivery = null;
+
+                            internalOrder.save((err, order) => {
+                                if (err) {
+                                    return reject('Error al actualizar pedido o traslado');
+                                }
+
+                                resolve(true);
+                            });
+                        });
+                    }
                 });
             });
 
@@ -428,7 +648,6 @@ routeRouter.post('/', mdAuth, (req: Request, res: Response) => {
     const body = req.body;
 
     try {
-
         Route.findOne(
             {
                 _user: body._user,
@@ -458,6 +677,7 @@ routeRouter.post('/', mdAuth, (req: Request, res: Response) => {
                     _user: body._user,
                     _cellar: body._cellar,
                     noRoute: correlative,
+                    date: moment().tz("America/Guatemala").format(),
                     details: body.details,
                 });
 
@@ -467,25 +687,46 @@ routeRouter.post('/', mdAuth, (req: Request, res: Response) => {
                         const promises = route.details.map((detail: IRouteDetail) => {
                             return new Promise((resolve, reject) => {
 
-                                Order.findById(detail._order, (err, order) => {
-                                    if (err) {
-                                        return reject('Error al buscar orden');
-                                    }
-
-                                    if (!order) {
-                                        return reject('No existe una orden con ese ID');
-                                    }
-
-                                    order._delivery = route._user;
-
-                                    order.save((err, order) => {
+                                if (detail._order) {
+                                    Order.findById(detail._order, (err, order) => {
                                         if (err) {
-                                            return reject('Error al actualizar orden');
+                                            return reject('Error al buscar orden');
                                         }
 
-                                        resolve(true);
+                                        if (!order) {
+                                            return reject('No existe una orden con ese ID');
+                                        }
+
+                                        order._delivery = route._user;
+
+                                        order.save((err, order) => {
+                                            if (err) {
+                                                return reject('Error al actualizar orden');
+                                            }
+
+                                            resolve(true);
+                                        });
                                     });
-                                });
+                                } else if (detail._internalOrder) {
+                                    InternalOrder.findById(detail._internalOrder, (err, internalOrder) => {
+                                        if (err) {
+                                            return reject('Error al buscar el pedido o traslado');
+                                        }
+
+                                        if (!internalOrder) {
+                                            return reject('No existe un pedido o traslado con ese ID');
+                                        }
+
+                                        internalOrder._delivery = route._user;
+
+                                        internalOrder.save((err, internalOrder) => {
+                                            if (err) {
+                                                return reject('Error al actualizar pedido o traslado');
+                                            }
+                                            resolve(true);
+                                        });
+                                    });
+                                }
                             });
                         });
 

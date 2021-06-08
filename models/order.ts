@@ -22,6 +22,7 @@ export interface IOrder extends Document {
     department: string,
     details: string,
     payment: string,
+    sellerCode?: string,
     total: number,
     state: string,
     date: Date,
@@ -29,6 +30,7 @@ export interface IOrder extends Document {
     timeDispatch: string,
     timeSend: string,
     timeDelivery: string,
+    textReturned?: string,
     textDeleted?: string,
     deleted: boolean
 }
@@ -39,7 +41,7 @@ let pagosValidos = {
 };
 
 let estadosValidos = {
-    values: ['ORDEN', 'DESPACHO', 'ENVIO', 'ENTREGA'],
+    values: ['ORDEN', 'DESPACHO', 'ENVIO', 'ENTREGA', 'DEVOLUCION'],
     message: '{VALUE} no es un estado permitido'
 };
 
@@ -102,6 +104,9 @@ const orderSchema: Schema = new Schema({
         enum: pagosValidos.values,
         default: 'EFECTIVO'
     },
+    sellerCode: {
+        type: String,
+    },
     total: {
         type: Float,
         required: [true, 'El total es necesario']
@@ -132,6 +137,9 @@ const orderSchema: Schema = new Schema({
         default: null
     },
     textDeleted: {
+        type: String,
+    },
+    textReturned: {
         type: String,
     },
     deleted: {
