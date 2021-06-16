@@ -97,6 +97,41 @@ internalOrderRouter.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  GET */
+internalOrderRouter.get('/activesCellar/:_cellar', mdAuth, (req: Request, res: Response) => {
+    const _CELLAR = req.params._cellar;
+
+    InternalOrder.find(
+        {
+            _cellar: _CELLAR,
+            state: 'DESPACHO',
+            deleted: false
+        },
+        ''
+    )
+    .populate('_cellar')
+        .populate('_destination')
+        .populate('_delivery')
+        .sort({
+            noOrder: -1
+        })
+        .exec((err: any, internalOrders: IInternalOrder) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando pedidos o traslados',
+                    errors: err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                internalOrders
+            });
+        });
+});
+/* #endregion */
+
+/* #region  GET */
 internalOrderRouter.get('/actives/:_delivery', mdAuth, (req: Request, res: Response) => {
     const _delivery = req.params._delivery;
 
