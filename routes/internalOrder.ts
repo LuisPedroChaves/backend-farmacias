@@ -44,55 +44,92 @@ internalOrderRouter.get('/', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
-/* #region  GET */
+/* #region  GET HISTORIAL */
 internalOrderRouter.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
-    const mes: number = Number(req.query.month);
+    const MES: number = Number(req.query.month);
     let mes2 = 0;
     let año: number = Number(req.query.year);
     let año2: number = Number(req.query.year);
-    const _cellar = req.params._cellar;
-    const type = String(req.query.type);
+    const _CELLAR = req.params._cellar;
+    const TYPE = String(req.query.type);
+    const ORIGIN = String(req.query.origin);
 
-    if (mes == 12) {
+    if (MES == 12) {
         mes2 = 1;
         año2 = año + 1;
     } else {
-        mes2 = mes + 1;
+        mes2 = MES + 1;
     }
 
-    InternalOrder.find(
-        {
-            _cellar,
-            date: {
-                $gte: new Date(año + ',' + mes),
-                $lt: new Date(año2 + ',' + mes2),
+    if (ORIGIN === 'origen') {
+        InternalOrder.find(
+            {
+                _cellar: _CELLAR,
+                date: {
+                    $gte: new Date(año + ',' + MES),
+                    $lt: new Date(año2 + ',' + mes2),
+                },
+                type: TYPE,
+                deleted: false
             },
-            type,
-            deleted: false
-        },
-        ''
-    )
-        .populate('_cellar', '')
-        .populate('_user', '')
-        .populate('_delivery', '')
-        .populate('_destination', '')
-        .sort({
-            noOrder: -1
-        })
-        .exec((err: any, internalOrders: IInternalOrder) => {
-            if (err) {
-                return res.status(500).json({
-                    ok: false,
-                    mensaje: 'Error listando pedidos o traslados',
-                    errors: err
-                });
-            }
+            ''
+        )
+            .populate('_cellar', '')
+            .populate('_user', '')
+            .populate('_delivery', '')
+            .populate('_destination', '')
+            .sort({
+                noOrder: -1
+            })
+            .exec((err: any, internalOrders: IInternalOrder) => {
+                if (err) {
+                    return res.status(500).json({
+                        ok: false,
+                        mensaje: 'Error listando pedidos o traslados',
+                        errors: err
+                    });
+                }
 
-            res.status(200).json({
-                ok: true,
-                internalOrders
+                res.status(200).json({
+                    ok: true,
+                    internalOrders
+                });
             });
-        });
+    } else if (ORIGIN === 'destino') {
+        InternalOrder.find(
+            {
+                _destination: _CELLAR,
+                date: {
+                    $gte: new Date(año + ',' + MES),
+                    $lt: new Date(año2 + ',' + mes2),
+                },
+                type: TYPE,
+                deleted: false
+            },
+            ''
+        )
+            .populate('_cellar', '')
+            .populate('_user', '')
+            .populate('_delivery', '')
+            .populate('_destination', '')
+            .sort({
+                noOrder: -1
+            })
+            .exec((err: any, internalOrders: IInternalOrder) => {
+                if (err) {
+                    return res.status(500).json({
+                        ok: false,
+                        mensaje: 'Error listando pedidos o traslados',
+                        errors: err
+                    });
+                }
+
+                res.status(200).json({
+                    ok: true,
+                    internalOrders
+                });
+            });
+    }
 });
 /* #endregion */
 
@@ -108,7 +145,7 @@ internalOrderRouter.get('/activesCellar/:_cellar', mdAuth, (req: Request, res: R
         },
         ''
     )
-    .populate('_cellar')
+        .populate('_cellar')
         .populate('_destination')
         .populate('_delivery')
         .sort({
