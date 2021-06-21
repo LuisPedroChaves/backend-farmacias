@@ -1,6 +1,6 @@
 import Server from './classes/serve';
 import router from './routes/router';
-import bodyParser from 'body-parser';
+import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import morgan from 'morgan';
@@ -10,8 +10,8 @@ import morgan from 'morgan';
 const server = Server.instance;
 
 // BodyParser Configuración
-server.app.use(bodyParser.urlencoded({ extended: true }));
-server.app.use(bodyParser.json());
+server.app.use(express.urlencoded({extended: true}));
+server.app.use(express.json());
 
 // Inicializando Morgan
 server.app.use(morgan('tiny'));

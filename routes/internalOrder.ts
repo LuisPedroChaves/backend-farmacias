@@ -6,6 +6,7 @@ import InternalOrder from '../models/internalOrder';
 import { IInternalOrder } from '../models/internalOrder';
 import Cellar from '../models/cellar';
 import User from '../models/user';
+import fs from 'fs';
 
 // WebSockets Server
 const SERVER = Server.instance;
@@ -462,10 +463,26 @@ internalOrderRouter.put('/delete/:id', mdAuth, (req: Request, res: Response) => 
                 });
             }
 
-            res.status(200).json({
-                ok: true,
-                internalOrder
-            });
+            // Si existe un archivo almacenado anteriormente
+            const oldPath = './uploads/internalOrders/' + internalOrder.file;
+
+            if (fs.existsSync(oldPath)) {
+                // Borramos el archivo antiguo
+                fs.unlink(oldPath, err => {
+                    if (err) {
+                        return res.status(500).json({
+                            ok: false,
+                            mensaje: 'Error al eliminar archivo antiguo',
+                            errors: err
+                        });
+                    }
+
+                    res.status(200).json({
+                        ok: true,
+                        internalOrder
+                    });
+                });
+            }
         });
     });
 });
@@ -489,17 +506,6 @@ internalOrderRouter.post('/', mdAuth, (req: Request, res: Response) => {
     newInternalOrder
         .save()
         .then((internalOrder) => {
-            if (internalOrder.state === 'ENVIO') {
-                SERVER.io.in(internalOrder._cellar).emit('newInternalOrder', internalOrder);
-            }
-            Cellar.populate(internalOrder, { path: '_cellar' }, (err, result: IInternalOrder) => {
-                Cellar.populate(result, { path: '_destination' }, (err, result: IInternalOrder) => {
-                    User.populate(result, { path: '_user' }, (err, result: IInternalOrder) => {
-                        SERVER.io.in(result._cellar._id).emit('updateIncoming', result);
-                        SERVER.io.in(result._destination._id).emit('updateOutgoing', result);
-                    });
-                });
-            });
 
             res.status(200).json({
                 ok: true,

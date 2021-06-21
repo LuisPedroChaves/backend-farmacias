@@ -18,6 +18,7 @@ export interface IInternalOrder extends Document {
     timeInit: string,
     timeDispatch: string,
     timeDelivery: string,
+    file: string,
     deleted: boolean
 }
 
@@ -84,6 +85,9 @@ const internalOrderSchema: Schema = new Schema({
     timeDelivery: {
         type: Date,
         default: null
+    },
+    file: {
+        type: String,
     },
     deleted: {
         type: Boolean,
