@@ -19,7 +19,7 @@ uploadRouter.put('/:type/:id', (req: any, res: Response) => {
     const id = req.params.id;
 
     // Tipos de colecciones
-    const validTypes = ['saleBalances', 'internalOrders'];
+    const validTypes = ['saleBalances', 'internalOrders', 'internalOrdersDispatch'];
 
     if (validTypes.indexOf(type) < 0) {
         return res.status(400).json({
@@ -44,7 +44,7 @@ uploadRouter.put('/:type/:id', (req: any, res: Response) => {
     const extFile = nameFile[nameFile.length - 1];
 
     // Extensiones permitidas
-    const validExts = ['png', 'jpg', 'gif', 'jpeg', 'pdf', 'zip'];
+    const validExts = ['png', 'jpg', 'gif', 'jpeg', 'pdf', 'zip', 'doc', 'docx', 'xls', 'xlsx', 'rar'];
 
     if (validExts.indexOf(extFile) < 0) {
         return res.status(400).json({
@@ -201,6 +201,58 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
                         });
                     });
                 });
+
+                res.status(200).json({
+                    ok: true,
+                    newNameFile
+                });
+            });
+        }),
+        'internalOrdersDispatch': () => InternalOrder.findById(id, (err, internalOrder) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error al buscar pedido o traslado',
+                    errors: err
+                });
+            }
+
+            if (!internalOrder) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'El pedido o traslado con el id' + id + ' no existe',
+                    errors: {
+                        message: 'No existe un pedido o traslado con ese ID'
+                    }
+                });
+            }
+
+            // Si existe un archivo almacenado anteriormente
+            const oldPath = './uploads/internalOrders/' + internalOrder.file;
+
+            if (fs.existsSync(oldPath)) {
+                // Borramos el archivo antiguo
+                fs.unlink(oldPath, err => {
+                    if (err) {
+                        return res.status(500).json({
+                            ok: false,
+                            mensaje: 'Error al eliminar archivo antiguo',
+                            errors: err
+                        });
+                    }
+                });
+            }
+
+            internalOrder.dispatchFile = newNameFile;
+
+            internalOrder.save((err, internalOrder) => {
+                if (err) {
+                    return res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al guardar archivo',
+                        errors: err
+                    });
+                }
 
                 res.status(200).json({
                     ok: true,
