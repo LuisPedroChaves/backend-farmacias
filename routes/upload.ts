@@ -228,7 +228,7 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/internalOrders/' + internalOrder.file;
+            const oldPath = './uploads/internalOrders/' + internalOrder.dispatchFile;
 
             if (fs.existsSync(oldPath)) {
                 // Borramos el archivo antiguo
