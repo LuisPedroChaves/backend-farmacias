@@ -12,10 +12,14 @@ import saleRouter from './sale';
 import internalOrderRouter from './internalOrder';
 import uploadRouter from './upload';
 import readFileRouter from './readFile';
+import PRODUCT_ROUTER from './product';
+import BRAND_ROUTER from './brand';
 
 const router = Router();
 
 // Rutas
+router.use('/brand', BRAND_ROUTER);
+router.use('/product', PRODUCT_ROUTER);
 router.use('/readFile', readFileRouter);
 router.use('/upload', uploadRouter);
 router.use('/internalOrder', internalOrderRouter);
