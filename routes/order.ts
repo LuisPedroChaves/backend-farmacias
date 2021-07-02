@@ -41,83 +41,61 @@ orderRouter.get('/adminRoutes/', mdAuth, (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  GET */
-orderRouter.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
-    const mes: number = Number(req.query.month);
+orderRouter.get('/:_cellar/:_delivery', mdAuth, (req: Request, res: Response) => {
+    const MES: number = Number(req.query.month);
     let mes2 = 0;
     let año: number = Number(req.query.year);
     let año2: number = Number(req.query.year);
-    const _cellar = req.params._cellar;
+    const _CELLAR = req.params._cellar;
+    const _DELIVERY = req.params._delivery;
 
-    if (mes == 12) {
+    if (MES == 12) {
         mes2 = 1;
         año2 = año + 1;
     } else {
-        mes2 = mes + 1;
+        mes2 = MES + 1;
     }
 
-    if (_cellar === 'all') {
-        Order.find(
-            {
-                date: {
-                    $gte: new Date(año + ',' + mes),
-                    $lt: new Date(año2 + ',' + mes2),
-                },
-            },
-            ''
-        )
-            .populate('_cellar', '')
-            .populate('_user', '')
-            .populate('_customer', '')
-            .sort({
-                noOrder: -1
-            })
-            .exec((err: any, orders: IOrder) => {
-                if (err) {
-                    return res.status(500).json({
-                        ok: false,
-                        mensaje: 'Error listando ordenes',
-                        errors: err
-                    });
-                }
+    const FILTER: any =
+    {
+        date: {
+            $gte: new Date(año + ',' + MES),
+            $lt: new Date(año2 + ',' + mes2),
+        },
+        deleted: false
+    };
 
-                res.status(200).json({
-                    ok: true,
-                    orders
-                });
-            });
-    } else {
-        Order.find(
-            {
-                _cellar,
-                date: {
-                    $gte: new Date(año + ',' + mes),
-                    $lt: new Date(año2 + ',' + mes2),
-                },
-                deleted: false
-            },
-            ''
-        )
-            .populate('_cellar', '')
-            .populate('_user', '')
-            .populate('_customer', '')
-            .sort({
-                noOrder: -1
-            })
-            .exec((err: any, orders: IOrder) => {
-                if (err) {
-                    return res.status(500).json({
-                        ok: false,
-                        mensaje: 'Error listando ordenes',
-                        errors: err
-                    });
-                }
-
-                res.status(200).json({
-                    ok: true,
-                    orders
-                });
-            });
+    if (_CELLAR !== 'all') {
+        FILTER._cellar = _CELLAR;
     }
+
+    if (_DELIVERY !== 'all') {
+        FILTER._delivery = _DELIVERY;
+    }
+
+    Order.find(
+        FILTER
+    )
+        .populate('_cellar', '')
+        .populate('_user', '')
+        .populate('_customer', '')
+        .sort({
+            noOrder: -1
+        })
+        .exec((err: any, orders: IOrder) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando ordenes',
+                    errors: err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                orders
+            });
+        });
 });
 /* #endregion */
 
