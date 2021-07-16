@@ -4,33 +4,27 @@ import Brand from '../models/brand';
 
 const BRAND_ROUTER = Router();
 
-BRAND_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
-
-    try {
-        const BODY = req.body;
-
-        const BRAND = new Brand({
-            name: BODY.name,
-        });
-
-        BRAND
-            .save()
-            .then((brand) => {
-                res.status(201).json({
-                    ok: true,
-                    brand
-                });
-            })
-            .catch((err) => {
-                res.status(400).json({
+/* #region  GET */
+BRAND_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
+    Brand.find({
+        deleted: false,
+    })
+        .sort({ name: 1 })
+        .exec((err, brands) => {
+            if (err) {
+                return res.status(500).json({
                     ok: false,
-                    mensaje: 'Error al crear marca',
-                    errors: err
+                    mensaje: 'Error listando marcas',
+                    errors: err,
                 });
+            }
+
+            res.status(200).json({
+                ok: true,
+                brands,
             });
-    } catch (error) {
-        console.log("🚀 ~ file: brand.ts ~ line 12 ~ BRAND_ROUTER.post ~ error", error)
-    }
+        });
 });
+/* #endregion */
 
 export default BRAND_ROUTER;
