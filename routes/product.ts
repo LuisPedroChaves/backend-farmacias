@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { mdAuth } from '../middleware/auth';
 import Product from '../models/product';
+import Brand from '../models/brand';
 
 const PRODUCT_ROUTER = Router();
 
@@ -16,10 +17,11 @@ PRODUCT_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
     Product.find({
         deleted: false,
     })
+        .populate('_brand')
         .skip(page)
         .limit(size)
         .sort({
-            _brand: 1
+            '_brand.name': 1
         })
         .exec((err, products) => {
             if (err) {
@@ -63,26 +65,61 @@ PRODUCT_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
                 });
             }
 
-            product._brand = BODY._brand;
-            product.code = BODY.code;
-            product.description = BODY.description;
-            product.wholesale_price = BODY.wholesale_price;
-            product.distributor_price = BODY.distributor_price;
-            product.retail_price = BODY.retail_price;
-            product.cf_price = BODY.cf_price;
+            if (BODY._brand) {
+                BODY._brand.name = BODY._brand.name.replace(/\s/g, '');
+                BODY._brand.name = BODY._brand.name.replace(/-/g, '').toUpperCase();
+            }
 
-            product.save((err, product) => {
+            Brand.findOne({
+                name: BODY._brand.name,
+                deleted: false,
+            }).exec(async (err, _brand) => {
                 if (err) {
-                    return res.status(400).json({
+                    res.status(500).json({
                         ok: false,
-                        mensaje: 'Error al actualizar producto',
-                        errors: err
+                        mensaje: 'Error al buscar marca',
+                        errors: err,
                     });
                 }
 
-                res.status(200).json({
-                    ok: true,
-                    product
+                if (!_brand) {
+                    const BRAND = new Brand({
+                        name: BODY._brand.name
+                    });
+
+                    await BRAND
+                        .save()
+                        .then((brand) => {
+                            _brand = brand;
+                        })
+                        .catch(err => {
+                            res.status(400).json({
+                                ok: false,
+                                mensaje: 'Error al crear marca',
+                                errors: err,
+                            });
+                        })
+                }
+
+                product._brand = _brand;
+                product.code = BODY.code;
+                product.description = BODY.description;
+                product.wholesale_price = BODY.wholesale_price;
+                product.distributor_price = BODY.distributor_price;
+
+                product.save((err, product) => {
+                    if (err) {
+                        return res.status(400).json({
+                            ok: false,
+                            mensaje: 'Error al actualizar producto',
+                            errors: err
+                        });
+                    }
+
+                    res.status(200).json({
+                        ok: true,
+                        product
+                    });
                 });
             });
         });
@@ -144,33 +181,70 @@ PRODUCT_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
     try {
         const BODY = req.body;
 
-        const PRODUCT = new Product({
-            _brand: BODY._brand,
-            code: BODY.code,
-            description: BODY.description,
-            wholesale_price: BODY.wholesale_price,
-            distributor_price: BODY.distributor_price,
-            retail_price: BODY.retail_price,
-            cf_price: BODY.cf_price,
-            missing: BODY.missing,
-            stagnant: BODY.stagnant,
-        });
+        if (BODY._brand) {
+            BODY._brand.name = BODY._brand.name.replace(/\s/g, '');
+            BODY._brand.name = BODY._brand.name.replace(/-/g, '').toUpperCase();
+        }
 
-        PRODUCT
-            .save()
-            .then((product) => {
-                res.status(201).json({
-                    ok: true,
-                    product
-                });
-            })
-            .catch(err => {
-                res.status(400).json({
+        Brand.findOne({
+            name: BODY._brand.name,
+            deleted: false,
+        }).exec(async (err, _brand) => {
+            if (err) {
+                res.status(500).json({
                     ok: false,
-                    mensaje: 'Error al crear producto',
-                    errors: err
+                    mensaje: 'Error al buscar marca',
+                    errors: err,
                 });
+            }
+
+            if (!_brand) {
+                const BRAND = new Brand({
+                    name: BODY._brand.name
+                });
+
+                await BRAND
+                    .save()
+                    .then((brand) => {
+                        _brand = brand;
+                    })
+                    .catch(err => {
+                        res.status(400).json({
+                            ok: false,
+                            mensaje: 'Error al crear marca',
+                            errors: err,
+                        });
+                    })
+            }
+
+            const PRODUCT = new Product({
+                _brand,
+                code: BODY.code,
+                description: BODY.description,
+                wholesale_price: BODY.wholesale_price,
+                distributor_price: BODY.distributor_price,
+                retail_price: BODY.retail_price,
+                cf_price: BODY.cf_price,
+                missing: BODY.missing,
+                stagnant: BODY.stagnant,
             });
+
+            PRODUCT
+                .save()
+                .then((product) => {
+                    res.status(201).json({
+                        ok: true,
+                        product
+                    });
+                })
+                .catch(err => {
+                    res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al crear producto',
+                        errors: err
+                    });
+                });
+        });
     } catch (error) {
         console.log("🚀 ~ file: product.ts ~ line 10 ~ PRODUCT_ROUTER.post ~ error", error)
     }
