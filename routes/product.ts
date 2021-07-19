@@ -1,9 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { mdAuth } from '../middleware/auth';
+import fileUpload from 'express-fileupload';
+import xlsx from 'node-xlsx';
+import bluebird from 'bluebird';
 import Product from '../models/product';
 import Brand from '../models/brand';
 
 const PRODUCT_ROUTER = Router();
+PRODUCT_ROUTER.use(fileUpload());
+
 
 /* #region  GET pagination */
 PRODUCT_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
@@ -250,5 +255,90 @@ PRODUCT_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
     }
 });
 /* #endregion */
+
+PRODUCT_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
+
+    // Sino envia ningún archivo
+    if (!req.files) {
+        return res.status(400).json({
+            ok: false,
+            mensaje: 'No Selecciono nada',
+            errors: { message: 'Debe de seleccionar un archivo' }
+        });
+    }
+
+    // Obtener nombre y la extensión del archivo
+    const FILE: any = req.files.archivo;
+    const NAME_FILE = FILE.name.split('.');
+    const EXT_FILE = NAME_FILE[NAME_FILE.length - 1];
+
+    // Nombre del archivo personalizado
+    const NEW_NAME_FILE = `${new Date().getMilliseconds()}.${EXT_FILE}`;
+
+    // Mover el archivo de la memoria temporal a un path
+    const PATH = `./uploads/temp/${NEW_NAME_FILE}`;
+
+    FILE.mv(PATH, async (err: any) => {
+
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error al mover archivo',
+                errors: err
+            });
+        }
+
+        const DOC = xlsx.parse(PATH);
+
+        await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
+            try {
+                let marca: string = doc[2];
+                if (marca) {
+                    marca = marca.replace(/\s/g, '');
+                    marca = marca.replace(/-/g, '').toUpperCase();
+                }
+
+                let _brand = await Brand.findOne({
+                    name: marca,
+                    deleted: false,
+                }).exec();
+
+                if (!_brand) {
+                    const BRAND = new Brand({
+                        name: marca
+                    });
+
+                    _brand = await BRAND
+                        .save()
+                        .then();
+                }
+
+                const PRODUCT = new Product({
+                    _brand,
+                    code: doc[0],
+                    description: doc[1],
+                    wholesale_price: doc[3],
+                    distributor_price: doc[4],
+                    retail_price: doc[5],
+                    cf_price: doc[6],
+                    missing: [],
+                    stagnant: [],
+                });
+
+                let product = await PRODUCT
+                    .save()
+                    .then();
+
+            } catch (e) {
+                throw new Error(e.message);
+            }
+        });
+
+        return res.status(201).json({
+            ok: true,
+            m: 'PRODUCTOS INGRESADOS'
+        });
+    });
+});
 
 export default PRODUCT_ROUTER;
