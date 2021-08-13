@@ -28,6 +28,7 @@ let tiposValidos = {
     message: '{VALUE} no es un tipo permitido'
 };
 
+// TODO:AGREGAR ESTADO 'PREPARANDO' para pedidos de FALTANTES, que sea editable durante el día
 let estadosValidos = {
     values: ['ENVIO', 'CONFIRMACION', 'RECHAZO', 'DESPACHO', 'ENTREGA'],
     message: '{VALUE} no es un estado permitido'
