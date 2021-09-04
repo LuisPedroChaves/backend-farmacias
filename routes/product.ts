@@ -5,6 +5,7 @@ import xlsx from 'node-xlsx';
 import bluebird from 'bluebird';
 import Product from '../models/product';
 import Brand from '../models/brand';
+import Substance from '../models/substance';
 
 const PRODUCT_ROUTER = Router();
 PRODUCT_ROUTER.use(fileUpload());
@@ -14,21 +15,33 @@ PRODUCT_ROUTER.use(fileUpload());
 PRODUCT_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
     // Paginación
     let page = req.query.page || 0;
-    let size = req.query.size || 20;
-    page = Number(page) - 1;
+    let size = req.query.size || 10;
+    let search = req.query.search || '';
+    search = String(search);
+    const REGEX = new RegExp(search, 'i');
+
+    page = Number(page);
     size = Number(size);
-    page = (size * page);
+    // Product.collection.createIndex({code: "number", description: "text"})
 
     Product.find({
         deleted: false,
+        // $code: {$search: Number(search)},
+        // $text: {$search: String(REGEX) },
+        description: REGEX,
+        // $or:[
+        //     {"_brand.name": search},
+        //     {"description":search}
+        // ]
     })
+        .collation( { locale: "es" })
         .populate('_brand')
         .skip(page)
         .limit(size)
         .sort({
-            '_brand.name': 1
+            code: 1
         })
-        .exec((err, products) => {
+        .exec(async (err, products) => {
             if (err) {
                 return res.status(500).json({
                     ok: false,
@@ -37,9 +50,14 @@ PRODUCT_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
                 });
             }
 
+            const TOTAL: number = await Product.find({ deleted: false, })
+			.countDocuments()
+			.exec();
+
             res.status(200).json({
                 ok: true,
-                products
+                products,
+                TOTAL
             });
         });
 });
@@ -108,9 +126,14 @@ PRODUCT_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
 
                 product._brand = _brand;
                 product.code = BODY.code;
+                product.barcode = BODY.barcode;
                 product.description = BODY.description;
-                product.wholesale_price = BODY.wholesale_price;
-                product.distributor_price = BODY.distributor_price;
+                product.healthProgram = BODY.healthProgram;
+                product.presentations = BODY.presentations;
+                product.substances = BODY.substances;
+                product.symptoms = BODY.symptoms;
+                product.exempt = BODY.exempt;
+                product.discontinued = BODY.discontinued;
 
                 product.save((err, product) => {
                     if (err) {
@@ -225,13 +248,13 @@ PRODUCT_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
             const PRODUCT = new Product({
                 _brand,
                 code: BODY.code,
+                barcode: BODY.barcode,
                 description: BODY.description,
-                wholesale_price: BODY.wholesale_price,
-                distributor_price: BODY.distributor_price,
-                retail_price: BODY.retail_price,
-                cf_price: BODY.cf_price,
-                missing: BODY.missing,
-                stagnant: BODY.stagnant,
+                healthProgram: BODY.healthProgram,
+                presentations: BODY.presentations,
+                substances: BODY.substances,
+                symptoms: BODY.symptoms,
+                exempt: BODY.exempt,
             });
 
             PRODUCT
@@ -290,9 +313,10 @@ PRODUCT_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
 
         const DOC = xlsx.parse(PATH);
 
+        let code = 0;
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
-                let marca: string = doc[2];
+                let marca: string = doc[6];
                 if (marca) {
                     marca = marca.replace(/\s/g, '');
                     marca = marca.replace(/-/g, '').toUpperCase();
@@ -313,22 +337,49 @@ PRODUCT_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
                         .then();
                 }
 
+                let misSus: any = [];
+                if (doc[14]) { // SUSTANCIAS
+                    let sustancias = doc[14].split('+');
+
+                    await bluebird.mapSeries(sustancias, async (sustain: any, index) => {
+                        if (sustain) {
+                            sustain = sustain.replace(/\s/g, '');
+                            sustain = sustain.replace(/-/g, '').toUpperCase();
+                        }
+
+                        let _sus = await Substance.findOne({
+                            name: sustain,
+                            deleted: false,
+                        }).exec();
+
+                        if (!_sus) {
+                            const SUBSTANCE = new Substance({
+                                name: sustain
+                            });
+
+                            _sus = await SUBSTANCE
+                                .save()
+                                .then();
+                        }
+
+                        misSus.push({_substanace: _sus});
+                    });
+                }
+
                 const PRODUCT = new Product({
                     _brand,
-                    code: doc[0],
+                    code: code,
+                    barcode: doc[3],
                     description: doc[1],
-                    wholesale_price: doc[3],
-                    distributor_price: doc[4],
-                    retail_price: doc[5],
-                    cf_price: doc[6],
-                    missing: [],
-                    stagnant: [],
+                    substances: misSus
                 });
 
                 let product = await PRODUCT
                     .save()
                     .then();
 
+                code++;
+                console.log("🚀 ~ file: product.ts ~ line 372 ~ awaitbluebird.mapSeries ~ code", code)
             } catch (e) {
                 throw new Error(e.message);
             }

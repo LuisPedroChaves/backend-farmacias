@@ -1,43 +1,39 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import moment from 'moment-timezone';
+
 import { IBrand } from './brand';
-import { ICellar } from './cellar';
+import { ISubstance } from './substance';
+import { ISymptom } from './symptoms';
 
 export interface IProduct extends Document {
     _brand: IBrand['_id'];
-    code: string,
+    code: number,
+    barcode: string,
     description: string,
+    healthProgram: string,
+    presentations: IProductPresentations[],
+    substances: IProductSubstances[],
+    symptoms: IProductSymptoms[],
+    exempt: boolean,
+    discontinued: boolean,
+    deleted: boolean
+}
+export interface IProductPresentations extends Document {
+    name: string,
     wholesale_price: number,
     distributor_price: number,
     retail_price: number,
     cf_price: number,
-    missing: IProductMissing[],
-    stagnant: IProductStagnant[],
-    deleted: boolean
-}
-
-export interface IProductMissing extends Document {
-    _cellar: ICellar['_id'],
     quantity: number,
-    state: string
+    commission: number,
 }
-
-export interface IProductStagnant extends Document {
-    _cellar: ICellar['_id'],
-    detail: IProductStagnantDetail[],
+export interface IProductSubstances extends Document {
+    _substance: ISubstance['_id'];
 }
-
-export interface IProductStagnantDetail extends Document {
-    quantity: number,
-    expiration_date: Date,
+export interface IProductSymptoms extends Document {
+    _symptom: ISymptom['_id'];
 }
 
 const Float = require('mongoose-float').loadType(mongoose, 2);
-
-const MISSING_STATES = {
-    values: ['REQUEST', 'PROCESS', 'OUTSTOCK', 'ROUTE', 'FINISH'],
-    message: '{VALUE} no es un estado permitido'
-}
 
 const productSchema = new Schema({
     _brand: {
@@ -46,63 +42,67 @@ const productSchema = new Schema({
         required: [true, 'La marca es necesaria']
     },
     code: {
-        type: String,
+        type: Number,
         required: [true, 'El código es necesario'],
+    },
+    barcode: {
+        type: String,
     },
     description: {
         type: String,
     },
-    wholesale_price: {
-        type: Float,
-        default: 0
+    healthProgram: {
+        type: String,
     },
-    distributor_price: {
-        type: Float,
-        default: 0
-    },
-    retail_price: {
-        type: Float,
-        default: 0
-    },
-    cf_price: {
-        type: Float,
-        default: 0
-    },
-    missing: [{
-        _cellar: {
-            type: Schema.Types.ObjectId,
-            ref: 'Cellar',
+    presentations: [{
+        name: {
+            type: String,
         },
-        date: {
-            type: Date,
-            default: moment().tz("America/Guatemala").format()
-        },
-        quantity:{
+        wholesale_price: {
             type: Float,
             default: 0
         },
-        state: {
-            type: String,
-            enum: MISSING_STATES.values,
-            default: 'REQUEST'
-        }
-    }],
-    stagnant:[{
-        _cellar: {
-            type: Schema.Types.ObjectId,
-            ref: 'Cellar',
+        distributor_price: {
+            type: Float,
+            default: 0
         },
-        detail: [{
-            quantity:{
-                type: Float,
-                default : 0
-            },
-            expiration_date: {
-                type: Date,
-                default: moment().tz("America/Guatemala").format()
-            }
-        }]
+        retail_price: {
+            type: Float,
+            default: 0
+        },
+        cf_price: {
+            type: Float,
+            default: 0
+        },
+        quantity: {
+            type: Float,
+            default: 0
+        },
+        commission: {
+            type: Float,
+            default: 0
+        },
     }],
+    substances: [{
+        _substance: {
+            type: Schema.Types.ObjectId,
+            ref: 'Substance',
+        },
+    }],
+    symptoms: [{
+        _symptom: {
+            type: Schema.Types.ObjectId,
+            ref: 'Symptom',
+        },
+    }],
+    exempt: {
+        type: Boolean,
+        default: false,
+    },
+    discontinued: {
+        type: Boolean,
+        default: false,
+    },
     deleted: {
         type: Boolean,
         default: false,
