@@ -17,26 +17,31 @@ PRODUCT_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
     let page = req.query.page || 0;
     let size = req.query.size || 10;
     let search = req.query.search || '';
-    search = String(search);
-    const REGEX = new RegExp(search, 'i');
 
     page = Number(page);
     size = Number(size);
-    // Product.collection.createIndex({code: "number", description: "text"})
+    search = String(search);
 
-    Product.find({
-        deleted: false,
-        // $code: {$search: Number(search)},
-        // $text: {$search: String(REGEX) },
-        description: REGEX,
-        // $or:[
-        //     {"_brand.name": search},
-        //     {"description":search}
-        // ]
-    })
-        .collation( { locale: "es" })
+    let query: any = {};
+
+    if (search) {
+        const REGEX = new RegExp(search, 'i');
+        query = {
+            deleted: false,
+            description: REGEX,
+        };
+
+    } else {
+        query = {
+            deleted: false,
+        };
+    }
+
+    Product.find(
+        query
+    )
         .populate('_brand')
-        .skip(page)
+        .skip(page * size)
         .limit(size)
         .sort({
             code: 1
@@ -50,9 +55,9 @@ PRODUCT_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
                 });
             }
 
-            const TOTAL: number = await Product.find({ deleted: false, })
-			.countDocuments()
-			.exec();
+            const TOTAL: number = await Product.find(query)
+                .countDocuments()
+                .exec();
 
             res.status(200).json({
                 ok: true,
@@ -362,7 +367,7 @@ PRODUCT_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
                                 .then();
                         }
 
-                        misSus.push({_substanace: _sus});
+                        misSus.push({ _substanace: _sus });
                     });
                 }
 
@@ -380,7 +385,7 @@ PRODUCT_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
 
                 code++;
                 console.log("🚀 ~ file: product.ts ~ line 372 ~ awaitbluebird.mapSeries ~ code", code)
-            } catch (e) {
+            } catch (e: any) {
                 throw new Error(e.message);
             }
         });
