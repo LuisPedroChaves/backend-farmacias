@@ -11,8 +11,8 @@ export interface IProduct extends Document {
     description: string,
     healthProgram: string,
     presentations: IProductPresentations[],
-    substances: IProductSubstances[],
-    symptoms: IProductSymptoms[],
+    substances: ISubstance[],
+    symptoms: ISymptom[],
     exempt: boolean,
     discontinued: boolean,
     deleted: boolean
@@ -25,12 +25,6 @@ export interface IProductPresentations extends Document {
     cf_price: number,
     quantity: number,
     commission: number,
-}
-export interface IProductSubstances extends Document {
-    _substance: ISubstance['_id'];
-}
-export interface IProductSymptoms extends Document {
-    _symptom: ISymptom['_id'];
 }
 
 const Float = require('mongoose-float').loadType(mongoose, 2);
@@ -84,16 +78,12 @@ const productSchema = new Schema({
         },
     }],
     substances: [{
-        _substance: {
-            type: Schema.Types.ObjectId,
-            ref: 'Substance',
-        },
+        type: Schema.Types.ObjectId,
+        ref: 'Substance',
     }],
     symptoms: [{
-        _symptom: {
-            type: Schema.Types.ObjectId,
-            ref: 'Symptom',
-        },
+        type: Schema.Types.ObjectId,
+        ref: 'Symptom',
     }],
     exempt: {
         type: Boolean,

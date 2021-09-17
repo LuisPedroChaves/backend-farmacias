@@ -1,11 +1,13 @@
 import { Router, Request, Response } from 'express';
-import { mdAuth } from '../middleware/auth';
 import fileUpload from 'express-fileupload';
 import xlsx from 'node-xlsx';
 import bluebird from 'bluebird';
+
+import { mdAuth } from '../middleware/auth';
 import Product from '../models/product';
 import Brand from '../models/brand';
 import Substance from '../models/substance';
+import Symptoms from '../models/symptoms';
 
 const PRODUCT_ROUTER = Router();
 PRODUCT_ROUTER.use(fileUpload());
@@ -41,6 +43,8 @@ PRODUCT_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
         query
     )
         .populate('_brand')
+        .populate('substances')
+        .populate('symptoms')
         .skip(page * size)
         .limit(size)
         .sort({
@@ -63,6 +67,54 @@ PRODUCT_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
                 ok: true,
                 products,
                 TOTAL
+            });
+        });
+});
+/* #endregion */
+
+/* #region  GET search product */
+PRODUCT_ROUTER.get('/search', mdAuth, (req: Request, res: Response) => {
+    let search = req.query.search || '';
+    search = String(search);
+
+    const REGEX = new RegExp(search, 'i');
+
+    Product.aggregate([
+        {
+            $match: {
+                description: REGEX,
+                deleted: false
+            }
+        },
+        {
+            $unwind: '$presentations'
+        },
+        {
+            $limit: 10
+        },
+        {
+            $lookup:
+              {
+                from: "brands",
+                localField: "_brand",
+                foreignField: "_id",
+                as: "_brand"
+              }
+         },
+         {
+            $unwind: '$_brand',
+          },
+    ]).then((products) => {
+        res.status(200).json({
+            ok: true,
+            products
+        });
+    })
+        .catch((err) => {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error listando productos',
+                errors: err
             });
         });
 });
@@ -129,14 +181,17 @@ PRODUCT_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
                         })
                 }
 
+                const SUBSTANCES = await SEARCH_SUBSTANCES(BODY.substances);
+                const SYMPTOMS = await SEARCH_SYMPTOMS(BODY.symptoms);
+
                 product._brand = _brand;
                 product.code = BODY.code;
                 product.barcode = BODY.barcode;
                 product.description = BODY.description;
                 product.healthProgram = BODY.healthProgram;
                 product.presentations = BODY.presentations;
-                product.substances = BODY.substances;
-                product.symptoms = BODY.symptoms;
+                product.substances = SUBSTANCES;
+                product.symptoms = SYMPTOMS;
                 product.exempt = BODY.exempt;
                 product.discontinued = BODY.discontinued;
 
@@ -250,33 +305,63 @@ PRODUCT_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
                     })
             }
 
-            const PRODUCT = new Product({
-                _brand,
-                code: BODY.code,
-                barcode: BODY.barcode,
-                description: BODY.description,
-                healthProgram: BODY.healthProgram,
-                presentations: BODY.presentations,
-                substances: BODY.substances,
-                symptoms: BODY.symptoms,
-                exempt: BODY.exempt,
-            });
+            Product.findOne(
+                {
+                    deleted: false
+                },
+                'code',
+                {
+                    sort: {
+                        code: -1
+                    }
+                },
+                async (err, product) => {
+                    if (err) {
+                        return res.status(500).json({
+                            ok: false,
+                            mensaje: 'Error al buscar correlativo',
+                            errors: err,
+                        });
+                    }
 
-            PRODUCT
-                .save()
-                .then((product) => {
-                    res.status(201).json({
-                        ok: true,
-                        product
+                    // Definiciones para la factura
+                    let correlative = 1;
+                    if (product) {
+                        correlative = Number(product.code) + 1;
+                    }
+
+                    const SUBSTANCES = await SEARCH_SUBSTANCES(BODY.substances);
+                    const SYMPTOMS = await SEARCH_SYMPTOMS(BODY.symptoms);
+
+                    const PRODUCT = new Product({
+                        _brand,
+                        code: correlative,
+                        barcode: BODY.barcode,
+                        description: BODY.description,
+                        healthProgram: BODY.healthProgram,
+                        presentations: BODY.presentations,
+                        substances: SUBSTANCES,
+                        symptoms: SYMPTOMS,
+                        exempt: BODY.exempt,
                     });
-                })
-                .catch(err => {
-                    res.status(400).json({
-                        ok: false,
-                        mensaje: 'Error al crear producto',
-                        errors: err
-                    });
-                });
+
+                    PRODUCT
+                        .save()
+                        .then((product) => {
+                            res.status(201).json({
+                                ok: true,
+                                product
+                            });
+                        })
+                        .catch(err => {
+                            res.status(400).json({
+                                ok: false,
+                                mensaje: 'Error al crear producto',
+                                errors: err
+                            });
+                        });
+                }
+            );
         });
     } catch (error) {
         console.log("🚀 ~ file: product.ts ~ line 10 ~ PRODUCT_ROUTER.post ~ error", error)
@@ -396,5 +481,87 @@ PRODUCT_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
         });
     });
 });
+
+const SEARCH_SUBSTANCES = (substances: string[]): Promise<[]> => {
+
+    const PROMISES = substances.map((element: string) => {
+        return new Promise((resolve, reject) => {
+
+            if (element) {
+                element = element.replace(/\s/g, '');
+                element = element.replace(/-/g, '').toUpperCase();
+            }
+
+            Substance.findOne({
+                name: element,
+                deleted: false,
+            }).exec(async (err, substance) => {
+                if (err) {
+                    reject(err);
+                }
+
+                if (!substance) {
+                    const SUBSTANCE = new Substance({
+                        name: element
+                    });
+
+                    await SUBSTANCE
+                        .save()
+                        .then((substanceSave) => {
+                            resolve(substanceSave._id);
+                        })
+                        .catch(err => {
+                            reject(err)
+                        })
+                } else {
+                    resolve(substance._id);
+                }
+            });
+        });
+    });
+
+    return Promise.all(PROMISES).then();
+};
+
+const SEARCH_SYMPTOMS = (symptoms: string[]): Promise<[]> => {
+
+    const PROMISES = symptoms.map((element: string) => {
+        return new Promise((resolve, reject) => {
+
+            if (element) {
+                element = element.replace(/\s/g, '');
+                element = element.replace(/-/g, '').toUpperCase();
+            }
+
+            Symptoms.findOne({
+                name: element,
+                deleted: false,
+            }).exec(async (err, symptom) => {
+                if (err) {
+                    reject(err);
+                }
+
+                if (!symptom) {
+                    const SYMPTOM = new Symptoms({
+                        name: element
+                    });
+
+                    await SYMPTOM
+                        .save()
+                        .then((symptomSave) => {
+                            resolve(symptomSave._id);
+                        })
+                        .catch(err => {
+                            reject(err)
+                        })
+                } else {
+                    resolve(symptom._id);
+                }
+            });
+        });
+    });
+
+    return Promise.all(PROMISES).then();
+};
 
 export default PRODUCT_ROUTER;
