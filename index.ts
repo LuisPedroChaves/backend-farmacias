@@ -10,7 +10,7 @@ import morgan from 'morgan';
 const server = Server.instance;
 
 // BodyParser Configuración
-server.app.use(express.urlencoded({extended: true}));
+server.app.use(express.urlencoded({ extended: true }));
 server.app.use(express.json());
 
 // Inicializando Morgan
@@ -30,19 +30,23 @@ mongoose.connection.openUri(
         useNewUrlParser: true,
         useUnifiedTopology: true
     },
-    function (error, res) {
+    (error, res) => {
         if (error) throw error;
         console.log('Base de datos: \x1b[32m%s\x1b[0m', 'ONLINE');
     }
 );
 
-// const client = mongoose.connection
-//     .openUri(process.env.CUSTOMCONNSTR_COSMOS_CONNSTR, {
-//         useNewUrlParser: true,
-//         useUnifiedTopology: true
-//     })
-//     .then(() => console.log('Connection to CosmosDB successful'))
-//     .catch(err => console.error(err));
+// mongoose.connection
+//     .openUri(process.env.CUSTOMCONNSTR_COSMOS_CONNSTR,
+//         {
+//             useNewUrlParser: true,
+//             useUnifiedTopology: true
+//         },
+//         (error: any, res: any) => {
+//             if (error) throw error;
+//             console.log('Connection to CosmosDB successful')
+//         }
+//     );
 
 // Definición de router principal
 server.app.use('/', router);
