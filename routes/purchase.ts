@@ -3,6 +3,7 @@ import { mdAuth } from '../middleware/auth'
 
 import Purchase from '../models/purchase';
 import Storage from '../models/storage';
+import Provider from '../models/provider';
 import { IPurchase, IPurchaseDetail } from '../models/purchase';
 
 const PURCHASE_ROUTER = Router();
@@ -41,35 +42,64 @@ PURCHASE_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
 
     BODY.detail = await searchPrices(BODY._cellar, BODY.detail);
 
-    const newPurchase = new Purchase({
-        _cellar: BODY._cellar,
-        _user: BODY._user,
-        _provider: BODY._provider,
-        noBill: BODY.noBill,
-        date: BODY.date,
-        requisition: BODY.requisition,
-        details: BODY.details,
-        detail: BODY.detail,
-        payment: BODY.payment,
-        total: BODY.total,
-        file: BODY.file,
-    });
+    if (BODY._provider) {
+        // BODY._provider = BODY._provider.replace(/\s/g, '');
+        BODY._provider = BODY._provider.replace(/-/g, '').toUpperCase();
+    }
 
-    newPurchase
-        .save()
-        .then((purchase) => {
-            res.status(200).json({
-                ok: true,
-                purchase,
-            });
-        })
-        .catch((err) => {
-            res.status(400).json({
+    console.log(BODY._provider);
+
+
+    Provider.findOne({
+        name: BODY._provider,
+        deleted: false
+    }).exec(async (err, _provider) => {
+        if (err) {
+            res.status(500).json({
                 ok: false,
-                mensaje: 'Error al crear compra',
+                mensaje: 'Error al buscar proveedor',
                 errors: err,
             });
+        }
+
+        if (!_provider) {
+            res.status(400).json({
+                ok: false,
+                mensaje: 'Error al buscar proveedor',
+                errors: err,
+            });
+        }
+
+        const newPurchase = new Purchase({
+            _cellar: BODY._cellar,
+            _user: BODY._user,
+            _provider: _provider,
+            noBill: BODY.noBill,
+            date: BODY.date,
+            requisition: BODY.requisition,
+            details: BODY.details,
+            detail: BODY.detail,
+            payment: BODY.payment,
+            total: BODY.total,
+            file: BODY.file,
         });
+
+        newPurchase
+            .save()
+            .then((purchase) => {
+                res.status(200).json({
+                    ok: true,
+                    purchase,
+                });
+            })
+            .catch((err) => {
+                res.status(400).json({
+                    ok: false,
+                    mensaje: 'Error al crear compra',
+                    errors: err,
+                });
+            });
+    });
 });
 /* #endregion */
 
