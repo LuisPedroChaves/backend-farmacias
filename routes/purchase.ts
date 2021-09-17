@@ -43,20 +43,12 @@ PURCHASE_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
 
     BODY.detail = await searchPrices(BODY._cellar, BODY.detail);
 
-    if (BODY._provider) {
-        // BODY._provider = BODY._provider.replace(/\s/g, '');
-        BODY._provider = BODY._provider.replace(/-/g, '').toUpperCase();
-    }
-
-    console.log(BODY._provider);
-
-
     Provider.findOne({
         name: BODY._provider,
         deleted: false
     }).exec(async (err, _provider) => {
         if (err) {
-            res.status(500).json({
+            return res.status(500).json({
                 ok: false,
                 mensaje: 'Error al buscar proveedor',
                 errors: err,
@@ -64,7 +56,7 @@ PURCHASE_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
         }
 
         if (!_provider) {
-            res.status(400).json({
+            return res.status(400).json({
                 ok: false,
                 mensaje: 'Error al buscar proveedor',
                 errors: err,
@@ -94,7 +86,7 @@ PURCHASE_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
                 });
             })
             .catch((err) => {
-                res.status(400).json({
+                return res.status(400).json({
                     ok: false,
                     mensaje: 'Error al crear compra',
                     errors: err,
