@@ -5,6 +5,7 @@ import Purchase from '../models/purchase';
 import Storage from '../models/storage';
 import Provider from '../models/provider';
 import { IPurchase, IPurchaseDetail } from '../models/purchase';
+import { ICellar } from '../models/cellar';
 
 const PURCHASE_ROUTER = Router();
 
@@ -103,13 +104,13 @@ PURCHASE_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
 });
 /* #endregion */
 
-const searchPrices = async (_cellar: string, detail: IPurchaseDetail[]): Promise<any> => {
+const searchPrices = async (_cellar: ICellar, detail: IPurchaseDetail[]): Promise<any> => {
     return Promise.all(
         detail.map(async (element: IPurchaseDetail) => {
 
             const STORAGE = await Storage.findOne(
                 {
-                    _cellar,
+                    _cellar: _cellar._id,
                     _product: element._product
                 }
             ).exec();
