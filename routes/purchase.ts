@@ -10,16 +10,38 @@ import { ICellar } from '../models/cellar';
 const PURCHASE_ROUTER = Router();
 
 /* #region  GET */
-PURCHASE_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
+PURCHASE_ROUTER.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
+    const mes: number = Number(req.query.month);
+    let mes2 = 0;
+    let año: number = Number(req.query.year);
+    let año2: number = Number(req.query.year);
+    const _cellar = req.params._cellar;
+
+    if (mes == 12) {
+        mes2 = 1;
+        año2 = año + 1;
+    } else {
+        mes2 = mes + 1;
+    }
 
     Purchase.find(
         {
+            _cellar,
+            date: {
+                $gte: new Date(año + ',' + mes),
+                $lt: new Date(año2 + ',' + mes2),
+            },
             deleted: false
         }
     )
         .sort({
-            name: 1
+            date: -1
         })
+        .populate('_user', '')
+        .populate('_provider', '')
+        .populate('detail._product', '')
+        .populate('adjust._user', '')
+        .populate('adjust._product', '')
         .exec(async (err: any, purchases: IPurchase[]) => {
             if (err) {
                 return res.status(500).json({
@@ -34,6 +56,104 @@ PURCHASE_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
                 purchases
             });
         });
+});
+/* #endregion */
+
+/* #region  GET */
+PURCHASE_ROUTER.get('/deletes/:_cellar', mdAuth, (req: Request, res: Response) => {
+    const mes: number = Number(req.query.month);
+    let mes2 = 0;
+    let año: number = Number(req.query.year);
+    let año2: number = Number(req.query.year);
+    const _cellar = req.params._cellar;
+
+    if (mes == 12) {
+        mes2 = 1;
+        año2 = año + 1;
+    } else {
+        mes2 = mes + 1;
+    }
+
+    Purchase.find(
+        {
+            _cellar,
+            date: {
+                $gte: new Date(año + ',' + mes),
+                $lt: new Date(año2 + ',' + mes2),
+            },
+            deleted: true
+        }
+    )
+        .sort({
+            date: -1
+        })
+        .populate('_user', '')
+        .populate('_provider', '')
+        .populate('detail._product', '')
+        .populate('adjust._user', '')
+        .populate('adjust._product', '')
+        .populate('_userDeleted', '')
+        .exec(async (err: any, purchases: IPurchase[]) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando compras',
+                    errors: err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                purchases
+            });
+        });
+});
+/* #endregion */
+
+/* #region  DELETE */
+PURCHASE_ROUTER.put('/delete/:id', mdAuth, (req: Request, res: Response) => {
+    const ID = req.params.id;
+    const BODY = req.body;
+
+    Purchase.findById(ID, (err, purchase) => {
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error al buscar compra',
+                errors: err
+            });
+        }
+
+        if (!purchase) {
+            return res.status(400).json({
+                ok: false,
+                mensaje: 'La compra con el id' + ID + ' no existe',
+                errors: {
+                    message: 'No existe una compra con ese ID'
+                }
+            });
+        }
+
+        purchase._userDeleted = BODY._userDeleted;
+        purchase.textDeleted = BODY.textDeleted;
+        purchase.deleted = true;
+
+        purchase.save((err, purchase) => {
+            if (err) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'Error al borrar compra',
+                    errors: err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                purchase
+            });
+        });
+    })
+
 });
 /* #endregion */
 

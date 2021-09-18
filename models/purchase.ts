@@ -19,6 +19,8 @@ export interface IPurchase extends Document {
     total: number
     file: string,
     applied: boolean,
+    _userDeleted: IUser['_id'];
+    textDeleted: string,
     deleted: boolean
 }
 export interface IPurchaseDetail extends Document {
@@ -158,6 +160,14 @@ const purchaseSchema = new Schema({
     applied: {
         type: Boolean,
         default: false,
+    },
+    _userDeleted: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    },
+    textDeleted: {
+        type: String
     },
     deleted: {
         type: Boolean,
