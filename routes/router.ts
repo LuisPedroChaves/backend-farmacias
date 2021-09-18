@@ -12,10 +12,22 @@ import saleRouter from './sale';
 import internalOrderRouter from './internalOrder';
 import uploadRouter from './upload';
 import readFileRouter from './readFile';
+import PRODUCT_ROUTER from './product';
+import BRAND_ROUTER from './brand';
+import SUBSTANCE_ROUTER from './substance';
+import SYMPTOMS_ROUTER from './symptoms';
+import PROVIDER_ROUTER from './provider';
+import PURCHASE_ROUTER from './purchase';
 
 const router = Router();
 
 // Rutas
+router.use('/purchase', PURCHASE_ROUTER);
+router.use('/provider', PROVIDER_ROUTER);
+router.use('/symptoms', SYMPTOMS_ROUTER);
+router.use('/substance', SUBSTANCE_ROUTER);
+router.use('/brand', BRAND_ROUTER);
+router.use('/product', PRODUCT_ROUTER);
 router.use('/readFile', readFileRouter);
 router.use('/upload', uploadRouter);
 router.use('/internalOrder', internalOrderRouter);
