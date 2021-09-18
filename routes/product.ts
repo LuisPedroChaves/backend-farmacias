@@ -464,9 +464,9 @@ PRODUCT_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
                     substances: misSus
                 });
 
-                let product = await PRODUCT
-                    .save()
-                    .then();
+                // let product = await PRODUCT
+                //     .save()
+                //     .then();
 
                 code++;
                 console.log("🚀 ~ file: product.ts ~ line 372 ~ awaitbluebird.mapSeries ~ code", code)
