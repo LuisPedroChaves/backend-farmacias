@@ -219,7 +219,6 @@ PRODUCT_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
                 const SYMPTOMS = await SEARCH_SYMPTOMS(BODY.symptoms);
 
                 product._brand = _brand;
-                product.code = BODY.code;
                 product.barcode = BODY.barcode;
                 product.description = BODY.description;
                 product.healthProgram = BODY.healthProgram;
