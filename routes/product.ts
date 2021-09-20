@@ -120,6 +120,40 @@ PRODUCT_ROUTER.get('/search', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
+/* #region  GET / ID */
+PRODUCT_ROUTER.get('/:id', mdAuth, (req: Request, res: Response) => {
+    const id = req.params.id;
+
+    Product.findById(id, (err, product) => {
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error al buscar producto',
+                errors: err,
+            });
+        }
+
+        if (!product) {
+            return res.status(400).json({
+                ok: false,
+                mensaje: 'El producto con el id' + id + ' no existe',
+                errors: {
+                    message: 'No existe un producto con ese ID',
+                },
+            });
+        }
+
+        res.status(200).json({
+            ok: true,
+            product,
+        });
+    })
+        .populate('_brand', '')
+        .populate('substances', '')
+        .populate('symptoms', '');
+});
+/* #endregion */
+
 /* #region  PUT */
 PRODUCT_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
     try {
