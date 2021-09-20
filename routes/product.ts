@@ -226,7 +226,6 @@ PRODUCT_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
                 product.substances = SUBSTANCES;
                 product.symptoms = SYMPTOMS;
                 product.exempt = BODY.exempt;
-                product.discontinued = BODY.discontinued;
 
                 product.save((err, product) => {
                     if (err) {
@@ -281,6 +280,53 @@ PRODUCT_ROUTER.delete('/:id', mdAuth, (req: Request, res: Response) => {
                     return res.status(400).json({
                         ok: false,
                         mensaje: 'Error al borrar producto',
+                        errors: err
+                    });
+                }
+
+                res.status(200).json({
+                    ok: true,
+                    product
+                });
+            });
+        });
+    } catch (error) {
+        console.log(error);
+    }
+});
+/* #endregion */
+
+/* #region  DELETE */
+PRODUCT_ROUTER.delete('/discontinued/:id', mdAuth, (req: Request, res: Response) => {
+    try {
+        const ID = req.params.id;
+
+        Product.findById(ID, (err, product) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error al buscar producto',
+                    errors: err
+                });
+            }
+
+            if (!product) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'El producto con el id' + ID + ' no existe',
+                    errors: {
+                        message: 'No existe un producto con ese ID'
+                    }
+                });
+            }
+
+            product.discontinued = true;
+
+            product.save((err, product) => {
+                if (err) {
+                    return res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al descontinuar producto',
                         errors: err
                     });
                 }
