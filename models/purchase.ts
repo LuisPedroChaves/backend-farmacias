@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import moment from 'moment-timezone';
 
 import { IProvider } from './provider';
 import { ICellar } from './cellar';
@@ -19,6 +20,7 @@ export interface IPurchase extends Document {
     total: number
     file: string,
     applied: boolean,
+    created: Date,
     _userDeleted: IUser['_id'];
     textDeleted: string,
     deleted: boolean
@@ -160,6 +162,10 @@ const purchaseSchema = new Schema({
     applied: {
         type: Boolean,
         default: false,
+    },
+    created: {
+        type: Date,
+        default:  moment().tz("America/Guatemala").format()
     },
     _userDeleted: {
         type: Schema.Types.ObjectId,
