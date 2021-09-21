@@ -83,6 +83,7 @@ PRODUCT_ROUTER.get('/search', mdAuth, (req: Request, res: Response) => {
         {
             $match: {
                 description: REGEX,
+                discontinued: false,
                 deleted: false
             }
         },
