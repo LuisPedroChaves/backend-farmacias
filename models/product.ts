@@ -13,6 +13,7 @@ export interface IProduct extends Document {
     presentations: IProductPresentations[],
     substances: ISubstance[],
     symptoms: ISymptom[],
+    lastUpdate: string,
     exempt: boolean,
     discontinued: boolean,
     deleted: boolean
@@ -85,6 +86,10 @@ const productSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Symptom',
     }],
+    lastUpdate: {
+        type: Date,
+        default: null
+    },
     exempt: {
         type: Boolean,
         default: false,

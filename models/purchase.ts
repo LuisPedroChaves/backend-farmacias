@@ -19,7 +19,7 @@ export interface IPurchase extends Document {
     payment: string,
     total: number
     file: string,
-    applied: boolean,
+    state: string,
     created: Date,
     _userDeleted: IUser['_id'];
     textDeleted: string,
@@ -49,6 +49,10 @@ const Float = require('mongoose-float').loadType(mongoose, 2);
 const PAGOS_VALIDOS = {
     values: ['CONTADO', 'CREDITO'],
     message: '{VALUE} no es un tipo de pago permitido'
+};
+const ESTADOS_VALIDOS = {
+    values: ['CREADA', 'ACTUALIZADA', 'APLICADA'],
+    message: '{VALUE} no es un estado permitido'
 };
 
 const purchaseSchema = new Schema({
@@ -159,9 +163,10 @@ const purchaseSchema = new Schema({
     file: {
         type: String,
     },
-    applied: {
-        type: Boolean,
-        default: false,
+    state: {
+        type: String,
+        enum: ESTADOS_VALIDOS.values,
+        default: 'CREADA'
     },
     created: {
         type: Date,

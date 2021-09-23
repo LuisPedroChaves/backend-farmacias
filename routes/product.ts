@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import fileUpload from 'express-fileupload';
 import xlsx from 'node-xlsx';
 import bluebird from 'bluebird';
+import moment from 'moment-timezone';
 
 import { mdAuth } from '../middleware/auth';
 import Product from '../models/product';
@@ -226,6 +227,7 @@ PRODUCT_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
                 product.presentations = BODY.presentations;
                 product.substances = SUBSTANCES;
                 product.symptoms = SYMPTOMS;
+                product.lastUpdate = moment().tz("America/Guatemala").format();
                 product.exempt = BODY.exempt;
 
                 product.save((err, product) => {
