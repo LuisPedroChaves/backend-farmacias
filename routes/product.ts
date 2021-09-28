@@ -96,16 +96,16 @@ PRODUCT_ROUTER.get('/search', mdAuth, (req: Request, res: Response) => {
         },
         {
             $lookup:
-              {
+            {
                 from: "brands",
                 localField: "_brand",
                 foreignField: "_id",
                 as: "_brand"
-              }
-         },
-         {
+            }
+        },
+        {
             $unwind: '$_brand',
-          },
+        },
     ]).then((products) => {
         res.status(200).json({
             ok: true,
@@ -252,6 +252,39 @@ PRODUCT_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
+/* #region  PUT PRICES */
+PRODUCT_ROUTER.put('/prices/:id', mdAuth, (req: Request, res: Response) => {
+    const ID = req.params.id;
+    const BODY = req.body;
+
+    Product.updateOne(
+        {
+            _id: BODY._id,
+            'presentations.name': BODY.name,
+        },
+        {
+            'presentations.$.wholesale_price': BODY.wholesale_price,
+            'presentations.$.distributor_price': BODY.distributor_price,
+            'presentations.$.retail_price': BODY.retail_price,
+            'presentations.$.cf_price': BODY.cf_price,
+        },
+        (err, product) => {
+            if (err) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'Error al actualizar producto',
+                    errors: err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                product
+            });
+        });
+});
+/* #endregion */
+
 /* #region  DELETE */
 PRODUCT_ROUTER.delete('/:id', mdAuth, (req: Request, res: Response) => {
     try {
@@ -299,7 +332,7 @@ PRODUCT_ROUTER.delete('/:id', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
-/* #region  DELETE */
+/* #region  DISCONTINUED */
 PRODUCT_ROUTER.delete('/discontinued/:id', mdAuth, (req: Request, res: Response) => {
     try {
         const ID = req.params.id;

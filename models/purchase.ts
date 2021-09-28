@@ -27,6 +27,7 @@ export interface IPurchase extends Document {
 }
 export interface IPurchaseDetail extends Document {
     _product: IProduct['_id'];
+    presentation: string,
     quantity: number,
     price: number,
     bonus: number,
@@ -35,7 +36,8 @@ export interface IPurchaseDetail extends Document {
     realQuantity: number,
     stockQuantity: number,
     expirationDate: Date,
-    changedPrice: number
+    lastCost: number,
+    updated: boolean
 }
 export interface IPurchaseAdjust extends Document {
     _user: IUser['_id'];
@@ -51,7 +53,7 @@ const PAGOS_VALIDOS = {
     message: '{VALUE} no es un tipo de pago permitido'
 };
 const ESTADOS_VALIDOS = {
-    values: ['CREADA', 'ACTUALIZADA', 'APLICADA'],
+    values: ['CREATED', 'UPDATED', 'APPLIED'],
     message: '{VALUE} no es un estado permitido'
 };
 
@@ -91,6 +93,9 @@ const purchaseSchema = new Schema({
             ref: 'Product',
             required: [true, 'El producto es necesario']
         },
+        presentation: {
+            type: String,
+        },
         quantity: {
             type: Float,
             default: 0
@@ -123,9 +128,14 @@ const purchaseSchema = new Schema({
             type: Date,
             default: null
         },
-        changedPrice: {
+        lastCost: {
             type: Float,
             default: 0
+        },
+        // Bandera para verificar si ya se actualizo el precio
+        updated: {
+            type: Boolean,
+            default: false,
         },
     }],
     adjust: [{
@@ -166,7 +176,7 @@ const purchaseSchema = new Schema({
     state: {
         type: String,
         enum: ESTADOS_VALIDOS.values,
-        default: 'CREADA'
+        default: 'CREATED'
     },
     created: {
         type: Date,

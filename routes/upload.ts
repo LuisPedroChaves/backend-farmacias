@@ -6,6 +6,8 @@ import Sale from '../models/sale';
 import InternalOrder, { IInternalOrder } from '../models/internalOrder';
 import Cellar from '../models/cellar';
 import User from '../models/user';
+import Product from '../models/product';
+import Purchase from '../models/purchase';
 
 // WebSockets Server
 const SERVER = Server.instance;
@@ -19,9 +21,9 @@ uploadRouter.put('/:type/:id', (req: any, res: Response) => {
     const id = req.params.id;
 
     // Tipos de colecciones
-    const validTypes = ['saleBalances', 'internalOrders', 'internalOrdersDispatch'];
+    const VALID_TYPES = ['saleBalances', 'internalOrders', 'internalOrdersDispatch', 'products', 'purchases'];
 
-    if (validTypes.indexOf(type) < 0) {
+    if (VALID_TYPES.indexOf(type) < 0) {
         return res.status(400).json({
             ok: false,
             mensaje: 'Tipo de colección no válida',
@@ -257,6 +259,110 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
                 res.status(200).json({
                     ok: true,
                     newNameFile
+                });
+            });
+        }),
+        'products': () => Product.findById(id, (err, product) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error al buscar producto',
+                    errors: err
+                });
+            }
+
+            if (!product) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'El producto con el id' + id + ' no existe',
+                    errors: {
+                        message: 'No existe un producto con ese ID'
+                    }
+                });
+            }
+
+            // Si existe un archivo almacenado anteriormente
+            const oldPath = './uploads/products/' + product.picture;
+
+            if (fs.existsSync(oldPath)) {
+                // Borramos el archivo antiguo
+                fs.unlink(oldPath, err => {
+                    if (err) {
+                        return res.status(500).json({
+                            ok: false,
+                            mensaje: 'Error al eliminar imagen antigua',
+                            errors: err
+                        });
+                    }
+                });
+            }
+
+            product.picture = newNameFile;
+
+            product.save((err, product) => {
+                if (err) {
+                    return res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al guardar imagen',
+                        errors: err
+                    });
+                }
+
+                res.status(200).json({
+                    ok: true,
+                    product
+                });
+            });
+        }),
+        'purchases': () => Purchase.findById(id, (err, purchase) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error al buscar compra',
+                    errors: err
+                });
+            }
+
+            if (!purchase) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'La compra con el id' + id + ' no existe',
+                    errors: {
+                        message: 'No existe una compra con ese ID'
+                    }
+                });
+            }
+
+            // Si existe un archivo almacenado anteriormente
+            const oldPath = './uploads/purchases/' + purchase.file;
+
+            if (fs.existsSync(oldPath)) {
+                // Borramos el archivo antiguo
+                fs.unlink(oldPath, err => {
+                    if (err) {
+                        return res.status(500).json({
+                            ok: false,
+                            mensaje: 'Error al eliminar archivo antiguo',
+                            errors: err
+                        });
+                    }
+                });
+            }
+
+            purchase.file = newNameFile;
+
+            purchase.save((err, purchase) => {
+                if (err) {
+                    return res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al guardar archivo',
+                        errors: err
+                    });
+                }
+
+                res.status(200).json({
+                    ok: true,
+                    purchase
                 });
             });
         }),

@@ -6,6 +6,7 @@ import { ISymptom } from './symptoms';
 
 export interface IProduct extends Document {
     _brand: IBrand['_id'];
+    picture: string,
     code: number,
     barcode: string,
     description: string,
@@ -26,6 +27,7 @@ export interface IProductPresentations extends Document {
     cf_price: number,
     quantity: number,
     commission: number,
+    cost: number,
 }
 
 const Float = require('mongoose-float').loadType(mongoose, 2);
@@ -35,6 +37,9 @@ const productSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Brand',
         required: [true, 'La marca es necesaria']
+    },
+    picture: {
+        type: String,
     },
     code: {
         type: Number,
@@ -74,6 +79,10 @@ const productSchema = new Schema({
             default: 0
         },
         commission: {
+            type: Float,
+            default: 0
+        },
+        cost: {
             type: Float,
             default: 0
         },

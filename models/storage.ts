@@ -8,7 +8,6 @@ export interface IStorage extends Document {
     _product: IProduct['_id'];
     minStock: number,
     maxStock: number,
-    cost: number,
     totalStock: number,
     reserve: number,
     isNew: boolean,
@@ -34,10 +33,6 @@ const storageSchema = new Schema({
         default: 0
     },
     maxStock: {
-        type: Float,
-        default: 0
-    },
-    cost: {
         type: Float,
         default: 0
     },

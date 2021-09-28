@@ -63,8 +63,10 @@ PROVIDER_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         }
 
         provider.name = body.name;
-        provider.nit = body.nit;
         provider.address = body.address;
+        provider.nit = body.nit;
+        provider.phone = body.phone;
+        provider.email = body.email;
         provider.creditDays = body.creditDays;
 
         provider.save((err, provider) => {
@@ -135,8 +137,10 @@ PROVIDER_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
 
     const newProvider = new Provider({
         name: body.name,
-        nit: body.nit,
         address: body.address,
+        nit: body.nit,
+        phone: body.phone,
+        email: body.email,
         creditDays: body.creditDays,
     });
 
