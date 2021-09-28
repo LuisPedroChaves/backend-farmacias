@@ -23,6 +23,7 @@ PURCHASE_ROUTER.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
                 $gte: new Date(startDate.toDateString()),
                 $lt: new Date(endDate.toDateString()),
             },
+            state: 'APPLIED',
             deleted: false
         }
     )
