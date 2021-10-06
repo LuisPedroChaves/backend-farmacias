@@ -5,10 +5,10 @@ import moment from 'moment-timezone';
 import Customer from '../models/customer';
 import Sale from '../models/sale';
 
-const customerRouter = Router();
+const CUSTOMER_ROUTER = Router();
 
 /* #region  GET */
-customerRouter.get('/', mdAuth, (req: Request, res: Response) => {
+CUSTOMER_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
 	Customer.find({
 		deleted: false,
 	})
@@ -31,8 +31,38 @@ customerRouter.get('/', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
+/* #region  GET search  */
+CUSTOMER_ROUTER.get('/search', mdAuth, (req: Request, res: Response) => {
+    let search = req.query.search || '';
+    search = String(search);
+
+    const REGEX = new RegExp(search, 'i');
+
+	Customer.find({
+		name: REGEX,
+		deleted: false,
+	})
+		.populate('_seller')
+		.sort({ name: 1 })
+		.exec((err, customers) => {
+			if (err) {
+				return res.status(500).json({
+					ok: false,
+					mensaje: 'Error listando clientes',
+					errors: err,
+				});
+			}
+
+			res.status(200).json({
+				ok: true,
+				customers,
+			});
+		});
+});
+/* #endregion */
+
 /* #region  GET */
-customerRouter.get('/recivables', mdAuth, (req: Request, res: Response) => {
+CUSTOMER_ROUTER.get('/recivables', mdAuth, (req: Request, res: Response) => {
 	Customer.find({
 		_seller: { $ne: null },
 		deleted: false,
@@ -146,7 +176,7 @@ customerRouter.get('/recivables', mdAuth, (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  GET */
-customerRouter.get('/recivablesBySeller/:id', mdAuth, (req: Request, res: Response) => {
+CUSTOMER_ROUTER.get('/recivablesBySeller/:id', mdAuth, (req: Request, res: Response) => {
 	const idSeller = req.params.id;
 	Customer.find({
 		_seller: idSeller,
@@ -261,7 +291,7 @@ customerRouter.get('/recivablesBySeller/:id', mdAuth, (req: Request, res: Respon
 /* #endregion */
 
 /* #region  GET / ID */
-customerRouter.get('/statements/:id', mdAuth, (req: Request, res: Response) => {
+CUSTOMER_ROUTER.get('/statements/:id', mdAuth, (req: Request, res: Response) => {
 	const id = req.params.id;
 
 	Customer.findById(id, (err, customer: any) => {
@@ -311,7 +341,7 @@ customerRouter.get('/statements/:id', mdAuth, (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  GET / ID */
-customerRouter.get('/recivables/:id', mdAuth, (req: Request, res: Response) => {
+CUSTOMER_ROUTER.get('/recivables/:id', mdAuth, (req: Request, res: Response) => {
 	const id = req.params.id;
 
 	Customer.findById(id, (err, customer) => {
@@ -430,7 +460,7 @@ customerRouter.get('/recivables/:id', mdAuth, (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  PUT */
-customerRouter.put('/:id', mdAuth, (req: Request, res: Response) => {
+CUSTOMER_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
 	const id = req.params.id;
 	const body = req.body;
 
@@ -493,7 +523,7 @@ customerRouter.put('/:id', mdAuth, (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  DELETE */
-customerRouter.delete('/:id', mdAuth, (req: Request, res: Response) => {
+CUSTOMER_ROUTER.delete('/:id', mdAuth, (req: Request, res: Response) => {
 	const id = req.params.id;
 
 	Customer.findById(id, (err, customer) => {
@@ -536,7 +566,7 @@ customerRouter.delete('/:id', mdAuth, (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  POST cellar */
-customerRouter.post('/', mdAuth, (req: Request, res: Response) => {
+CUSTOMER_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
 	const body = req.body;
 
 	if (body.code) {
@@ -580,4 +610,4 @@ customerRouter.post('/', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
-export default customerRouter;
+export default CUSTOMER_ROUTER;

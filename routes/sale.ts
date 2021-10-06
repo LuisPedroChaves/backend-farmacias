@@ -5,7 +5,7 @@ import { mdAuth } from '../middleware/auth'
 import Sale from '../models/sale';
 import Customer from '../models/customer';
 
-import { ISale } from '../models/sale';
+import { ISale, ISaleBalance } from '../models/sale';
 
 const saleRouter = Router();
 // const ObjectId = mongoose.Types.ObjectId;
@@ -112,7 +112,7 @@ saleRouter.put('/:id', mdAuth, (req, res) => {
     const id = req.params.id;
     const body = req.body;
 
-    Sale.findById(id, function(err, sale) {
+    Sale.findById(id, function(err, sale: ISale) {
       if (err) {
         return res.status(500).json({
           ok: false,
@@ -132,12 +132,12 @@ saleRouter.put('/:id', mdAuth, (req, res) => {
       }
 
       // CALCULO PARA PAGAR LA COMPRA
-      var balance = body.balance.reduce(
-        (sum: any, item: any) => parseFloat(sum) + parseFloat(item.amount),
+      var balance: number = body.balance.reduce(
+        (sum: number, item: ISaleBalance) => Number(sum) + Number(item.amount),
         0
       );
 
-      if (sale.total == balance) {
+      if (Number((sale.total - balance).toFixed(2)) <= 0) {
         body.paid = true;
       } else {
         body.paid = false;
