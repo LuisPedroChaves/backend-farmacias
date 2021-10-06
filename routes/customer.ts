@@ -497,6 +497,7 @@ CUSTOMER_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
 		customer.address = body.address;
 		customer.town = body.town;
 		customer.department = body.department;
+		customer.addresses = body.addresses;
 		customer.company = body.company;
 		customer.code = body.code;
 		customer.transport = body.transport;
@@ -584,6 +585,7 @@ CUSTOMER_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
 		address: body.address,
 		town: body.town,
 		department: body.department,
+		addresses: body.addresses,
 		company: body.company,
 		code: body.code,
 		transport: body.transport,

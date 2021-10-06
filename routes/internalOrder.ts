@@ -47,28 +47,21 @@ internalOrderRouter.get('/', mdAuth, (req: Request, res: Response) => {
 
 /* #region  GET HISTORIAL */
 internalOrderRouter.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
-    const MES: number = Number(req.query.month);
-    let mes2 = 0;
-    let año: number = Number(req.query.year);
-    let año2: number = Number(req.query.year);
     const _CELLAR = req.params._cellar;
     const TYPE = String(req.query.type);
     const ORIGIN = String(req.query.origin);
 
-    if (MES == 12) {
-        mes2 = 1;
-        año2 = año + 1;
-    } else {
-        mes2 = MES + 1;
-    }
+    let startDate = new Date(String(req.query.startDate));
+	let endDate  = new Date(String(req.query.endDate));
+	endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
 
     if (ORIGIN === 'origen') {
         InternalOrder.find(
             {
                 _cellar: _CELLAR,
                 date: {
-                    $gte: new Date(año + ',' + MES),
-                    $lt: new Date(año2 + ',' + mes2),
+                    $gte: new Date(startDate.toDateString()),
+                    $lt: new Date(endDate.toDateString()),
                 },
                 type: TYPE,
                 deleted: false
@@ -101,8 +94,8 @@ internalOrderRouter.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
             {
                 _destination: _CELLAR,
                 date: {
-                    $gte: new Date(año + ',' + MES),
-                    $lt: new Date(año2 + ',' + mes2),
+                    $gte: new Date(startDate.toDateString()),
+                    $lt: new Date(endDate.toDateString()),
                 },
                 type: TYPE,
                 deleted: false
