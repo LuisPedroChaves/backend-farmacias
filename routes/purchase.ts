@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { mdAuth } from '../middleware/auth'
+import moment from 'moment-timezone';
 
 import Purchase from '../models/purchase';
 import Provider from '../models/provider';
@@ -393,7 +394,8 @@ PURCHASE_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
             payment: BODY.payment,
             total: BODY.total,
             file: BODY.file,
-            state: STATE
+            state: STATE,
+            created:  moment().tz("America/Guatemala").format(),
         });
 
         newPurchase

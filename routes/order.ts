@@ -141,25 +141,18 @@ orderRouter.get('/order/:id', mdAuth, (req: Request, res: Response) => {
 
 /* #region  GET */
 orderRouter.get('/:_cellar/:_delivery', mdAuth, (req: Request, res: Response) => {
-    const MES: number = Number(req.query.month);
-    let mes2 = 0;
-    let año: number = Number(req.query.year);
-    let año2: number = Number(req.query.year);
     const _CELLAR = req.params._cellar;
     const _DELIVERY = req.params._delivery;
 
-    if (MES == 12) {
-        mes2 = 1;
-        año2 = año + 1;
-    } else {
-        mes2 = MES + 1;
-    }
+    let startDate = new Date(String(req.query.startDate));
+	let endDate  = new Date(String(req.query.endDate));
+	endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
 
     const FILTER: any =
     {
         date: {
-            $gte: new Date(año + ',' + MES),
-            $lt: new Date(año2 + ',' + mes2),
+            $gte: new Date(startDate.toDateString()),
+            $lt: new Date(endDate.toDateString()),
         },
         deleted: false
     };

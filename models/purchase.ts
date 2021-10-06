@@ -1,5 +1,4 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import moment from 'moment-timezone';
 
 import { IProvider } from './provider';
 import { ICellar } from './cellar';
@@ -180,7 +179,6 @@ const purchaseSchema = new Schema({
     },
     created: {
         type: Date,
-        default:  moment().tz("America/Guatemala").format()
     },
     _userDeleted: {
         type: Schema.Types.ObjectId,

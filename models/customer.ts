@@ -9,6 +9,7 @@ export interface ICustomer extends Document {
 	address: string,
 	town: string,
 	department: string,
+	addresses?: ICustomerAddresses[],
 	code?: string,
  	company: string,
  	transport: string,
@@ -16,6 +17,12 @@ export interface ICustomer extends Document {
 	 limitDaysCredit: number,
 	 _seller?: IUser['_id'],
 	deleted: boolean
+}
+
+export interface ICustomerAddresses extends Document {
+	address: string,
+	town: string,
+	department: string,
 }
 
 const customerSchema: Schema = new Schema({
@@ -45,6 +52,18 @@ const customerSchema: Schema = new Schema({
 		type: String,
 		required: [true, 'El departamento es necesario'],
 	},
+	addresses: [{
+		address: {
+			type: String,
+		},
+		town: {
+			type: String,
+		},
+		department: {
+			type: String,
+			required: [true, 'El departamento es necesario'],
+		},
+	}],
 	company: {
 		type: String,
 	},

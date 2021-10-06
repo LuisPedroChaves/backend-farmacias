@@ -93,19 +93,16 @@ routeRouter.get('/active/:_user', mdAuth, (req: Request, res: Response) => {
 
 /* #region  GET */
 routeRouter.get('/:_user/:_cellar', mdAuth, (req: Request, res: Response) => {
-    const mes: number = Number(req.query.month);
-    let mes2 = 0;
-    let año: number = Number(req.query.year);
-    let año2: number = Number(req.query.year);
     const _user = req.params._user;
     const _cellar = req.params._cellar;
 
-    if (mes == 12) {
-        mes2 = 1;
-        año2 = año + 1;
-    } else {
-        mes2 = mes + 1;
-    }
+    let startDate = new Date(String(req.query.startDate));
+	let endDate  = new Date(String(req.query.endDate));
+	endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
+
+    console.log(new Date(startDate.toDateString()));
+    console.log(new Date(endDate.toDateString()));
+
 
     if (_cellar !== 'null') {
         Route.find(
@@ -113,8 +110,8 @@ routeRouter.get('/:_user/:_cellar', mdAuth, (req: Request, res: Response) => {
                 _user: _user,
                 _cellar: _cellar,
                 date: {
-                    $gte: new Date(año + ',' + mes),
-                    $lt: new Date(año2 + ',' + mes2),
+                    $gte: new Date(startDate.toDateString()),
+                    $lt: new Date(endDate.toDateString()),
                 },
                 state: {
                     $in: ['FIN', 'RECHAZADA']
@@ -147,8 +144,8 @@ routeRouter.get('/:_user/:_cellar', mdAuth, (req: Request, res: Response) => {
             {
                 _user: _user,
                 date: {
-                    $gte: new Date(año + ',' + mes),
-                    $lt: new Date(año2 + ',' + mes2),
+                    $gte: new Date(startDate.toDateString()),
+                    $lt: new Date(endDate.toDateString()),
                 },
                 state: {
                     $in: ['FIN', 'RECHAZADA']
@@ -190,7 +187,7 @@ routeRouter.get('/:_user/:_cellar', mdAuth, (req: Request, res: Response) => {
 
                         Promise.all(promises2)
                             .then((results: any) => {
-                                console.log(results);
+                                // console.log(results);
                                 route.details = results;
                                 resolve(true);
                             })
