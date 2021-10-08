@@ -6,11 +6,12 @@ import Order from '../models/order';
 import Customer from '../models/customer';
 
 import { IOrder } from '../models/order';
+import { ICustomer } from '../models/customer';
 
-const orderRouter = Router();
+const ORDER_ROUTER = Router();
 
 /* #region  GET */
-orderRouter.get('/adminRoutes/', mdAuth, (req: Request, res: Response) => {
+ORDER_ROUTER.get('/adminRoutes/', mdAuth, (req: Request, res: Response) => {
 
     Order.find(
         {
@@ -41,7 +42,7 @@ orderRouter.get('/adminRoutes/', mdAuth, (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  GET */
-orderRouter.get('/dispatches/:_cellar', mdAuth, (req: Request, res: Response) => {
+ORDER_ROUTER.get('/dispatches/:_cellar', mdAuth, (req: Request, res: Response) => {
     const _cellar = req.params._cellar;
 
     Order.find(
@@ -73,7 +74,7 @@ orderRouter.get('/dispatches/:_cellar', mdAuth, (req: Request, res: Response) =>
 /* #endregion */
 
 /* #region  GET */
-orderRouter.get('/routes/:_cellar', mdAuth, (req: Request, res: Response) => {
+ORDER_ROUTER.get('/routes/:_cellar', mdAuth, (req: Request, res: Response) => {
     const _cellar = req.params._cellar;
 
     Order.find(
@@ -106,7 +107,7 @@ orderRouter.get('/routes/:_cellar', mdAuth, (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  GET / ID */
-orderRouter.get('/order/:id', mdAuth, (req: Request, res: Response) => {
+ORDER_ROUTER.get('/order/:id', mdAuth, (req: Request, res: Response) => {
     const id = req.params.id;
 
     Order.findById(id, (err, order) => {
@@ -140,7 +141,7 @@ orderRouter.get('/order/:id', mdAuth, (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  GET */
-orderRouter.get('/:_cellar/:_delivery', mdAuth, (req: Request, res: Response) => {
+ORDER_ROUTER.get('/:_cellar/:_delivery', mdAuth, (req: Request, res: Response) => {
     const _CELLAR = req.params._cellar;
     const _DELIVERY = req.params._delivery;
 
@@ -192,7 +193,7 @@ orderRouter.get('/:_cellar/:_delivery', mdAuth, (req: Request, res: Response) =>
 /* #endregion */
 
 /* #region  PUT */
-orderRouter.put('/:id', mdAuth, (req: Request, res: Response) => {
+ORDER_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
     const id = req.params.id;
     const body = req.body;
 
@@ -215,113 +216,38 @@ orderRouter.put('/:id', mdAuth, (req: Request, res: Response) => {
             });
         }
 
-        if (body.nit) {
-            body.nit = body.nit.replace(/\s/g, '');
-            body.nit = body.nit.replace(/-/g, '').toUpperCase();
-        }
+        order._cellar = body._cellar;
+        order._user = body._user;
+        order.nit = body.nit;
+        order.name = body.name;
+        order.phone = body.phone;
+        order.address = body.address;
+        order.town = body.town;
+        order.department = body.department;
+        order.details = body.details;
+        order.payment = body.payment;
+        order.total = body.total;
 
-        Customer.findOne({
-            nit: body.nit,
-            deleted: false
-        }).exec(async (err, _customer) => {
+        order.save((err, order) => {
             if (err) {
-                res.status(500).json({
+                return res.status(400).json({
                     ok: false,
-                    mensaje: 'Error al buscar cliente',
-                    errors: err,
+                    mensaje: 'Error al actualizar orden',
+                    errors: err
                 });
             }
 
-            if (!_customer) {
-                if (
-                    !body.nit ||
-                    body.nit === '' ||
-                    body.nit === 'C/F' ||
-                    body.nit === 'c/f' ||
-                    body.nit === 'cf' ||
-                    body.nit === 'CF'
-                ) {
-                    // El cliente no existe y no hay que guardarlo
-                    body.nit = 'CF';
-                } else {
-                    // hay que guaradar el cliente
-                    const customer = new Customer({
-                        name: body.name,
-                        nit: body.nit,
-                        phone: body.phone,
-                        address: body.address,
-                        town: body.town,
-                        department: body.department,
-                    });
-
-                    await customer
-                        .save()
-                        .then((NewCustomer) => {
-                            _customer = NewCustomer;
-                        })
-                        .catch((err) => {
-                            res.status(400).json({
-                                ok: false,
-                                mensaje: 'Error al crear cliente',
-                                errors: err,
-                            });
-                        });
-                }
-            } else if (_customer) {
-                _customer.name = body.name;
-                _customer.nit = body.nit;
-                _customer.phone = body.phone;
-                _customer.address = body.address;
-                _customer.town = body.town;
-                _customer.department = body.department;
-
-                await _customer.save((err, NewCustomer) => {
-                    if (err) {
-                        return res.status(400).json({
-                            ok: false,
-                            mensaje: 'Error al actualizar cliente',
-                            errors: err
-                        });
-                    }
-                    _customer = NewCustomer;
-                });
-            }
-
-            order._cellar = body._cellar;
-            order._customer = _customer;
-            order._user = body._user;
-            order.nit = body.nit;
-            order.name = body.name;
-            order.phone = body.phone;
-            order.address = body.address;
-            order.town = body.town;
-            order.department = body.department;
-            order.details = body.details;
-            order.payment = body.payment;
-            order.total = body.total;
-
-            order.save((err, order) => {
-                if (err) {
-                    return res.status(400).json({
-                        ok: false,
-                        mensaje: 'Error al actualizar orden',
-                        errors: err
-                    });
-                }
-
-                res.status(200).json({
-                    ok: true,
-                    order
-                });
+            res.status(200).json({
+                ok: true,
+                order
             });
-
         });
     });
 });
 /* #endregion */
 
 /* #region  PUT */
-orderRouter.put('/state/:id', mdAuth, (req: Request, res: Response) => {
+ORDER_ROUTER.put('/state/:id', mdAuth, (req: Request, res: Response) => {
     const id = req.params.id;
     const body = req.body;
 
@@ -373,7 +299,7 @@ orderRouter.put('/state/:id', mdAuth, (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  DELETE */
-orderRouter.put('/delete/:id', mdAuth, (req: Request, res: Response) => {
+ORDER_ROUTER.put('/delete/:id', mdAuth, (req: Request, res: Response) => {
     const id = req.params.id;
     const body = req.body;
 
@@ -419,146 +345,113 @@ orderRouter.put('/delete/:id', mdAuth, (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  POST cellar */
-orderRouter.post('/', mdAuth, (req: Request, res: Response) => {
-    const body = req.body;
+ORDER_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
+    const BODY: IOrder = req.body;
 
     try {
-        if (body.nit) {
-            body.nit = body.nit.replace(/\s/g, '');
-            body.nit = body.nit.replace(/-/g, '').toUpperCase();
+        if (BODY._customer._id) {
+            if (BODY.nit) {
+                BODY.nit = BODY.nit.replace(/\s/g, '');
+                BODY.nit = BODY.nit.replace(/-/g, '').toUpperCase();
+            }
+
+            BODY._customer.name = BODY.name;
+            BODY._customer.nit = BODY.nit;
+            BODY._customer.phone = BODY.phone;
+
+            await Customer.updateOne(
+                {
+                    _id: BODY._customer._id,
+                },
+                BODY._customer
+            ).exec();
+        }else {
+            const customer = new Customer({
+                name: BODY.name,
+                nit: BODY.nit,
+                phone: BODY.phone,
+                address: BODY.address,
+                town: BODY.town,
+                department: BODY.department,
+            });
+
+            await customer
+                .save()
+                .then((NewCustomer) => {
+                    BODY._customer = NewCustomer;
+                })
+                .catch((err) => {
+                    res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al crear cliente',
+                        errors: err,
+                    });
+                });
         }
 
-        Customer.findOne({
-            nit: body.nit,
-            deleted: false
-        }).exec(async (err, _customer) => {
-            if (err) {
-                res.status(500).json({
-                    ok: false,
-                    mensaje: 'Error al buscar cliente',
-                    errors: err,
-                });
-            }
-
-            if (!_customer) {
-                if (
-                    !body.nit ||
-                    body.nit === '' ||
-                    body.nit === 'C/F' ||
-                    body.nit === 'c/f' ||
-                    body.nit === 'cf' ||
-                    body.nit === 'CF'
-                ) {
-                    // El cliente no existe y no hay que guardarlo
-                    body.nit = 'CF';
-                } else {
-                    // hay que guaradar el cliente
-                    const customer = new Customer({
-                        name: body.name,
-                        nit: body.nit,
-                        phone: body.phone,
-                        address: body.address,
-                        town: body.town,
-                        department: body.department,
-                    });
-
-                    await customer
-                        .save()
-                        .then((NewCustomer) => {
-                            _customer = NewCustomer;
-                        })
-                        .catch((err) => {
-                            res.status(400).json({
-                                ok: false,
-                                mensaje: 'Error al crear cliente',
-                                errors: err,
-                            });
-                        });
+        Order.findOne(
+            {
+                _cellar: BODY._cellar,
+                deleted: false
+            },
+            'noOrder',
+            {
+                sort: {
+                    noOrder: -1
                 }
-            } else if (_customer) {
-                _customer.name = body.name;
-                _customer.nit = body.nit;
-                _customer.phone = body.phone;
-                _customer.address = body.address;
-                _customer.town = body.town;
-                _customer.department = body.department;
+            },
+            function (err, order) {
+                if (err) {
+                    return res.status(500).json({
+                        ok: false,
+                        mensaje: 'Error al buscar correlativo',
+                        errors: err,
+                    });
+                }
 
-                await _customer.save((err, NewCustomer) => {
-                    if (err) {
-                        return res.status(400).json({
-                            ok: false,
-                            mensaje: 'Error al actualizar cliente',
-                            errors: err
-                        });
-                    }
-                    _customer = NewCustomer;
+                // Definiciones para la factura
+                let correlative = 0;
+                if (order) {
+                    correlative = Number(order.noOrder) + 1;
+                }
+
+                const newOrder = new Order({
+                    _cellar: BODY._cellar,
+                    _user: BODY._user,
+                    _customer: BODY._customer,
+                    noOrder: correlative,
+                    noBill: BODY.noBill,
+                    name: BODY.name,
+                    nit: BODY.nit,
+                    phone: BODY.phone,
+                    address: BODY.address,
+                    town: BODY.town,
+                    department: BODY.department,
+                    details: BODY.details,
+                    payment: BODY.payment,
+                    sellerCode: BODY.sellerCode,
+                    total: BODY.total,
+                    date: moment().tz("America/Guatemala").format(),
+                    timeOrder: BODY.timeOrder
                 });
-            }
 
-            Order.findOne(
-                {
-                    _cellar: body._cellar,
-                    deleted: false
-                },
-                'noOrder',
-                {
-                    sort: {
-                        noOrder: -1
-                    }
-                },
-                function (err, order) {
-                    if (err) {
-                        return res.status(500).json({
+                newOrder
+                    .save()
+                    .then((order) => {
+                        res.status(200).json({
+                            ok: true,
+                            order,
+                        });
+                    })
+                    .catch((err) => {
+                        res.status(400).json({
                             ok: false,
-                            mensaje: 'Error al buscar correlativo',
+                            mensaje: 'Error al crear orden',
                             errors: err,
                         });
-                    }
-
-                    // Definiciones para la factura
-                    let correlative = 0;
-                    if (order) {
-                        correlative = Number(order.noOrder) + 1;
-                    }
-
-                    const newOrder = new Order({
-                        _cellar: body._cellar,
-                        _user: body._user,
-                        _customer,
-                        noOrder: correlative,
-                        noBill: body.noBill,
-                        name: body.name,
-                        nit: body.nit,
-                        phone: body.phone,
-                        address: body.address,
-                        town: body.town,
-                        department: body.department,
-                        details: body.details,
-                        payment: body.payment,
-                        sellerCode: body.sellerCode,
-                        total: body.total,
-                        date: moment().tz("America/Guatemala").format(),
-                        timeOrder: body.timeOrder
                     });
-
-                    newOrder
-                        .save()
-                        .then((order) => {
-                            res.status(200).json({
-                                ok: true,
-                                order,
-                            });
-                        })
-                        .catch((err) => {
-                            res.status(400).json({
-                                ok: false,
-                                mensaje: 'Error al crear orden',
-                                errors: err,
-                            });
-                        });
-                }
-            );
-        });
+            }
+        );
     } catch (err) {
         // ERROR GLOBAL
         console.log("🚀 ~ file: order.ts ~ line 1248 ~ orderRouter.post ~ err", err)
@@ -566,4 +459,4 @@ orderRouter.post('/', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
-export default orderRouter;
+export default ORDER_ROUTER;

@@ -36,10 +36,16 @@ CUSTOMER_ROUTER.get('/search', mdAuth, (req: Request, res: Response) => {
     let search = req.query.search || '';
     search = String(search);
 
-    const REGEX = new RegExp(search, 'i');
+	// Se usaron INDEXES en vez de una busqueda normal
+    // const REGEX = new RegExp(search, 'i');
 
 	Customer.find({
-		name: REGEX,
+		$text: {$search: search},
+		// "$or": [
+		// 	{ phone: { '$regex': search, '$options': 'i' } },
+		// 	{ nit: { '$regex': search, '$options': 'i' } },
+		// 	{ name: { '$regex': search, '$options': 'i' } },
+		// ],
 		deleted: false,
 	})
 		.populate('_seller')
