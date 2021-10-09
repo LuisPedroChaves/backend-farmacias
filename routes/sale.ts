@@ -12,25 +12,18 @@ const saleRouter = Router();
 
 /* #region  GET */
 saleRouter.get('/history/:_customer', mdAuth, (req: Request, res: Response) => {
-    const mes: number = Number(req.query.month);
-    let mes2 = 0;
-    let año: number = Number(req.query.year);
-    let año2: number = Number(req.query.year);
     const _customer = req.params._customer;
 
-    if (mes == 12) {
-        mes2 = 1;
-        año2 = año + 1;
-    } else {
-        mes2 = mes + 1;
-    }
+    let startDate = new Date(String(req.query.startDate));
+	let endDate  = new Date(String(req.query.endDate));
+	endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
 
     Sale.find(
         {
             _customer,
             date: {
-                $gte: new Date(año + ',' + mes),
-                $lt: new Date(año2 + ',' + mes2),
+                $gte: new Date(startDate.toDateString()),
+                $lt: new Date(endDate.toDateString()),
             },
             paid: true,
             deleted: false
@@ -57,29 +50,20 @@ saleRouter.get('/history/:_customer', mdAuth, (req: Request, res: Response) => {
             });
         });
 });
-/* #endregion */
 
-/* #region  GET */
 saleRouter.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
-    const mes: number = Number(req.query.month);
-    let mes2 = 0;
-    let año: number = Number(req.query.year);
-    let año2: number = Number(req.query.year);
     const _cellar = req.params._cellar;
 
-    if (mes == 12) {
-        mes2 = 1;
-        año2 = año + 1;
-    } else {
-        mes2 = mes + 1;
-    }
+    let startDate = new Date(String(req.query.startDate));
+	let endDate  = new Date(String(req.query.endDate));
+	endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
 
     Sale.find(
         {
             _cellar,
             date: {
-                $gte: new Date(año + ',' + mes),
-                $lt: new Date(año2 + ',' + mes2),
+                $gte: new Date(startDate.toDateString()),
+                $lt: new Date(endDate.toDateString()),
             },
             deleted: false
         },
@@ -107,7 +91,6 @@ saleRouter.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
-/* #region  PUT venta */
 saleRouter.put('/:id', mdAuth, (req, res) => {
     const id = req.params.id;
     const body = req.body;
@@ -162,9 +145,7 @@ saleRouter.put('/:id', mdAuth, (req, res) => {
       });
     });
   });
-  /* #endregion */
 
-  /* #region  DELETE */
   saleRouter.delete('/:id', mdAuth, (req: Request, res: Response) => {
 	const id = req.params.id;
 
@@ -205,9 +186,7 @@ saleRouter.put('/:id', mdAuth, (req, res) => {
 		});
 	});
 });
-/* #endregion */
 
-/* #region  POST cellar */
 saleRouter.post('/', mdAuth, (req: Request, res: Response) => {
     const body = req.body;
 
@@ -324,6 +303,5 @@ saleRouter.post('/', mdAuth, (req: Request, res: Response) => {
         console.log("🚀 ~ file: order.ts ~ line 1248 ~ orderRouter.post ~ err", err)
     }
 });
-/* #endregion */
 
 export default saleRouter;

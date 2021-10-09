@@ -10,7 +10,7 @@ import { ICustomer } from '../models/customer';
 
 const ORDER_ROUTER = Router();
 
-/* #region  GET */
+/* #region  GETS */
 ORDER_ROUTER.get('/adminRoutes/', mdAuth, (req: Request, res: Response) => {
 
     Order.find(
@@ -39,9 +39,7 @@ ORDER_ROUTER.get('/adminRoutes/', mdAuth, (req: Request, res: Response) => {
             });
         });
 });
-/* #endregion */
 
-/* #region  GET */
 ORDER_ROUTER.get('/dispatches/:_cellar', mdAuth, (req: Request, res: Response) => {
     const _cellar = req.params._cellar;
 
@@ -71,9 +69,7 @@ ORDER_ROUTER.get('/dispatches/:_cellar', mdAuth, (req: Request, res: Response) =
             });
         });
 });
-/* #endregion */
 
-/* #region  GET */
 ORDER_ROUTER.get('/routes/:_cellar', mdAuth, (req: Request, res: Response) => {
     const _cellar = req.params._cellar;
 
@@ -104,9 +100,7 @@ ORDER_ROUTER.get('/routes/:_cellar', mdAuth, (req: Request, res: Response) => {
             });
         });
 });
-/* #endregion */
 
-/* #region  GET / ID */
 ORDER_ROUTER.get('/order/:id', mdAuth, (req: Request, res: Response) => {
     const id = req.params.id;
 
@@ -138,9 +132,7 @@ ORDER_ROUTER.get('/order/:id', mdAuth, (req: Request, res: Response) => {
         .populate('_userDeleted', '')
         .populate('_delivery', '');
 });
-/* #endregion */
 
-/* #region  GET */
 ORDER_ROUTER.get('/:_cellar/:_delivery', mdAuth, (req: Request, res: Response) => {
     const _CELLAR = req.params._cellar;
     const _DELIVERY = req.params._delivery;
