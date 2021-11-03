@@ -2,20 +2,24 @@ import { Router, Request, Response } from 'express';
 import { mdAuth } from '../middleware/auth'
 import moment from 'moment-timezone';
 
+import Server from '../classes/serve';
 import Purchase from '../models/purchase';
 import Provider from '../models/provider';
 import Product from '../models/product';
+import User from '../models/user';
 import { IPurchase, IPurchaseDetail } from '../models/purchase';
 
+// WebSockets Server
+const SERVER = Server.instance;
 const PURCHASE_ROUTER = Router();
 
-/* #region  GET */
+/* #region  GET'S */
 PURCHASE_ROUTER.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
     const _cellar = req.params._cellar;
 
     let startDate = new Date(String(req.query.startDate));
-	let endDate  = new Date(String(req.query.endDate));
-	endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
+    let endDate = new Date(String(req.query.endDate));
+    endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
 
     Purchase.find(
         {
@@ -51,9 +55,7 @@ PURCHASE_ROUTER.get('/:_cellar', mdAuth, (req: Request, res: Response) => {
             });
         });
 });
-/* #endregion */
 
-/* #region  GET / ID */
 PURCHASE_ROUTER.get('/purchase/:id', mdAuth, (req: Request, res: Response) => {
     const ID = req.params.id;
 
@@ -89,9 +91,39 @@ PURCHASE_ROUTER.get('/purchase/:id', mdAuth, (req: Request, res: Response) => {
             },
         })
 });
-/* #endregion */
 
-/* #region  GET */
+PURCHASE_ROUTER.get('/requisitions/:_cellar', mdAuth, (req: Request, res: Response) => {
+    const _cellar = req.params._cellar;
+
+    Purchase.find(
+        {
+            _cellar,
+            state: 'REQUISITION',
+            deleted: false
+        }
+    )
+        .sort({
+            date: -1
+        })
+        .populate('_user', '')
+        .populate('_provider', '')
+        .populate('detail._product', '')
+        .exec(async (err: any, purchases: IPurchase[]) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando compras',
+                    errors: err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                purchases
+            });
+        });
+});
+
 PURCHASE_ROUTER.get('/createds/:_cellar', mdAuth, (req: Request, res: Response) => {
     const _cellar = req.params._cellar;
 
@@ -125,9 +157,7 @@ PURCHASE_ROUTER.get('/createds/:_cellar', mdAuth, (req: Request, res: Response) 
             });
         });
 });
-/* #endregion */
 
-/* #region  GET */
 PURCHASE_ROUTER.get('/updateds/:_cellar', mdAuth, (req: Request, res: Response) => {
     const _cellar = req.params._cellar;
 
@@ -161,9 +191,7 @@ PURCHASE_ROUTER.get('/updateds/:_cellar', mdAuth, (req: Request, res: Response) 
             });
         });
 });
-/* #endregion */
 
-/* #region  GET */
 PURCHASE_ROUTER.get('/deletes/:_cellar', mdAuth, (req: Request, res: Response) => {
     const mes: number = Number(req.query.month);
     let mes2 = 0;
@@ -214,7 +242,7 @@ PURCHASE_ROUTER.get('/deletes/:_cellar', mdAuth, (req: Request, res: Response) =
 });
 /* #endregion */
 
-/* #region  STATES */
+/* #region  PUTS */
 PURCHASE_ROUTER.put('/state/:id', mdAuth, (req: Request, res: Response) => {
     const ID = req.params.id;
     const BODY = req.body;
@@ -260,9 +288,7 @@ PURCHASE_ROUTER.put('/state/:id', mdAuth, (req: Request, res: Response) => {
         });
     });
 });
-/* #endregion */
 
-/* #region  DETAIL */
 PURCHASE_ROUTER.put('/detail/:id', mdAuth, (req: Request, res: Response) => {
     const ID = req.params.id;
     const BODY = req.body;
@@ -304,9 +330,7 @@ PURCHASE_ROUTER.put('/detail/:id', mdAuth, (req: Request, res: Response) => {
         });
     });
 });
-/* #endregion */
 
-/* #region  DELETE */
 PURCHASE_ROUTER.put('/delete/:id', mdAuth, (req: Request, res: Response) => {
     const ID = req.params.id;
     const BODY = req.body;
@@ -358,9 +382,8 @@ PURCHASE_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
     const BODY: IPurchase = req.body;
 
     // Si hay precios que cambiaron entonces el resultado será distinto de cero
-    const CHANGED_PRICES = BODY.detail.filter(detail => (((Number(detail.cost) - Number(detail.lastCost)) / Number(detail.lastCost)) * 100) !== 0);
-    // const CHANGED_PRICES = BODY.detail.reduce((sum: number, item: IPurchaseDetail) => sum + item.changedPrice, 0);
-    const STATE = (CHANGED_PRICES.length > 0) ? 'CREATED' : 'UPDATED';
+    // const CHANGED_PRICES = BODY.detail.filter(detail => (((Number(detail.cost) - Number(detail.lastCost)) / Number(detail.lastCost)) * 100) !== 0);
+    // const STATE = (CHANGED_PRICES.length > 0) ? 'CREATED' : 'UPDATED';
 
     Provider.findOne({
         name: BODY._provider,
@@ -382,41 +405,73 @@ PURCHASE_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
             });
         }
 
-        const newPurchase = new Purchase({
-            _cellar: BODY._cellar,
-            _user: BODY._user,
-            _provider: _provider,
-            noBill: BODY.noBill,
-            date: BODY.date,
-            requisition: BODY.requisition,
-            details: BODY.details,
-            detail: BODY.detail,
-            payment: BODY.payment,
-            total: BODY.total,
-            file: BODY.file,
-            state: STATE,
-            created:  moment().tz("America/Guatemala").format(),
-        });
+        BODY.detail = await SEARCH_PRESENTATIONS(BODY.detail);
 
-        newPurchase
-            .save()
-            .then((purchase) => {
-                res.status(200).json({
-                    ok: true,
-                    purchase,
+        Purchase.findOne(
+            {
+                _cellar: BODY._cellar,
+                deleted: false
+            },
+            'requisition',
+            {
+                sort: {
+                    requisition: -1
+                }
+            },
+            function (err, purchase) {
+                if (err) {
+                    return res.status(500).json({
+                        ok: false,
+                        mensaje: 'Error al buscar correlativo',
+                        errors: err,
+                    });
+                }
+
+                // Definiciones para la factura
+                let correlative = 1;
+                if (purchase) {
+                    correlative = Number(purchase.requisition) + 1;
+                }
+
+                const newPurchase = new Purchase({
+                    _cellar: BODY._cellar,
+                    _user: BODY._user,
+                    _provider: _provider,
+                    requisition: correlative,
+                    detail: BODY.detail,
+                    payment: BODY.payment,
+                    created: moment().tz("America/Guatemala").format(),
+                    _lastUpdate: BODY._user
                 });
-            })
-            .catch((err) => {
-                return res.status(400).json({
-                    ok: false,
-                    mensaje: 'Error al crear compra',
-                    errors: err,
-                });
+
+                newPurchase
+                    .save()
+                    .then((purchase) => {
+                        Provider.populate(purchase, { path: '_provider' }, (err, result: IPurchase) => {
+                            User.populate(result, { path: '_user' }, (err, result: IPurchase) => {
+                                SERVER.io.in(result._cellar).emit('newRequisition', result);
+                            });
+                        });
+                        res.status(200).json({
+                            ok: true,
+                            purchase,
+                        });
+                    })
+                    .catch((err) => {
+                        return res.status(400).json({
+                            ok: false,
+                            mensaje: 'Error al crear compra',
+                            errors: err,
+                        });
+                    });
+
             });
+
     });
 });
 /* #endregion */
 
+/* #region  Functions */
 const UPDATE_COSTS = async (detail: IPurchaseDetail[]): Promise<any> => {
     return Promise.all(
         detail.map(async (element: IPurchaseDetail) => {
@@ -447,5 +502,15 @@ const UPDATE_COSTS = async (detail: IPurchaseDetail[]): Promise<any> => {
         })
     );
 };
+
+const SEARCH_PRESENTATIONS = async (detail: IPurchaseDetail[]): Promise<IPurchaseDetail[]> => {
+    return Promise.all(
+        detail.map((element: any) => {
+            element.presentation = element._product.presentations.name;
+            return element;
+        })
+    );
+}
+/* #endregion */
 
 export default PURCHASE_ROUTER;

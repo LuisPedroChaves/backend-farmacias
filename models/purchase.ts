@@ -11,7 +11,7 @@ export interface IPurchase extends Document {
     _provider: IProvider['_id'];
     noBill: string,
     date: Date,
-    requisition: string,
+    requisition: number,
     details: string,
     detail: IPurchaseDetail[],
     adjust: IPurchaseAdjust[],
@@ -20,6 +20,7 @@ export interface IPurchase extends Document {
     file: string,
     state: string,
     created: Date,
+    _lastUpdate: IUser['_id'];
     _userDeleted: IUser['_id'];
     textDeleted: string,
     deleted: boolean
@@ -27,6 +28,7 @@ export interface IPurchase extends Document {
 export interface IPurchaseDetail extends Document {
     _product: IProduct['_id'];
     presentation: string,
+    requested: number,
     quantity: number,
     price: number,
     bonus: number,
@@ -52,7 +54,7 @@ const PAGOS_VALIDOS = {
     message: '{VALUE} no es un tipo de pago permitido'
 };
 const ESTADOS_VALIDOS = {
-    values: ['CREATED', 'UPDATED', 'APPLIED'],
+    values: ['REQUISITION', 'CREATED', 'UPDATED', 'APPLIED'],
     message: '{VALUE} no es un estado permitido'
 };
 
@@ -74,14 +76,13 @@ const purchaseSchema = new Schema({
     },
     noBill: {
         type: String,
-        required: [true, 'El número de factura es necesario'],
     },
     date: {
         type: Date,
-        required: [true, 'La fecha es necesaria'],
+        default: null
     },
     requisition: {
-        type: String,
+        type: Number,
     },
     details: {
         type: String,
@@ -94,6 +95,10 @@ const purchaseSchema = new Schema({
         },
         presentation: {
             type: String,
+        },
+        requested: {
+            type: Float,
+            default: 0
         },
         quantity: {
             type: Float,
@@ -175,10 +180,15 @@ const purchaseSchema = new Schema({
     state: {
         type: String,
         enum: ESTADOS_VALIDOS.values,
-        default: 'CREATED'
+        default: 'REQUISITION'
     },
     created: {
         type: Date,
+    },
+    _lastUpdate: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
     },
     _userDeleted: {
         type: Schema.Types.ObjectId,
