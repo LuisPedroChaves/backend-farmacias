@@ -6,9 +6,9 @@ import { IUser } from './user';
 import { IProduct } from './product';
 
 export interface IPurchase extends Document {
-    _cellar: ICellar['_id'];
-    _user: IUser['_id'];
-    _provider: IProvider['_id'];
+    _cellar: ICellar['_id'],
+    _user: IUser['_id'],
+    _provider: IProvider['_id'],
     noBill: string,
     date: Date,
     requisition: number,
@@ -16,18 +16,18 @@ export interface IPurchase extends Document {
     detail: IPurchaseDetail[],
     adjust: IPurchaseAdjust[],
     payment: string,
-    total: number
+    total: number,
     file: string,
     state: string,
     created: Date,
-    _lastUpdate: IUser['_id'];
+    _lastUpdate: IUser['_id']
     _userDeleted: IUser['_id'];
     textDeleted: string,
     deleted: boolean
 }
 export interface IPurchaseDetail extends Document {
-    _product: IProduct['_id'];
-    presentation: string,
+    _product: IProduct['_id'],
+    presentation: IPurchaseDetailPresentation,
     requested: number,
     quantity: number,
     price: number,
@@ -35,10 +35,13 @@ export interface IPurchaseDetail extends Document {
     discount: number,
     cost: number,
     realQuantity: number,
-    stockQuantity: number,
     expirationDate: Date,
     lastCost: number,
     updated: boolean
+}
+export interface IPurchaseDetailPresentation extends Document {
+    name: string,
+    quantity: number
 }
 export interface IPurchaseAdjust extends Document {
     _user: IUser['_id'];
@@ -58,7 +61,17 @@ const ESTADOS_VALIDOS = {
     message: '{VALUE} no es un estado permitido'
 };
 
-const purchaseSchema = new Schema({
+const PRESENTATION_SCHEMA = new Schema({
+    name: {
+        type: String,
+    },
+    quantity: {
+        type: Float,
+        default: 0
+    },
+});
+
+const PURCHASE_SCHEMA = new Schema({
     _cellar: {
         type: Schema.Types.ObjectId,
         ref: 'Cellar',
@@ -94,7 +107,8 @@ const purchaseSchema = new Schema({
             required: [true, 'El producto es necesario']
         },
         presentation: {
-            type: String,
+            type: PRESENTATION_SCHEMA,
+            default: {}
         },
         requested: {
             type: Float,
@@ -121,10 +135,6 @@ const purchaseSchema = new Schema({
             default: 0
         },
         realQuantity: {
-            type: Float,
-            default: 0
-        },
-        stockQuantity: {
             type: Float,
             default: 0
         },
@@ -204,4 +214,4 @@ const purchaseSchema = new Schema({
     },
 });
 
-export default mongoose.model<IPurchase>('Purchase', purchaseSchema);
+export default mongoose.model<IPurchase>('Purchase', PURCHASE_SCHEMA);

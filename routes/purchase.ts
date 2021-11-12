@@ -83,6 +83,8 @@ PURCHASE_ROUTER.get('/purchase/:id', mdAuth, (req: Request, res: Response) => {
             purchase,
         });
     })
+        .populate('_provider')
+        .populate('_user')
         .populate('detail._product', '')
         .populate({
             path: 'detail._product',
@@ -137,6 +139,7 @@ PURCHASE_ROUTER.get('/createds/:_cellar', mdAuth, (req: Request, res: Response) 
         .sort({
             date: -1
         })
+        .populate('_lastUpdate', '')
         .populate('_user', '')
         .populate('_provider', '')
         .populate('detail._product', '')
@@ -209,7 +212,7 @@ PURCHASE_ROUTER.get('/deletes/:_cellar', mdAuth, (req: Request, res: Response) =
     Purchase.find(
         {
             _cellar,
-            date: {
+            created: {
                 $gte: new Date(año + ',' + mes),
                 $lt: new Date(año2 + ',' + mes2),
             },
@@ -217,7 +220,7 @@ PURCHASE_ROUTER.get('/deletes/:_cellar', mdAuth, (req: Request, res: Response) =
         }
     )
         .sort({
-            date: -1
+            created: -1
         })
         .populate('_user', '')
         .populate('_provider', '')
@@ -245,7 +248,7 @@ PURCHASE_ROUTER.get('/deletes/:_cellar', mdAuth, (req: Request, res: Response) =
 /* #region  PUTS */
 PURCHASE_ROUTER.put('/state/:id', mdAuth, (req: Request, res: Response) => {
     const ID = req.params.id;
-    const BODY = req.body;
+    const BODY: IPurchase = req.body;
 
     Purchase.findById(ID, async (err, purchase) => {
         if (err) {
@@ -268,6 +271,24 @@ PURCHASE_ROUTER.put('/state/:id', mdAuth, (req: Request, res: Response) => {
 
         purchase.state = BODY.state;
 
+        if (purchase.state === 'REQUISITION') {
+            purchase.noBill = BODY.noBill;
+            purchase.date = BODY.date;
+            purchase.details = BODY.details;
+            purchase.detail = BODY.detail;
+            purchase.total = BODY.total;
+            purchase._lastUpdate = BODY._lastUpdate;
+            // Funcion para consultar si los costos cambiaron con respecto a la ultima compra
+            const RESULT = await CHANGED_PRICES(BODY.detail);
+            if (RESULT.includes(true)) {
+                // Si hay precios distintos entonces pasa al listado de "Actualizar precios"
+                purchase.state = 'CREATED';
+            } else {
+                // Si no hay precios distintos entonces pasa al listado de "Ingresos pendientes"
+                purchase.state = 'UPDATED';
+            }
+        }
+
         if (purchase.state === 'APPLIED') {
             await UPDATE_COSTS(BODY.detail);
         }
@@ -276,10 +297,18 @@ PURCHASE_ROUTER.put('/state/:id', mdAuth, (req: Request, res: Response) => {
             if (err) {
                 return res.status(400).json({
                     ok: false,
-                    mensaje: 'Error al borrar compra',
+                    mensaje: 'Error al actualizar compra',
                     errors: err
                 });
             }
+
+            Provider.populate(purchase, { path: '_provider' }, (err, result: IPurchase) => {
+                User.populate(result, { path: '_user' }, (err, result: IPurchase) => {
+                    Product.populate(result, { path: 'detail._product' }, (err, result: IPurchase) => {
+                        SERVER.io.in(result._cellar).emit('newRequisition', result);
+                    });
+                });
+            });
 
             res.status(200).json({
                 ok: true,
@@ -381,10 +410,6 @@ PURCHASE_ROUTER.put('/delete/:id', mdAuth, (req: Request, res: Response) => {
 PURCHASE_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
     const BODY: IPurchase = req.body;
 
-    // Si hay precios que cambiaron entonces el resultado será distinto de cero
-    // const CHANGED_PRICES = BODY.detail.filter(detail => (((Number(detail.cost) - Number(detail.lastCost)) / Number(detail.lastCost)) * 100) !== 0);
-    // const STATE = (CHANGED_PRICES.length > 0) ? 'CREATED' : 'UPDATED';
-
     Provider.findOne({
         name: BODY._provider,
         deleted: false
@@ -449,7 +474,9 @@ PURCHASE_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
                     .then((purchase) => {
                         Provider.populate(purchase, { path: '_provider' }, (err, result: IPurchase) => {
                             User.populate(result, { path: '_user' }, (err, result: IPurchase) => {
-                                SERVER.io.in(result._cellar).emit('newRequisition', result);
+                                Product.populate(result, { path: 'detail._product' }, (err, result: IPurchase) => {
+                                    SERVER.io.in(result._cellar).emit('newRequisition', result);
+                                });
                             });
                         });
                         res.status(200).json({
@@ -472,6 +499,38 @@ PURCHASE_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  Functions */
+const CHANGED_PRICES = async (detail: IPurchaseDetail[]): Promise<boolean[]> => {
+    return Promise.all(
+        detail.map(async (detail: IPurchaseDetail) => {
+
+            const PRODUCT = await Product.findOne(
+                {
+                    _id: detail._product._id,
+                    'presentations.name': detail.presentation.name,
+                },
+                {
+                    'presentations.$': 1,
+                }
+            ).exec();
+
+            if (PRODUCT) {
+                const LAST_COST = PRODUCT.presentations[0].cost;
+                // Formula para encontrar la diferencia entre el nuevo costo y el ultimo costo ingresado
+                // (NUEVO COSTO - ULTIMO COSTO) / ULTIMO COSTO * 100
+                // Si es igual a CERO entonces el costo no cambio
+                if ((((Number(detail.cost) - Number(LAST_COST)) / Number(LAST_COST)) * 100) === 0) {
+                    return false;
+
+                } else {
+                    return true;
+                }
+            } else {
+                return false;
+            }
+        })
+    );
+};
+
 const UPDATE_COSTS = async (detail: IPurchaseDetail[]): Promise<any> => {
     return Promise.all(
         detail.map(async (element: IPurchaseDetail) => {
@@ -506,7 +565,10 @@ const UPDATE_COSTS = async (detail: IPurchaseDetail[]): Promise<any> => {
 const SEARCH_PRESENTATIONS = async (detail: IPurchaseDetail[]): Promise<IPurchaseDetail[]> => {
     return Promise.all(
         detail.map((element: any) => {
-            element.presentation = element._product.presentations.name;
+            element.presentation = {
+                name: element._product.presentations.name,
+                quantity: element._product.presentations.quantity
+            };
             return element;
         })
     );
