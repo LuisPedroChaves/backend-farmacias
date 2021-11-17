@@ -482,7 +482,6 @@ PRODUCT_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         console.log("🚀 ~ file: product.ts ~ line 10 ~ PRODUCT_ROUTER.post ~ error", error)
     }
 });
-/* #endregion */
 
 PRODUCT_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
 
@@ -596,6 +595,7 @@ PRODUCT_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
         });
     });
 });
+/* #endregion */
 
 const SEARCH_SUBSTANCES = (substances: string[]): Promise<[]> => {
 
