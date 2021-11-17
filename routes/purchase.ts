@@ -94,6 +94,45 @@ PURCHASE_ROUTER.get('/purchase/:id', mdAuth, (req: Request, res: Response) => {
         })
 });
 
+PURCHASE_ROUTER.get('/alls/:_cellar', mdAuth, (req: Request, res: Response) => {
+    const _cellar = req.params._cellar;
+
+    Purchase.find(
+        {
+            _cellar,
+            $or: [
+                {state: 'REQUISITION'},
+                {state: 'CREATED'},
+                {state: 'UPDATED'},
+            ],
+            deleted: false
+        }
+    )
+        .sort({
+            date: -1
+        })
+        .populate('_lastUpdate', '')
+        .populate('_user', '')
+        .populate('_provider', '')
+        .populate('detail._product', '')
+        .populate('adjust._user', '')
+        .populate('adjust._product', '')
+        .exec(async (err: any, purchases: IPurchase[]) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando compras',
+                    errors: err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                purchases
+            });
+        });
+});
+
 PURCHASE_ROUTER.get('/requisitions/:_cellar', mdAuth, (req: Request, res: Response) => {
     const _cellar = req.params._cellar;
 
