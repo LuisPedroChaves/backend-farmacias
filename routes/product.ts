@@ -517,10 +517,10 @@ PRODUCT_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
 
         const DOC = xlsx.parse(PATH);
 
-        let code = 0;
+        let code = 1;
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
-                let marca: string = doc[6];
+                let marca: string = doc[2];
                 if (marca) {
                     marca = marca.replace(/\s/g, '');
                     marca = marca.replace(/-/g, '').toUpperCase();
@@ -570,17 +570,19 @@ PRODUCT_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
                     });
                 }
 
+                const DESCRIPTION: string = doc[1];
+
                 const PRODUCT = new Product({
                     _brand,
                     code: code,
-                    barcode: doc[3],
-                    description: doc[1],
+                    barcode: doc[0],
+                    description: DESCRIPTION.toUpperCase(),
                     substances: misSus
                 });
 
-                // let product = await PRODUCT
-                //     .save()
-                //     .then();
+                let product = await PRODUCT
+                    .save()
+                    .then();
 
                 code++;
                 console.log("🚀 ~ file: product.ts ~ line 372 ~ awaitbluebird.mapSeries ~ code", code)
