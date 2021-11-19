@@ -4,14 +4,14 @@ import xlsx from 'node-xlsx';
 import bluebird from 'bluebird';
 
 import Product from '../models/product';
-import TempStorage from '../models/tempStorage';
+import TempSale from '../models/tempSale';
 
-const TEMP_STORAGE_ROUTER = Router();
-TEMP_STORAGE_ROUTER.use(fileUpload());
+const TEMP_SALE_ROUTER = Router();
+TEMP_SALE_ROUTER.use(fileUpload());
 
 /* #region  POST */
-TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response) => {
-    const _cellar: string = req.params.cellar;
+TEMP_SALE_ROUTER.post('/xlsx',  (req: Request, res: Response) => {
+    const BODY = req.body;
 
     // Sino envia ningún archivo
     if (!req.files) {
@@ -61,7 +61,7 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response) => {
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
                 const BARCODE: string = doc[0];
-                const STOCK: number = doc[1];
+                const QUANTITY: number = doc[1];
 
                 let _product = await Product.findOne({
                     barcode: BARCODE,
@@ -74,29 +74,14 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response) => {
                         error: 'No se encontró un producto con este código'
                     })
                 }else {
-                    let tempStorage = await TempStorage.findOne({
-                        _product,
-                        _cellar
-                    }).exec();
+                    const NEW_TEMP_SALE = new TempSale({
+                        _cellar: BODY._cellar,
+                        _product: _product._id,
+                        date: BODY.date,
+                        quantity: QUANTITY
+                    });
 
-                    if (!tempStorage) {
-                        const NEW_TEMP_STORAGE = new TempStorage({
-                            _cellar,
-                            _product: _product._id,
-                            stock: STOCK
-                        });
-
-                        await NEW_TEMP_STORAGE.save().then();
-                    } else {
-                        await TempStorage.updateOne(
-                            {
-                                _id: tempStorage._id,
-                            },
-                            {
-                                stock: STOCK,
-                            },
-                        ).exec();
-                    }
+                    await NEW_TEMP_SALE.save().then();
                 }
 
                 code++;
@@ -114,4 +99,4 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response) => {
 });
 /* #endregion */
 
-export default TEMP_STORAGE_ROUTER;
+export default TEMP_SALE_ROUTER;

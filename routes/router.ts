@@ -19,10 +19,12 @@ import SYMPTOMS_ROUTER from './symptoms';
 import PROVIDER_ROUTER from './provider';
 import PURCHASE_ROUTER from './purchase';
 import TEMP_STORAGE_ROUTER from './tempStorage';
+import TEMP_SALE_ROUTER from './tempSale';
 
 const router = Router();
 
 // Rutas
+router.use('/tempSale', TEMP_SALE_ROUTER);
 router.use('/tempStorage', TEMP_STORAGE_ROUTER);
 router.use('/purchase', PURCHASE_ROUTER);
 router.use('/provider', PROVIDER_ROUTER);
