@@ -7,6 +7,7 @@ export interface ITempStorage extends Document {
     _cellar: ICellar['_id'];
     _product: IProduct['_id'];
     stock: number,
+    supply: number,
 }
 
 const FLOAT = require('mongoose-float').loadType(mongoose, 2);
@@ -23,6 +24,10 @@ const tempStorageSchema = new Schema({
         required: [true, 'El producto es necesario']
     },
     stock: {
+        type: FLOAT,
+        default: 0
+    },
+    supply: {
         type: FLOAT,
         default: 0
     },
