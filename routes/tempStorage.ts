@@ -9,10 +9,10 @@ import Product from '../models/product';
 import TempStorage from '../models/tempStorage';
 import { ITempStorage } from '../models/tempStorage';
 
-const OBJECT_ID = mongoose.Types.ObjectId;
 const TEMP_STORAGE_ROUTER = Router();
 TEMP_STORAGE_ROUTER.use(fileUpload());
 
+const OBJECT_ID = mongoose.Types.ObjectId;
 /* #region  GET'S */
 TEMP_STORAGE_ROUTER.get('/:cellar', mdAuth, (req: Request, res: Response) => {
     const _cellar: string = req.params.cellar;
