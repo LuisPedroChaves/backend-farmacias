@@ -275,7 +275,11 @@ const SEARCH_STOCK_SALES = async (detail: any[], newStart: Date, newEnd: Date, M
                 lastSales = SEARCH_LAST_SALES[0].suma
             }
             element.lastSales = lastSales;
-            element.request = element.stock - lastSales;
+            if (lastSales > 0) {
+                element.request = element.stock - lastSales;
+            }else {
+                element.request = 0;
+            }
             // MINIMOS Y MAXIMOS
             element.minStock = Math.floor(element.promAdjust * MIN_X);
             element.maxStock = Math.floor(element.promAdjust * MAX_X);
