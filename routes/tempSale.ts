@@ -30,7 +30,10 @@ TEMP_SALE_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
     const START = moment(startDate);
     const END = moment(endDate);
     const DAYS = END.diff(START, 'days');
-    const MONTHS = END.diff(START, 'months');
+    // Condicionamos la veriable MONTHS para que no sea igual a cero
+    // Porque en las operaciones no se pueden dividir entre cero
+    // Sí la diferencia queda en cero entonces la igualamos a 1
+    const MONTHS = (END.diff(START, 'months') === 0)? 1: END.diff(START, 'months');
 
     // Obtenemos la nueva fecha final para calcular las ventas del ultimo mes
     let endDate2 = new Date(String(req.query.endDate));
