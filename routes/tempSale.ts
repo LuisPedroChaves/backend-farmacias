@@ -22,9 +22,15 @@ TEMP_SALE_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
     const MIN_X = req.query.minX || 0;
     const MAX_X = req.query.maxX || 0;
 
+    // Rango de fechas para historial de ventas
     let startDate = new Date(String(req.query.startDate));
     let endDate = new Date(String(req.query.endDate));
     endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
+
+    // Rango de fechas para consultar las ventas del último mes
+    let startDate2 = new Date(String(req.query.startDate2));
+    let endDate2 = new Date(String(req.query.endDate2));
+    endDate2.setDate(endDate2.getDate() + 1); // Sumamos un día para aplicar bien el filtro
 
     // Calculamos los dias y los meses en un rango de fechas
     const START = moment(startDate);
@@ -33,77 +39,136 @@ TEMP_SALE_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
     // Condicionamos la veriable MONTHS para que no sea igual a cero
     // Porque en las operaciones no se pueden dividir entre cero
     // Sí la diferencia queda en cero entonces la igualamos a 1
-    const MONTHS = (END.diff(START, 'months') === 0)? 1: END.diff(START, 'months');
+    const MONTHS = (END.diff(START, 'months') === 0) ? 1 : END.diff(START, 'months');
 
-    // Obtenemos la nueva fecha final para calcular las ventas del ultimo mes
-    let endDate2 = new Date(String(req.query.endDate));
-    endDate2.setDate(endDate2.getDate() + 1); // Sumamos un día para aplicar bien el filtro
-
-    TempSale.aggregate(
-        [
-            {
-                $match: {
-                    _cellar: OBJECT_ID(_cellar),
-                    date: {
-                        $gte: new Date(startDate.toDateString()),
-                        $lt: new Date(endDate.toDateString()),
+    if (_brand === 'null') {
+        TempSale.aggregate(
+            [
+                {
+                    $match: {
+                        _cellar: OBJECT_ID(_cellar),
+                        date: {
+                            $gte: new Date(startDate.toDateString()),
+                            $lt: new Date(endDate.toDateString()),
+                        },
                     },
                 },
-            },
-            {
-                $lookup: {
-                    from: 'products',
-                    localField: '_product',
-                    foreignField: '_id',
-                    as: '_product',
+                {
+                    $lookup: {
+                        from: 'products',
+                        localField: '_product',
+                        foreignField: '_id',
+                        as: '_product',
+                    },
                 },
-            },
-            {
-                $unwind: '$_product',
-            },
-            {
-                $match: {
-                    '_product._brand': OBJECT_ID(_brand),
+                {
+                    $unwind: '$_product',
                 },
-            },
-            {
-                $sort: { _product: 1 },
-            },
-            {
-                $group: {
-                    _id: '$_product',
-                    suma: { $sum: "$quantity" },
-                    _cellar: { $first: "$_cellar" }
+                {
+                    $sort: { _product: 1 },
+                },
+                {
+                    $group: {
+                        _id: '$_product',
+                        suma: { $sum: "$quantity" },
+                        _cellar: { $first: "$_cellar" }
+                    }
+                },
+                {
+                    "$project": {
+                        _id: 1,
+                        suma: 1,
+                        _cellar: 1,
+                        promMonth: { $divide: ["$suma", MONTHS] },
+                        promDays: { $divide: ["$suma", DAYS] },
+                    }
                 }
-            },
-            {
-                "$project": {
-                    _id: 1,
-                    suma: 1,
-                    _cellar: 1,
-                    promMonth: { $divide: ["$suma", MONTHS] },
-                    promDays: { $divide: ["$suma", DAYS] },
+            ],
+            async function (err: any, tempSales: ITempSale[]) {
+                if (err) {
+                    return res.status(500).json({
+                        ok: false,
+                        mensaje: 'Error listando inventario',
+                        errors: err,
+                    });
                 }
-            }
-        ],
-        async function (err: any, tempSales: ITempSale[]) {
-            if (err) {
-                return res.status(500).json({
-                    ok: false,
-                    mensaje: 'Error listando inventario',
-                    errors: err,
+
+                //Sumamos un mes para calcular ventas al ultimo mes
+                tempSales = await SEARCH_STOCK_SALES(tempSales, startDate2, endDate2, MIN_X, MAX_X);
+
+                res.status(200).json({
+                    ok: true,
+                    tempSales,
                 });
             }
+        );
+    } else {
+        TempSale.aggregate(
+            [
+                {
+                    $match: {
+                        _cellar: OBJECT_ID(_cellar),
+                        date: {
+                            $gte: new Date(startDate.toDateString()),
+                            $lt: new Date(endDate.toDateString()),
+                        },
+                    },
+                },
+                {
+                    $lookup: {
+                        from: 'products',
+                        localField: '_product',
+                        foreignField: '_id',
+                        as: '_product',
+                    },
+                },
+                {
+                    $unwind: '$_product',
+                },
+                {
+                    $match: {
+                        '_product._brand': OBJECT_ID(_brand),
+                    },
+                },
+                {
+                    $sort: { _product: 1 },
+                },
+                {
+                    $group: {
+                        _id: '$_product',
+                        suma: { $sum: "$quantity" },
+                        _cellar: { $first: "$_cellar" }
+                    }
+                },
+                {
+                    "$project": {
+                        _id: 1,
+                        suma: 1,
+                        _cellar: 1,
+                        promMonth: { $divide: ["$suma", MONTHS] },
+                        promDays: { $divide: ["$suma", DAYS] },
+                    }
+                }
+            ],
+            async function (err: any, tempSales: ITempSale[]) {
+                if (err) {
+                    return res.status(500).json({
+                        ok: false,
+                        mensaje: 'Error listando inventario',
+                        errors: err,
+                    });
+                }
 
-            //Sumamos un mes para calcular ventas al ultimo mes
-            tempSales = await SEARCH_STOCK_SALES(tempSales, endDate, new Date(endDate2.setMonth(endDate2.getMonth() + 1)), MIN_X, MAX_X);
+                //Sumamos un mes para calcular ventas al ultimo mes
+                tempSales = await SEARCH_STOCK_SALES(tempSales, startDate2, endDate2, MIN_X, MAX_X);
 
-            res.status(200).json({
-                ok: true,
-                tempSales,
-            });
-        }
-    );
+                res.status(200).json({
+                    ok: true,
+                    tempSales,
+                });
+            }
+        );
+    }
 });
 
 /* #region  POST */
@@ -230,7 +295,10 @@ const SEARCH_STOCK_SALES = async (detail: any[], newStart: Date, newEnd: Date, M
                 sales = SEARCH_SALES[0].suma
             }
             element.salesMonth = sales;
-            element.promAdjust = (element.promDays + (sales / 30)) / 2;
+            const PROM_ADJUST_MONTH = (element.promMonth + sales) / 2;
+            element.promAdjustMonth = Math.round(PROM_ADJUST_MONTH);
+            const PROM_ADJUST_DAY = (element.promDays + (sales / 30)) / 2;
+            element.promAdjustDay = Math.round(PROM_ADJUST_DAY);
 
             const SEARCH_STOCK = await TempStorage.aggregate(
                 [
@@ -242,50 +310,24 @@ const SEARCH_STOCK_SALES = async (detail: any[], newStart: Date, newEnd: Date, M
                     }
                 ]);
 
-                let stock = 0;
+            let stock = 0;
             if (SEARCH_STOCK.length > 0) {
                 stock = SEARCH_STOCK[0].stock;
             }
             element.stock = stock;
 
-            const SEARCH_LAST_SALES = await TempSale.aggregate(
-                [
-                    {
-                        $match: {
-                            _cellar: OBJECT_ID(element._cellar),
-                            _product: OBJECT_ID(element._id._id),
-                            date: {
-                                $gte: new Date(newEnd.toDateString()),
-                            },
-                        },
-                    },
-                    {
-                        $group: {
-                            _id: '$_product',
-                            suma: { $sum: "$quantity" },
-                        }
-                    },
-                    {
-                        "$project": {
-                            _id: 1,
-                            suma: 1,
-                        }
-                    }
-                ]
-            );
-            let lastSales = 0;
-            if (SEARCH_LAST_SALES.length > 0) {
-                lastSales = SEARCH_LAST_SALES[0].suma
-            }
-            element.lastSales = lastSales;
-            if (lastSales > 0) {
-                element.request = element.stock - lastSales;
-            }else {
+            if (sales > 0) {
+                element.request = element.stock - sales;
+                element.stockCellar = Math.round(element.request * .5);
+            } else {
                 element.request = 0;
             }
             // MINIMOS Y MAXIMOS
-            element.minStock = Math.floor(element.promAdjust * MIN_X);
-            element.maxStock = Math.floor(element.promAdjust * MAX_X);
+            element.minStock = Math.round(PROM_ADJUST_MONTH * MIN_X);
+            element.maxStock = Math.round(PROM_ADJUST_MONTH * MAX_X);
+            // Aproximando valores
+            element.promMonth = Math.round(element.promMonth);
+            element.promDays = Math.round(element.promDays);
             return element;
         })
     );
