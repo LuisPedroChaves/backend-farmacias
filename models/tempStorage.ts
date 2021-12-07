@@ -27,6 +27,14 @@ const tempStorageSchema = new Schema({
         type: FLOAT,
         default: 0
     },
+    minStock: {
+        type: FLOAT,
+        default: 0
+    },
+    maxStock: {
+        type: FLOAT,
+        default: 0
+    },
     supply: {
         type: FLOAT,
         default: 0

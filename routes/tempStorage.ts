@@ -202,6 +202,49 @@ TEMP_STORAGE_ROUTER.get('/:cellar', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
+/* #region  PUT */
+TEMP_STORAGE_ROUTER.put('/', mdAuth, async (req: Request, res: Response) => {
+    const BODY = req.body;
+
+    let errors: any[] = [];
+    await bluebird.mapSeries(BODY, async (element: any, index) => {
+        try {
+
+            let tempStorage = await TempStorage.findOne({
+                _product: element._id._id,
+                _cellar: element._cellar
+            }).exec();
+
+            if (!tempStorage) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'Inventario no encontrado',
+                    errors: { message: 'Por favor verifique que exista el inventario en la sucursal seleccionada' }
+                });
+            } else {
+                await TempStorage.updateOne(
+                    {
+                        _id: tempStorage._id,
+                    },
+                    {
+                        minStock: element.minStock,
+                        maxStock: element.maxStock,
+                        supply: +element.request + +element.stockCellar,
+                    },
+                ).exec();
+            }
+        } catch (e: any) {
+            throw new Error(e.message);
+        }
+    });
+
+    return res.status(200).json({
+        ok: true,
+        errors
+    });
+});
+/* #endregion */
+
 /* #region  POST */
 TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response) => {
     const _cellar: string = req.params.cellar;
