@@ -422,8 +422,8 @@ const SEARCH_STOCK_SALES = async (detail: any[], newStart: Date, newEnd: Date, M
                 element.request = 0;
             }
             // MINIMOS Y MAXIMOS
-            element.minStock = Math.round(PROM_ADJUST_MONTH * MIN_X);
-            element.maxStock = Math.round(PROM_ADJUST_MONTH * MAX_X);
+            element.minStock = Math.round(PROM_ADJUST_DAY * MIN_X);
+            element.maxStock = Math.round(PROM_ADJUST_DAY * MAX_X);
             // Aproximando valores
             element.promMonth = Math.round(element.promMonth);
             element.promDays = Math.round(element.promDays);
