@@ -7,6 +7,8 @@ export interface ITempStorage extends Document {
     _cellar: ICellar['_id'];
     _product: IProduct['_id'];
     stock: number,
+    minStock: number,
+    maxStock: number,
     supply: number,
 }
 

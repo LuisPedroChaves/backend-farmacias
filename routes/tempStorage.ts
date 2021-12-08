@@ -8,12 +8,45 @@ import { mdAuth } from '../middleware/auth';
 import Product from '../models/product';
 import TempStorage from '../models/tempStorage';
 import { ITempStorage } from '../models/tempStorage';
+import Cellar from '../models/cellar';
+import { IProduct } from '../models/product';
+import { ICellar } from '../models/cellar';
 
 const TEMP_STORAGE_ROUTER = Router();
 TEMP_STORAGE_ROUTER.use(fileUpload());
 
 const OBJECT_ID = mongoose.Types.ObjectId;
 /* #region  GET'S */
+TEMP_STORAGE_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
+    const _cellar = req.query._cellar;
+    const _brand: any = req.query._brand;
+
+    Product.find({
+        _brand,
+        deleted: false
+    })
+        .sort({
+            barcode: 1
+        })
+        .exec(async (err, products: IProduct[]) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando productos',
+                    errors: err
+                });
+            }
+
+            const RESULT: any[] = await SEARCH_STORAGES(products, _cellar);
+
+            res.status(200).json({
+                ok: true,
+                products: RESULT,
+            });
+        });
+
+});
+
 TEMP_STORAGE_ROUTER.get('/:cellar', mdAuth, (req: Request, res: Response) => {
     const _cellar: string = req.params.cellar;
     // Paginación
@@ -349,5 +382,79 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response) => {
     });
 });
 /* #endregion */
+
+const SEARCH_STORAGES = async (detail: IProduct[], _cellar: any): Promise<any> => {
+    return Promise.all(
+        detail.map(async (product: IProduct) => {
+            // Objeto que vamos a devolver en la consulta
+            let row: any = {
+                barcode: product.barcode,
+                description: product.description
+            };
+
+            // Buscamos todas las sucursales que no sean de tipo bodega
+            const CELLARS: ICellar[] = await Cellar.find(
+                {
+                    type: {
+                        $ne: 'BODEGA'
+                    },
+                    deleted: false
+                }
+            )
+                .sort({
+                    name: 1
+                })
+                .exec();
+
+                // Recorremos las sucursales encontradas
+            const mapCellars = async (cellars: ICellar[]) => {
+                return Promise.all(
+                    cellars.map(async (cellar: ICellar) => {
+
+                        // Buscamos el inventario en esa sucursal y de ese producto
+                        let tempStorage = await TempStorage.findOne({
+                            _product: product._id,
+                            _cellar: cellar._id
+                        }).exec();
+
+                        let currentRow: any = {};
+                        if (!tempStorage) {
+                            // Sino existe inventario entonces devolvemos cero
+                            currentRow.cellar = cellar.name;
+                            currentRow.stock = 0;
+                            currentRow.supply = 0;
+                            currentRow.minStock = 0;
+                            currentRow.maxStock = 0;
+                        } else {
+                            // Si existe el inventario devolvemos la información encontrada
+                            currentRow.cellar = cellar.name;
+                            currentRow.stock = tempStorage.stock;
+                            currentRow.supply = tempStorage.supply;
+                            currentRow.minStock = tempStorage.minStock;
+                            currentRow.maxStock = tempStorage.maxStock;
+                        }
+                        return { ...currentRow }
+                    })
+                );
+            };
+
+            row.results = await mapCellars(CELLARS);
+
+            // Buscamos el inventario de la bodega seleccionada
+            let tempStorage = await TempStorage.findOne({
+                _product: product._id,
+                 _cellar
+            }).exec();
+
+            if (!tempStorage) {
+                row.stockCellar = 0;
+            } else {
+                row.stockCellar = tempStorage.stock;
+            }
+
+            return row;
+        })
+    );
+};
 
 export default TEMP_STORAGE_ROUTER;
