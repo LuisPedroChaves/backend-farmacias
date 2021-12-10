@@ -94,6 +94,7 @@ USER_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
 		user._role = body._role;
 		user._cellar = body._cellar;
 		user.name = body.name;
+		user.username = body.username;
 		user.imageIndex = body.imageIndex;
 		user.email = body.email;
 

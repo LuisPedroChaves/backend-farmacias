@@ -122,6 +122,36 @@ PRODUCT_ROUTER.get('/search', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
+/* #region  GET search product */
+// Busqueda en index por BARCODE y DESCRIPTION
+PRODUCT_ROUTER.get('/searchByIndex', mdAuth, (req: Request, res: Response) => {
+    let search = req.query.search || '';
+    search = String(search);
+
+    Product.find({
+		$text: {$search: search},
+		deleted: false,
+	})
+        .populate('_brand')
+		.sort({ barcode: 1 })
+        .limit(10)
+		.exec((err, products) => {
+			if (err) {
+				return res.status(500).json({
+					ok: false,
+					mensaje: 'Error listando productos',
+					errors: err,
+				});
+			}
+
+			res.status(200).json({
+				ok: true,
+				products,
+			});
+		});
+});
+/* #endregion */
+
 /* #region  GET / ID */
 PRODUCT_ROUTER.get('/:id', mdAuth, (req: Request, res: Response) => {
     const id = req.params.id;

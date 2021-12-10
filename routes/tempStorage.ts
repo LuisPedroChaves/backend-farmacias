@@ -47,6 +47,32 @@ TEMP_STORAGE_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
 
 });
 
+TEMP_STORAGE_ROUTER.get('/checkStock', mdAuth, (req: Request, res: Response) => {
+    const _product = req.query._product;
+
+    TempStorage.find({
+        _product: _product,
+    })
+    .populate('_cellar')
+    .sort({
+        stock: -1
+    })
+    .exec((err, storages) => {
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error listando inventarios',
+                errors: err,
+            });
+        }
+
+        res.status(200).json({
+            ok: true,
+            storages,
+        });
+    });
+});
+
 TEMP_STORAGE_ROUTER.get('/:cellar', mdAuth, (req: Request, res: Response) => {
     const _cellar: string = req.params.cellar;
     // Paginación
