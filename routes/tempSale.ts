@@ -332,9 +332,9 @@ const SEARCH_STOCK_SALES = async (detail: any[], newStart: Date, newEnd: Date, M
             }
             element.salesMonth = sales;
             const PROM_ADJUST_MONTH = (element.promMonth + sales) / 2;
-            element.promAdjustMonth = Math.round(PROM_ADJUST_MONTH);
+            element.promAdjustMonth = Math.ceil(PROM_ADJUST_MONTH);
             const PROM_ADJUST_DAY = (element.promDays + (sales / 30)) / 2;
-            element.promAdjustDay = Math.round(PROM_ADJUST_DAY);
+            element.promAdjustDay = Math.ceil(PROM_ADJUST_DAY);
 
             const SEARCH_STOCK = await TempStorage.aggregate(
                 [
@@ -352,19 +352,20 @@ const SEARCH_STOCK_SALES = async (detail: any[], newStart: Date, newEnd: Date, M
             }
             element.stock = stock;
 
-            if (sales > 0) {
-                element.request = element.stock - sales;
-                element.stockCellar = Math.round(element.request * .5);
+            if (PROM_ADJUST_DAY > 0) {
+                element.request = element.stock - PROM_ADJUST_DAY;
+                element.request = Math.ceil(element.request);
+                element.stockCellar = Math.ceil(element.request * .5);
             } else {
                 element.request = 0;
                 element.stockCellar = 0;
             }
             // MINIMOS Y MAXIMOS
-            element.minStock = Math.round(PROM_ADJUST_DAY * MIN_X);
-            element.maxStock = Math.round(PROM_ADJUST_DAY * MAX_X);
+            element.minStock = Math.ceil(PROM_ADJUST_DAY * MIN_X);
+            element.maxStock = Math.ceil(PROM_ADJUST_DAY * MAX_X);
             // Aproximando valores
-            element.promMonth = Math.round(element.promMonth);
-            element.promDays = Math.round(element.promDays);
+            element.promMonth = Math.ceil(element.promMonth);
+            element.promDays = Math.ceil(element.promDays);
             return element;
         })
     );

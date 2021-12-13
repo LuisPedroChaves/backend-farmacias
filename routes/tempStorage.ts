@@ -47,32 +47,6 @@ TEMP_STORAGE_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
 
 });
 
-TEMP_STORAGE_ROUTER.get('/checkStock', mdAuth, (req: Request, res: Response) => {
-    const _product = req.query._product;
-
-    TempStorage.find({
-        _product: _product,
-    })
-    .populate('_cellar')
-    .sort({
-        stock: -1
-    })
-    .exec((err, storages) => {
-        if (err) {
-            return res.status(500).json({
-                ok: false,
-                mensaje: 'Error listando inventarios',
-                errors: err,
-            });
-        }
-
-        res.status(200).json({
-            ok: true,
-            storages,
-        });
-    });
-});
-
 TEMP_STORAGE_ROUTER.get('/:cellar', mdAuth, (req: Request, res: Response) => {
     const _cellar: string = req.params.cellar;
     // Paginación
@@ -259,6 +233,36 @@ TEMP_STORAGE_ROUTER.get('/:cellar', mdAuth, (req: Request, res: Response) => {
             });
     }
 });
+
+TEMP_STORAGE_ROUTER.get('/checkStock/:cellar', mdAuth, (req: Request, res: Response) => {
+    const _cellar: string = req.params.cellar;
+    const _product = req.query._product;
+
+    TempStorage.find({
+        _cellar: {
+            $ne: _cellar
+        },
+        _product: _product,
+    })
+    .populate('_cellar')
+    .sort({
+        stock: -1
+    })
+    .exec((err, storages) => {
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error listando inventarios',
+                errors: err,
+            });
+        }
+
+        res.status(200).json({
+            ok: true,
+            storages,
+        });
+    });
+});
 /* #endregion */
 
 /* #region  PUT */
@@ -275,11 +279,16 @@ TEMP_STORAGE_ROUTER.put('/', mdAuth, async (req: Request, res: Response) => {
             }).exec();
 
             if (!tempStorage) {
-                return res.status(400).json({
-                    ok: false,
-                    mensaje: 'Inventario no encontrado',
-                    errors: { message: 'Por favor verifique que exista el inventario en la sucursal seleccionada' }
+                const NEW_TEMP_STORAGE = new TempStorage({
+                    _cellar: element._cellar,
+                    _product: element._id._id,
+                    stock: 0,
+                    minStock: element.minStock,
+                    maxStock: element.maxStock,
+                    supply: +element.request + +element.stockCellar,
                 });
+
+                await NEW_TEMP_STORAGE.save().then();
             } else {
                 await TempStorage.updateOne(
                     {
