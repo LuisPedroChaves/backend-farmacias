@@ -352,9 +352,8 @@ const SEARCH_STOCK_SALES = async (detail: any[], newStart: Date, newEnd: Date, M
             }
             element.stock = stock;
 
-            if (PROM_ADJUST_DAY > 0) {
-                element.request = element.stock - PROM_ADJUST_DAY;
-                element.request = Math.ceil(element.request);
+            if (element.promAdjustDay > 0) {
+                element.request = element.promAdjustDay - element.stock;
                 element.stockCellar = Math.ceil(element.request * .5);
             } else {
                 element.request = 0;
