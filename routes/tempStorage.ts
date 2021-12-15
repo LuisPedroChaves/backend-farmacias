@@ -244,24 +244,24 @@ TEMP_STORAGE_ROUTER.get('/checkStock/:cellar', mdAuth, (req: Request, res: Respo
         },
         _product: _product,
     })
-    .populate('_cellar')
-    .sort({
-        stock: -1
-    })
-    .exec((err, storages) => {
-        if (err) {
-            return res.status(500).json({
-                ok: false,
-                mensaje: 'Error listando inventarios',
-                errors: err,
-            });
-        }
+        .populate('_cellar')
+        .sort({
+            stock: -1
+        })
+        .exec((err, storages) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando inventarios',
+                    errors: err,
+                });
+            }
 
-        res.status(200).json({
-            ok: true,
-            storages,
+            res.status(200).json({
+                ok: true,
+                storages,
+            });
         });
-    });
 });
 /* #endregion */
 
@@ -362,6 +362,16 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response) => {
 
         let code = 1;
         let errors: any[] = [];
+        // RESETEAR INVENTARIO
+        await TempStorage.updateMany(
+            {
+                _cellar
+            },
+            {
+                stock: 0
+            }
+        );
+
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
                 const BARCODE: string = doc[0];
@@ -441,7 +451,7 @@ const SEARCH_STORAGES = async (detail: IProduct[], _cellar: any): Promise<any> =
                 })
                 .exec();
 
-                // Recorremos las sucursales encontradas
+            // Recorremos las sucursales encontradas
             const mapCellars = async (cellars: ICellar[]) => {
                 return Promise.all(
                     cellars.map(async (cellar: ICellar) => {
@@ -478,7 +488,7 @@ const SEARCH_STORAGES = async (detail: IProduct[], _cellar: any): Promise<any> =
             // Buscamos el inventario de la bodega seleccionada
             let tempStorage = await TempStorage.findOne({
                 _product: product._id,
-                 _cellar
+                _cellar
             }).exec();
 
             if (!tempStorage) {
