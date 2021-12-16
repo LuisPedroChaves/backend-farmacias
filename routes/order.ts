@@ -6,7 +6,6 @@ import Order from '../models/order';
 import Customer from '../models/customer';
 
 import { IOrder } from '../models/order';
-import { ICustomer } from '../models/customer';
 
 const ORDER_ROUTER = Router();
 

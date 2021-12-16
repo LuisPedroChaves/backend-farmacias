@@ -41,6 +41,14 @@ const tempStorageSchema = new Schema({
         type: FLOAT,
         default: 0
     },
+    lastUpdateStock: {
+        type: Date,
+        default: null
+    },
+    lastUpdateStatics: {
+        type: Date,
+        default: null
+    },
 });
 
 export default mongoose.model<ITempStorage>('TempStorage', tempStorageSchema);

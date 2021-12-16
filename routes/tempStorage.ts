@@ -3,14 +3,13 @@ import fileUpload from 'express-fileupload';
 import xlsx from 'node-xlsx';
 import bluebird from 'bluebird';
 import mongoose from 'mongoose';
+import moment from 'moment-timezone';
 
 import { mdAuth } from '../middleware/auth';
 import Product from '../models/product';
-import TempStorage from '../models/tempStorage';
-import { ITempStorage } from '../models/tempStorage';
-import Cellar from '../models/cellar';
+import TempStorage, { ITempStorage } from '../models/tempStorage';
+import Cellar, { ICellar } from '../models/cellar';
 import { IProduct } from '../models/product';
-import { ICellar } from '../models/cellar';
 
 const TEMP_STORAGE_ROUTER = Router();
 TEMP_STORAGE_ROUTER.use(fileUpload());
@@ -286,6 +285,7 @@ TEMP_STORAGE_ROUTER.put('/', mdAuth, async (req: Request, res: Response) => {
                     minStock: element.minStock,
                     maxStock: element.maxStock,
                     supply: +element.request + +element.stockCellar,
+                    lastUpdateStatics: moment().tz("America/Guatemala").format()
                 });
 
                 await NEW_TEMP_STORAGE.save().then();
@@ -298,6 +298,7 @@ TEMP_STORAGE_ROUTER.put('/', mdAuth, async (req: Request, res: Response) => {
                         minStock: element.minStock,
                         maxStock: element.maxStock,
                         supply: +element.request + +element.stockCellar,
+                        lastUpdateStatics: moment().tz("America/Guatemala").format()
                     },
                 ).exec();
             }
@@ -309,6 +310,25 @@ TEMP_STORAGE_ROUTER.put('/', mdAuth, async (req: Request, res: Response) => {
     return res.status(200).json({
         ok: true,
         errors
+    });
+});
+
+TEMP_STORAGE_ROUTER.put('/stockReset/:cellar', mdAuth, async (req: Request, res: Response) => {
+    const _cellar: string = req.params.cellar;
+
+    // RESETEAR INVENTARIO
+    await TempStorage.updateMany(
+        {
+            _cellar
+        },
+        {
+            stock: 0
+        }
+    );
+
+    return res.status(200).json({
+        ok: true,
+        data: 'Inventario restablecido correctamente'
     });
 });
 /* #endregion */
@@ -362,15 +382,6 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response) => {
 
         let code = 1;
         let errors: any[] = [];
-        // RESETEAR INVENTARIO
-        await TempStorage.updateMany(
-            {
-                _cellar
-            },
-            {
-                stock: 0
-            }
-        );
 
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
@@ -397,7 +408,8 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response) => {
                         const NEW_TEMP_STORAGE = new TempStorage({
                             _cellar,
                             _product: _product._id,
-                            stock: STOCK
+                            stock: STOCK,
+                            lastUpdateStock: moment().tz("America/Guatemala").format()
                         });
 
                         await NEW_TEMP_STORAGE.save().then();
@@ -408,6 +420,7 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response) => {
                             },
                             {
                                 stock: STOCK,
+                                lastUpdateStock: moment().tz("America/Guatemala").format()
                             },
                         ).exec();
                     }

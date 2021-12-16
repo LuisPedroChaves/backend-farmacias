@@ -129,26 +129,26 @@ PRODUCT_ROUTER.get('/searchByIndex', mdAuth, (req: Request, res: Response) => {
     search = String(search);
 
     Product.find({
-		$text: {$search: search},
-		deleted: false,
-	})
+        $text: { $search: search },
+        deleted: false,
+    })
         .populate('_brand')
-		.sort({ barcode: 1 })
+        .sort({ barcode: 1 })
         .limit(10)
-		.exec((err, products) => {
-			if (err) {
-				return res.status(500).json({
-					ok: false,
-					mensaje: 'Error listando productos',
-					errors: err,
-				});
-			}
+        .exec((err, products) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando productos',
+                    errors: err,
+                });
+            }
 
-			res.status(200).json({
-				ok: true,
-				products,
-			});
-		});
+            res.status(200).json({
+                ok: true,
+                products,
+            });
+        });
 });
 /* #endregion */
 
@@ -513,7 +513,7 @@ PRODUCT_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
     }
 });
 
-PRODUCT_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
+PRODUCT_ROUTER.post('/xlsx', (req: Request, res: Response) => {
 
     // Sino envia ningún archivo
     if (!req.files) {
@@ -602,17 +602,33 @@ PRODUCT_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
 
                 const DESCRIPTION: string = doc[1];
 
-                const PRODUCT = new Product({
-                    _brand,
-                    code: code,
+                const PRODUCT = await Product.findOne({
                     barcode: doc[0],
-                    description: DESCRIPTION.toUpperCase(),
-                    substances: misSus
-                });
+                }).exec();
 
-                let product = await PRODUCT
-                    .save()
-                    .then();
+                if (!PRODUCT) {
+                    const NEW_PRODUCT = new Product({
+                        _brand,
+                        code: code,
+                        barcode: doc[0],
+                        description: DESCRIPTION.toUpperCase(),
+                        substances: misSus
+                    });
+
+                    let product = await NEW_PRODUCT
+                        .save()
+                        .then();
+                } else {
+                    await Product.updateOne({
+                        _id: PRODUCT._id
+                    }, {
+                        _brand,
+                        code: code,
+                        barcode: doc[0],
+                        description: DESCRIPTION.toUpperCase(),
+                        substances: misSus
+                    }).exec();
+                }
 
                 code++;
                 console.log("🚀 ~ file: product.ts ~ line 372 ~ awaitbluebird.mapSeries ~ code", code)
