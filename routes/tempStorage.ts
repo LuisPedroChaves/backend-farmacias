@@ -238,10 +238,13 @@ TEMP_STORAGE_ROUTER.get('/checkStock/:cellar', mdAuth, (req: Request, res: Respo
     const _product = req.query._product;
 
     TempStorage.find({
-        _cellar: {
-            $ne: _cellar
-        },
+        // _cellar: {
+        //     $ne: _cellar
+        // },
         _product: _product,
+        stock: {
+            $gt: 0
+        }
     })
         .populate('_cellar')
         .sort({
