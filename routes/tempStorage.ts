@@ -4,6 +4,7 @@ import xlsx from 'node-xlsx';
 import bluebird from 'bluebird';
 import mongoose from 'mongoose';
 import moment from 'moment-timezone';
+import timeout from 'connect-timeout';
 
 import { mdAuth } from '../middleware/auth';
 import Product from '../models/product';
@@ -15,6 +16,10 @@ const TEMP_STORAGE_ROUTER = Router();
 TEMP_STORAGE_ROUTER.use(fileUpload());
 
 const OBJECT_ID = mongoose.Types.ObjectId;
+
+function haltOnTimedout(req: Request, res: Response, next: any) {
+    if (!req.timedout) next()
+}
 /* #region  GET'S */
 TEMP_STORAGE_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
     const _cellar = req.query._cellar;
@@ -337,7 +342,7 @@ TEMP_STORAGE_ROUTER.put('/stockReset/:cellar', mdAuth, async (req: Request, res:
 /* #endregion */
 
 /* #region  POST */
-TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response) => {
+TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', timeout('3m'), haltOnTimedout, (req: Request, res: Response, next: any) => {
     const _cellar: string = req.params.cellar;
 
     // Sino envia ningún archivo
@@ -436,10 +441,14 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response) => {
             }
         });
 
-        return res.status(200).json({
-            ok: true,
-            errors
-        });
+        if (req.timedout) {
+            next();
+        } else {
+            return res.status(200).json({
+                ok: true,
+                errors
+            });
+        }
     });
 });
 /* #endregion */
