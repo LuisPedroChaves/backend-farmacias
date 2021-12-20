@@ -6,7 +6,7 @@ import mongoose from 'mongoose';
 import moment from 'moment';
 
 import { mdAuth } from '../middleware/auth';
-import Product from '../models/product';
+import Product, { IProduct } from '../models/product';
 import TempSale from '../models/tempSale';
 import TempStorage from '../models/tempStorage';
 import { ITempSale } from '../models/tempSale';
@@ -16,6 +16,7 @@ TEMP_SALE_ROUTER.use(fileUpload());
 
 const OBJECT_ID = mongoose.Types.ObjectId;
 
+/* #region  GET'S */
 TEMP_SALE_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
     const _cellar: any = req.query._cellar;
     const _brand: any = req.query._brand;
@@ -107,6 +108,43 @@ TEMP_SALE_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
         }
     );
 });
+
+// Consulta el stock actual y las ventas realizadas en un rango de fechas
+// Filtrado por laboratorio
+TEMP_SALE_ROUTER.get('/tempStatistics', mdAuth, (req: Request, res: Response) => {
+    const _cellar: any = req.query._cellar;
+    const _brand: any = req.query._brand;
+
+    // Rango de fechas para historial de ventas
+    let startDate = new Date(String(req.query.startDate));
+    let endDate = new Date(String(req.query.endDate));
+    endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
+
+    Product.find({
+        _brand,
+        deleted: false
+    })
+        .sort({
+            _id: 1
+        })
+        .exec(async (err, products: IProduct[]) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando productos',
+                    errors: err
+                });
+            }
+
+            const RESULT: any[] = await SEARCH_TEMP_STOCK_SALES(products, _cellar, startDate, endDate);
+
+            res.status(200).json({
+                ok: true,
+                products: RESULT,
+            });
+        });
+});
+/* #endregion */
 
 /* #region  POST */
 TEMP_SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
@@ -352,9 +390,9 @@ const SEARCH_STOCK_SALES = async (detail: any[], newStart: Date, newEnd: Date, M
             }
             element.stock = stock;
 
-            if (element.promAdjustDay > 0) {
-                element.request = element.promAdjustDay - element.stock;
-                element.stockCellar = Math.ceil(element.request * .5);
+            if (PROM_ADJUST_DAY > 0) {
+                element.request = (PROM_ADJUST_DAY * (MIN_X + MAX_X)) - element.stock;
+                element.request = Math.ceil(element.request);
             } else {
                 element.request = 0;
                 element.stockCellar = 0;
@@ -365,6 +403,65 @@ const SEARCH_STOCK_SALES = async (detail: any[], newStart: Date, newEnd: Date, M
             // Aproximando valores
             element.promMonth = Math.ceil(element.promMonth);
             element.promDays = Math.ceil(element.promDays);
+            return element;
+        })
+    );
+};
+
+const SEARCH_TEMP_STOCK_SALES = async (detail: any[], _cellar: string, newStart: Date, newEnd: Date): Promise<any> => {
+    return Promise.all(
+        detail.map(async (element: any) => {
+            element = element.toObject();
+            const SEARCH_SALES = await TempSale.aggregate(
+                [
+                    {
+                        $match: {
+                            _cellar: OBJECT_ID(_cellar),
+                            _product: OBJECT_ID(element._id),
+                            date: {
+                                $gte: new Date(newStart.toDateString()),
+                                $lt: new Date(newEnd.toDateString()),
+                            },
+                        },
+                    },
+                    {
+                        $group: {
+                            _id: '$_product',
+                            suma: { $sum: "$quantity" },
+                        }
+                    },
+                    {
+                        "$project": {
+                            _id: 1,
+                            suma: 1,
+                        }
+                    }
+                ]
+            );
+            let sales = 0;
+            if (SEARCH_SALES.length > 0) {
+                sales = SEARCH_SALES[0].suma
+            }
+            element.sales = sales;
+
+            const SEARCH_STOCK = await TempStorage.aggregate(
+                [
+                    {
+                        $match: {
+                            _cellar: OBJECT_ID(_cellar),
+                            _product: OBJECT_ID(element._id),
+                        },
+                    }
+                ]);
+
+            let stock = 0;
+            let lastUpdateStock = 0;
+            if (SEARCH_STOCK.length > 0) {
+                stock = SEARCH_STOCK[0].stock;
+                lastUpdateStock = SEARCH_STOCK[0].lastUpdateStock;
+            }
+            element.stock = stock;
+            element.lastUpdateStock = lastUpdateStock;
             return element;
         })
     );
