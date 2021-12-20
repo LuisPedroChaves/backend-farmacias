@@ -292,7 +292,7 @@ TEMP_STORAGE_ROUTER.put('/', mdAuth, async (req: Request, res: Response) => {
                     stock: 0,
                     minStock: element.minStock,
                     maxStock: element.maxStock,
-                    supply: +element.request + +element.stockCellar,
+                    supply: element.request,
                     lastUpdateStatics: moment().tz("America/Guatemala").format()
                 });
 
@@ -305,7 +305,7 @@ TEMP_STORAGE_ROUTER.put('/', mdAuth, async (req: Request, res: Response) => {
                     {
                         minStock: element.minStock,
                         maxStock: element.maxStock,
-                        supply: +element.request + +element.stockCellar,
+                        supply: element.request,
                         lastUpdateStatics: moment().tz("America/Guatemala").format()
                     },
                 ).exec();
