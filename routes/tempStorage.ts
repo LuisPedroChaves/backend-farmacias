@@ -342,8 +342,9 @@ TEMP_STORAGE_ROUTER.put('/stockReset/:cellar', mdAuth, async (req: Request, res:
 /* #endregion */
 
 /* #region  POST */
-// TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', timeout('3m'), haltOnTimedout, (req: Request, res: Response, next: any) => {
+// TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', timeout('5m'), haltOnTimedout, (req: Request, res: Response, next: any) => {
 TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response, next: any) => {
+    // req.setTimeout((7 * 60 * 1000) + 1);
     const _cellar: string = req.params.cellar;
 
     // Sino envia ningún archivo
@@ -437,19 +438,18 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response, next: an
 
                 code++;
                 console.log("🚀 ~ file: product.ts ~ line 372 ~ awaitbluebird.mapSeries ~ code", code)
+
+                // if (req.timedout) {
+                //     console.log(req.timedout);
+                //     next();
+                // } else {
+                //     res.send('success');
+                // }
             } catch (e: any) {
                 throw new Error(e.message);
             }
         });
 
-        // if (req.timedout) {
-        //     next();
-        // } else {
-        //     return res.status(200).json({
-        //         ok: true,
-        //         errors
-        //     });
-        // }
         return res.status(200).json({
             ok: true,
             errors

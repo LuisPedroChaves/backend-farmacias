@@ -371,7 +371,7 @@ const SEARCH_STOCK_SALES = async (detail: any[], newStart: Date, newEnd: Date, M
             element.salesMonth = sales;
             const PROM_ADJUST_MONTH = (+element.promMonth + +sales) / 2;
             element.promAdjustMonth = Math.ceil(PROM_ADJUST_MONTH);
-            const PROM_ADJUST_DAY = (+element.promAdjustMonth / 30);
+            const PROM_ADJUST_DAY = (+PROM_ADJUST_MONTH / 30);
             element.promAdjustDay = Math.ceil(PROM_ADJUST_DAY);
 
             const SEARCH_STOCK = await TempStorage.aggregate(
