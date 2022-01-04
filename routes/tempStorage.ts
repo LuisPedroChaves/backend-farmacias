@@ -51,6 +51,73 @@ TEMP_STORAGE_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
 
 });
 
+TEMP_STORAGE_ROUTER.get('/stockConsolidated', mdAuth, (req: Request, res: Response) => {
+    const _brand: any = req.query._brand;
+
+    TempStorage.aggregate(
+        [
+            {
+                $lookup: {
+                    from: 'cellars',
+                    localField: '_cellar',
+                    foreignField: '_id',
+                    as: '_cellar',
+                },
+            },
+            {
+                $unwind: '$_cellar',
+            },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: '_product',
+                    foreignField: '_id',
+                    as: '_product',
+                },
+            },
+            {
+                $unwind: '$_product',
+            },
+            {
+                $match: {
+                    '_product._brand': OBJECT_ID(_brand),
+                },
+            },
+            {
+                $sort: {
+                    _cellar: 1,
+                    _product: 1,
+                },
+            },
+            {
+                $group: {
+                    _id: '$_product',
+                    cellars: {
+                        $push: {
+                            _cellar: "$_cellar",
+                            stock: "$stock",
+                        },
+                    },
+                }
+            },
+        ],
+        function (err: any, tempStorages: ITempStorage[]) {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando inventario',
+                    errors: err,
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                tempStorages,
+            });
+        }
+    );
+});
+
 TEMP_STORAGE_ROUTER.get('/:cellar', mdAuth, (req: Request, res: Response) => {
     const _cellar: string = req.params.cellar;
     // Paginación

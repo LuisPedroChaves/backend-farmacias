@@ -602,6 +602,27 @@ PRODUCT_ROUTER.post('/xlsx', (req: Request, res: Response) => {
 
                 const DESCRIPTION: string = doc[1];
 
+                // PRESENTACION POR UNIDAD
+                const PRESENTATIONS: any = [];
+                const name: string = 'UNIDAD';
+                const cost: number = doc[3];
+                const wholesale_price: number = doc[4];
+                const distributor_price: number = doc[5];
+                const retail_price: number = doc[6];
+                const cf_price: number = doc[7];
+                const quantity: number = 1;
+                const commission: number = 0;
+                PRESENTATIONS.push({
+                    name,
+                    wholesale_price,
+                    distributor_price,
+                    retail_price,
+                    cf_price,
+                    quantity,
+                    commission,
+                    cost
+                });
+
                 const PRODUCT = await Product.findOne({
                     barcode: doc[0],
                 }).exec();
@@ -612,7 +633,8 @@ PRODUCT_ROUTER.post('/xlsx', (req: Request, res: Response) => {
                         code: code,
                         barcode: doc[0],
                         description: DESCRIPTION.toUpperCase(),
-                        substances: misSus
+                        substances: misSus,
+                        presentations: PRESENTATIONS
                     });
 
                     let product = await NEW_PRODUCT
@@ -626,7 +648,8 @@ PRODUCT_ROUTER.post('/xlsx', (req: Request, res: Response) => {
                         code: code,
                         barcode: doc[0],
                         description: DESCRIPTION.toUpperCase(),
-                        substances: misSus
+                        substances: misSus,
+                        presentations: PRESENTATIONS
                     }).exec();
                 }
 
