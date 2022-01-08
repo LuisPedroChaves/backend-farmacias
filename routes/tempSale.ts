@@ -17,6 +17,7 @@ TEMP_SALE_ROUTER.use(fileUpload());
 const OBJECT_ID = mongoose.Types.ObjectId;
 
 /* #region  GET'S */
+// REPORTE DE ESTADISTICAS
 TEMP_SALE_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
     const _cellar: any = req.query._cellar;
     const _brand: any = req.query._brand;

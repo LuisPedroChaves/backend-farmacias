@@ -9,8 +9,7 @@ import timeout from 'connect-timeout';
 import { mdAuth } from '../middleware/auth';
 import Product from '../models/product';
 import TempStorage, { ITempStorage } from '../models/tempStorage';
-import Cellar, { ICellar } from '../models/cellar';
-import { IProduct } from '../models/product';
+import TempSale, { ITempSale } from '../models/tempSale';
 
 const TEMP_STORAGE_ROUTER = Router();
 TEMP_STORAGE_ROUTER.use(fileUpload());
@@ -21,36 +20,6 @@ function haltOnTimedout(req: Request, res: Response, next: any) {
     if (!req.timedout) next()
 }
 /* #region  GET'S */
-TEMP_STORAGE_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
-    const _cellar = req.query._cellar;
-    const _brand: any = req.query._brand;
-
-    Product.find({
-        _brand,
-        deleted: false
-    })
-        .sort({
-            barcode: 1
-        })
-        .exec(async (err, products: IProduct[]) => {
-            if (err) {
-                return res.status(500).json({
-                    ok: false,
-                    mensaje: 'Error listando productos',
-                    errors: err
-                });
-            }
-
-            const RESULT: any[] = await SEARCH_STORAGES(products, _cellar);
-
-            res.status(200).json({
-                ok: true,
-                products: RESULT,
-            });
-        });
-
-});
-
 TEMP_STORAGE_ROUTER.get('/stockConsolidated', mdAuth, (req: Request, res: Response) => {
     const _brand: any = req.query._brand;
 
@@ -85,9 +54,8 @@ TEMP_STORAGE_ROUTER.get('/stockConsolidated', mdAuth, (req: Request, res: Respon
             },
             {
                 $sort: {
-                    _cellar: 1,
-                    _product: 1,
-                },
+                    '_product.barcode': 1
+                }
             },
             {
                 $group: {
@@ -96,6 +64,9 @@ TEMP_STORAGE_ROUTER.get('/stockConsolidated', mdAuth, (req: Request, res: Respon
                         $push: {
                             _cellar: "$_cellar",
                             stock: "$stock",
+                            supply: "$supply",
+                            minStock: "$minStock",
+                            maxStock: "$maxStock",
                         },
                     },
                 }
@@ -388,6 +359,82 @@ TEMP_STORAGE_ROUTER.put('/', mdAuth, async (req: Request, res: Response) => {
     });
 });
 
+TEMP_STORAGE_ROUTER.put('/global', mdAuth, async (req: Request, res: Response) => {
+    const BODY: any = req.body;
+
+    const MIN_X = BODY.daysRequest || 0;
+    const MAX_X = BODY.supplyDays || 0;
+
+    // Rango de fechas para historial de ventas
+    let startDate = new Date(String(BODY.startDate));
+    let endDate = new Date(String(BODY.endDate));
+    endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
+
+    // Rango de fechas para consultar las ventas del último mes
+    let startDate2 = new Date(String(BODY.startDate2));
+    let endDate2 = new Date(String(BODY.endDate2));
+    endDate2.setDate(endDate2.getDate() + 1); // Sumamos un día para aplicar bien el filtro
+
+    // Calculamos los dias y los meses en un rango de fechas
+    const START = moment(startDate);
+    const END = moment(endDate);
+    const DAYS = END.diff(START, 'days');
+    // Condicionamos la veriable MONTHS para que no sea igual a cero
+    // Porque en las operaciones no se pueden dividir entre cero
+    // Sí la diferencia queda en cero entonces la igualamos a 1
+    const MONTHS = (END.diff(START, 'months') === 0) ? 1 : END.diff(START, 'months');
+
+    const TEMP_SALES: ITempSale[] = await TempSale.aggregate(
+        [
+            {
+                $match: {
+                    date: {
+                        $gte: new Date(startDate.toDateString()),
+                        $lt: new Date(endDate.toDateString()),
+                    },
+                },
+            },
+            // {
+            //     $lookup: {
+            //         from: 'products',
+            //         localField: '_product',
+            //         foreignField: '_id',
+            //         as: '_product',
+            //     },
+            // },
+            // {
+            //     $unwind: '$_product',
+            // },
+            {
+                $sort: { _product: 1 },
+            },
+            {
+                $group: {
+                    _id: '$_product',
+                    suma: { $sum: "$quantity" },
+                    _cellar: { $first: "$_cellar" }
+                }
+            },
+            {
+                "$project": {
+                    _id: 1,
+                    suma: 1,
+                    _cellar: 1,
+                    promMonth: { $divide: ["$suma", MONTHS] },
+                }
+            },
+        ],
+    ).allowDiskUse(true);
+
+    //Sumamos un mes para calcular ventas al ultimo mes
+    await SEARCH_STOCK_SALES(TEMP_SALES, startDate2, endDate2, MIN_X, MAX_X);
+
+    res.status(200).json({
+        ok: true,
+    });
+
+});
+
 TEMP_STORAGE_ROUTER.put('/stockReset/:cellar', mdAuth, async (req: Request, res: Response) => {
     const _cellar: string = req.params.cellar;
 
@@ -525,76 +572,89 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response, next: an
 });
 /* #endregion */
 
-const SEARCH_STORAGES = async (detail: IProduct[], _cellar: any): Promise<any> => {
+const SEARCH_STOCK_SALES = async (detail: any[], newStart: Date, newEnd: Date, MIN_X: any, MAX_X: any): Promise<any> => {
     return Promise.all(
-        detail.map(async (product: IProduct) => {
-            // Objeto que vamos a devolver en la consulta
-            let row: any = {
-                barcode: product.barcode,
-                description: product.description
-            };
-
-            // Buscamos todas las sucursales que no sean de tipo bodega
-            const CELLARS: ICellar[] = await Cellar.find(
-                {
-                    type: {
-                        $ne: 'BODEGA'
+        detail.map(async (element: any) => {
+            const SEARCH_SALES = await TempSale.aggregate(
+                [
+                    {
+                        $match: {
+                            _cellar: OBJECT_ID(element._cellar),
+                            _product: OBJECT_ID(element._id),
+                            date: {
+                                $gte: new Date(newStart.toDateString()),
+                                $lt: new Date(newEnd.toDateString()),
+                            },
+                        },
                     },
-                    deleted: false
-                }
-            )
-                .sort({
-                    name: 1
-                })
-                .exec();
-
-            // Recorremos las sucursales encontradas
-            const mapCellars = async (cellars: ICellar[]) => {
-                return Promise.all(
-                    cellars.map(async (cellar: ICellar) => {
-
-                        // Buscamos el inventario en esa sucursal y de ese producto
-                        let tempStorage = await TempStorage.findOne({
-                            _product: product._id,
-                            _cellar: cellar._id
-                        }).exec();
-
-                        let currentRow: any = {};
-                        if (!tempStorage) {
-                            // Sino existe inventario entonces devolvemos cero
-                            currentRow.cellar = cellar.name;
-                            currentRow.stock = 0;
-                            currentRow.supply = 0;
-                            currentRow.minStock = 0;
-                            currentRow.maxStock = 0;
-                        } else {
-                            // Si existe el inventario devolvemos la información encontrada
-                            currentRow.cellar = cellar.name;
-                            currentRow.stock = tempStorage.stock;
-                            currentRow.supply = tempStorage.supply;
-                            currentRow.minStock = tempStorage.minStock;
-                            currentRow.maxStock = tempStorage.maxStock;
+                    {
+                        $group: {
+                            _id: '$_product',
+                            suma: { $sum: "$quantity" },
                         }
-                        return { ...currentRow }
-                    })
-                );
-            };
+                    },
+                    {
+                        "$project": {
+                            _id: 1,
+                            suma: 1,
+                        }
+                    }
+                ]
+            );
+            let sales = 0;
+            if (SEARCH_SALES.length > 0) {
+                sales = SEARCH_SALES[0].suma
+            }
+            const PROM_ADJUST_MONTH = (+element.promMonth + +sales) / 2;
+            const PROM_ADJUST_DAY = (+PROM_ADJUST_MONTH / 30);
 
-            row.results = await mapCellars(CELLARS);
+            const TEMP_STORAGE = await TempStorage.findOne({
+                _cellar: element._cellar,
+                _product: element._id,
+            }).populate('_cellar').exec();
 
-            // Buscamos el inventario de la bodega seleccionada
-            let tempStorage = await TempStorage.findOne({
-                _product: product._id,
-                _cellar
-            }).exec();
+            let stock = 0;
+            if (TEMP_STORAGE) {
+                stock = TEMP_STORAGE.stock;
+            }
+            const SUPPLY = (+PROM_ADJUST_DAY * +(+MIN_X + +MAX_X));
+            const APROX_SUPPLY = Math.ceil(SUPPLY);
 
-            if (!tempStorage) {
-                row.stockCellar = 0;
-            } else {
-                row.stockCellar = tempStorage.stock;
+            // VARIABLES LISTAS
+            let request = 0;
+            if (APROX_SUPPLY > 0) {
+                request = +APROX_SUPPLY - +stock;
             }
 
-            return row;
+            const MIN_STOCK = Math.ceil(PROM_ADJUST_DAY * 15)
+            const MAX_STOCK = Math.ceil(PROM_ADJUST_DAY * 30)
+            // ACTUALIZANDO ESTADISTICAS...
+            if (!TEMP_STORAGE) {
+                console.log('CREADO');
+                const NEW_TEMP_STORAGE = new TempStorage({
+                    _cellar: element._cellar,
+                    _product: element._id,
+                    stock: 0,
+                    minStock: MIN_STOCK,
+                    maxStock: MAX_STOCK,
+                    supply: request,
+                    lastUpdateStatics: moment().tz("America/Guatemala").format()
+                });
+
+                return NEW_TEMP_STORAGE.save().then();
+            } else {
+                return TempStorage.updateOne(
+                    {
+                        _id: TEMP_STORAGE._id,
+                    },
+                    {
+                        minStock: MIN_STOCK,
+                        maxStock: MAX_STOCK,
+                        supply: request,
+                        lastUpdateStatics: moment().tz("America/Guatemala").format()
+                    },
+                ).exec();
+            }
         })
     );
 };
