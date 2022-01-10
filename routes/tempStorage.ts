@@ -362,6 +362,8 @@ TEMP_STORAGE_ROUTER.put('/', mdAuth, async (req: Request, res: Response) => {
 TEMP_STORAGE_ROUTER.put('/global', mdAuth, async (req: Request, res: Response) => {
     const BODY: any = req.body;
 
+    const _cellar: any = BODY._cellar;
+    const _brand: any = BODY._brand;
     const MIN_X = BODY.daysRequest || 0;
     const MAX_X = BODY.supplyDays || 0;
 
@@ -378,33 +380,39 @@ TEMP_STORAGE_ROUTER.put('/global', mdAuth, async (req: Request, res: Response) =
     // Calculamos los dias y los meses en un rango de fechas
     const START = moment(startDate);
     const END = moment(endDate);
-    const DAYS = END.diff(START, 'days');
     // Condicionamos la veriable MONTHS para que no sea igual a cero
     // Porque en las operaciones no se pueden dividir entre cero
     // Sí la diferencia queda en cero entonces la igualamos a 1
     const MONTHS = (END.diff(START, 'months') === 0) ? 1 : END.diff(START, 'months');
 
-    const TEMP_SALES: ITempSale[] = await TempSale.aggregate(
-        [
+    let query: any[] = [];
+    if (_brand) {
+        query = [
             {
                 $match: {
+                    _cellar: OBJECT_ID(_cellar),
                     date: {
                         $gte: new Date(startDate.toDateString()),
                         $lt: new Date(endDate.toDateString()),
                     },
                 },
             },
-            // {
-            //     $lookup: {
-            //         from: 'products',
-            //         localField: '_product',
-            //         foreignField: '_id',
-            //         as: '_product',
-            //     },
-            // },
-            // {
-            //     $unwind: '$_product',
-            // },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: '_product',
+                    foreignField: '_id',
+                    as: '_product',
+                },
+            },
+            {
+                $unwind: '$_product',
+            },
+            {
+                $match: {
+                    '_product._brand': OBJECT_ID(_brand),
+                },
+            },
             {
                 $sort: { _product: 1 },
             },
@@ -423,7 +431,41 @@ TEMP_STORAGE_ROUTER.put('/global', mdAuth, async (req: Request, res: Response) =
                     promMonth: { $divide: ["$suma", MONTHS] },
                 }
             },
-        ],
+        ]
+    }else {
+        query = [
+            {
+                $match: {
+                    _cellar: OBJECT_ID(_cellar),
+                    date: {
+                        $gte: new Date(startDate.toDateString()),
+                        $lt: new Date(endDate.toDateString()),
+                    },
+                },
+            },
+            {
+                $sort: { _product: 1 },
+            },
+            {
+                $group: {
+                    _id: '$_product',
+                    suma: { $sum: "$quantity" },
+                    _cellar: { $first: "$_cellar" }
+                }
+            },
+            {
+                "$project": {
+                    _id: 1,
+                    suma: 1,
+                    _cellar: 1,
+                    promMonth: { $divide: ["$suma", MONTHS] },
+                }
+            },
+        ]
+    }
+
+    const TEMP_SALES: ITempSale[] = await TempSale.aggregate(
+        query
     ).allowDiskUse(true);
 
     //Sumamos un mes para calcular ventas al ultimo mes
@@ -575,12 +617,15 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response, next: an
 const SEARCH_STOCK_SALES = async (detail: any[], newStart: Date, newEnd: Date, MIN_X: any, MAX_X: any): Promise<any> => {
     return Promise.all(
         detail.map(async (element: any) => {
+            // console.log(element._cellar);
+            // console.log(element._id._id);
+
             const SEARCH_SALES = await TempSale.aggregate(
                 [
                     {
                         $match: {
                             _cellar: OBJECT_ID(element._cellar),
-                            _product: OBJECT_ID(element._id),
+                            _product: OBJECT_ID(element._id._id),
                             date: {
                                 $gte: new Date(newStart.toDateString()),
                                 $lt: new Date(newEnd.toDateString()),
@@ -610,7 +655,7 @@ const SEARCH_STOCK_SALES = async (detail: any[], newStart: Date, newEnd: Date, M
 
             const TEMP_STORAGE = await TempStorage.findOne({
                 _cellar: element._cellar,
-                _product: element._id,
+                _product: element._id._id,
             }).populate('_cellar').exec();
 
             let stock = 0;
@@ -633,7 +678,7 @@ const SEARCH_STOCK_SALES = async (detail: any[], newStart: Date, newEnd: Date, M
                 console.log('CREADO');
                 const NEW_TEMP_STORAGE = new TempStorage({
                     _cellar: element._cellar,
-                    _product: element._id,
+                    _product: element._id._id,
                     stock: 0,
                     minStock: MIN_STOCK,
                     maxStock: MAX_STOCK,
