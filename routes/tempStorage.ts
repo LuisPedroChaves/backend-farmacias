@@ -22,9 +22,13 @@ function haltOnTimedout(req: Request, res: Response, next: any) {
 /* #region  GET'S */
 TEMP_STORAGE_ROUTER.get('/stockConsolidated', mdAuth, (req: Request, res: Response) => {
     const _brand: any = req.query._brand;
+    const withStock = req.query.withStock;
+    console.log("🚀 ~ file: tempStorage.ts ~ line 26 ~ TEMP_STORAGE_ROUTER.get ~ withStock", withStock)
 
-    TempStorage.aggregate(
-        [
+    let query: any[] = [];
+    // Filtro para laboratorio seleccionado
+    if (_brand !== 'null') {
+        query = [
             {
                 $lookup: {
                     from: 'cellars',
@@ -71,7 +75,64 @@ TEMP_STORAGE_ROUTER.get('/stockConsolidated', mdAuth, (req: Request, res: Respon
                     },
                 }
             },
-        ],
+        ]
+    }else {
+        query = [
+            {
+                $lookup: {
+                    from: 'cellars',
+                    localField: '_cellar',
+                    foreignField: '_id',
+                    as: '_cellar',
+                },
+            },
+            {
+                $unwind: '$_cellar',
+            },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: '_product',
+                    foreignField: '_id',
+                    as: '_product',
+                },
+            },
+            {
+                $unwind: '$_product',
+            },
+            {
+                $sort: {
+                    '_product.barcode': 1
+                }
+            },
+            {
+                $group: {
+                    _id: '$_product',
+                    cellars: {
+                        $push: {
+                            _cellar: "$_cellar",
+                            stock: "$stock",
+                            supply: "$supply",
+                            minStock: "$minStock",
+                            maxStock: "$maxStock",
+                        },
+                    },
+                }
+            },
+        ]
+    }
+
+    // Filtro para productos con existencia mayor a cero
+    if (withStock === 'true') {
+        query.splice(0, 0, {
+            $match: {
+                stock: { $gt: 0}
+            },
+        });
+    }
+
+    TempStorage.aggregate(
+        query,
         function (err: any, tempStorages: ITempStorage[]) {
             if (err) {
                 return res.status(500).json({
