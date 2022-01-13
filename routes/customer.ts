@@ -1,13 +1,16 @@
 import { Router, Request, Response } from 'express';
-import { mdAuth } from '../middleware/auth';
 import moment from 'moment-timezone';
+import fileUpload from 'express-fileupload';
+import xlsx from 'node-xlsx';
+import bluebird from 'bluebird';
 
+import { mdAuth } from '../middleware/auth';
 import Customer from '../models/customer';
 import Sale from '../models/sale';
 
 const CUSTOMER_ROUTER = Router();
 
-/* #region  GET */
+/* #region  GET'S */
 CUSTOMER_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
 	Customer.find({
 		deleted: false,
@@ -29,9 +32,7 @@ CUSTOMER_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
 			});
 		});
 });
-/* #endregion */
 
-/* #region  GET search  */
 CUSTOMER_ROUTER.get('/search', mdAuth, (req: Request, res: Response) => {
     let search = req.query.search || '';
     search = String(search);
@@ -65,9 +66,7 @@ CUSTOMER_ROUTER.get('/search', mdAuth, (req: Request, res: Response) => {
 			});
 		});
 });
-/* #endregion */
 
-/* #region  GET */
 CUSTOMER_ROUTER.get('/recivables', mdAuth, (req: Request, res: Response) => {
 	Customer.find({
 		_seller: { $ne: null },
@@ -179,9 +178,7 @@ CUSTOMER_ROUTER.get('/recivables', mdAuth, (req: Request, res: Response) => {
 				});
 		});
 });
-/* #endregion */
 
-/* #region  GET */
 CUSTOMER_ROUTER.get('/recivablesBySeller/:id', mdAuth, (req: Request, res: Response) => {
 	const idSeller = req.params.id;
 	Customer.find({
@@ -294,9 +291,7 @@ CUSTOMER_ROUTER.get('/recivablesBySeller/:id', mdAuth, (req: Request, res: Respo
 				});
 		});
 });
-/* #endregion */
 
-/* #region  GET / ID */
 CUSTOMER_ROUTER.get('/statements/:id', mdAuth, (req: Request, res: Response) => {
 	const id = req.params.id;
 
@@ -344,9 +339,7 @@ CUSTOMER_ROUTER.get('/statements/:id', mdAuth, (req: Request, res: Response) => 
 		})
 	}).populate('_seller');
 });
-/* #endregion */
 
-/* #region  GET / ID */
 CUSTOMER_ROUTER.get('/recivables/:id', mdAuth, (req: Request, res: Response) => {
 	const id = req.params.id;
 
@@ -615,6 +608,83 @@ CUSTOMER_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
 				errors: err,
 			});
 		});
+});
+
+CUSTOMER_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
+	  // Sino envia ningún archivo
+	  if (!req.files) {
+        return res.status(400).json({
+            ok: false,
+            mensaje: 'No Selecciono nada',
+            errors: { message: 'Debe de seleccionar un archivo' }
+        });
+    }
+
+    // Obtener nombre y la extensión del archivo
+    const FILE: any = req.files.archivo;
+    const NAME_FILE = FILE.name.split('.');
+    const EXT_FILE = NAME_FILE[NAME_FILE.length - 1];
+
+    // Nombre del archivo personalizado
+    const NEW_NAME_FILE = `${new Date().getMilliseconds()}.${EXT_FILE}`;
+
+    // Mover el archivo de la memoria temporal a un path
+    const PATH = `./uploads/temp/${NEW_NAME_FILE}`;
+
+    FILE.mv(PATH, async (err: any) => {
+
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error al mover archivo',
+                errors: err
+            });
+        }
+
+        const DOC = xlsx.parse(PATH);
+
+        await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
+            try {
+
+				let code: string = doc[0];
+				let nit: string = doc[1]
+
+				if (code) {
+					code = code.replace(/\s/g, '').toUpperCase();
+				}
+				if (nit) {
+					nit = nit.replace(/\s/g, '');
+					nit = nit.replace(/-/g, '').toUpperCase();
+				}
+
+				const CUSTOMER = new Customer({
+					name: doc[2],
+					nit: nit,
+					phone: doc[3],
+					address: doc[4],
+					town: doc[5],
+					department: doc[6],
+					company: doc[7],
+					code: code,
+					transport: doc[8],
+					limitCredit: body.limitCredit,
+					limitDaysCredit: body.limitDaysCredit,
+					_seller: body._seller,
+				});
+
+                let product = await CUSTOMER
+                    .save()
+                    .then();
+            } catch (e: any) {
+                throw new Error(e.message);
+            }
+        });
+
+        return res.status(201).json({
+            ok: true,
+            m: 'PROVEEDORES INGRESADOS'
+        });
+    });
 });
 /* #endregion */
 
