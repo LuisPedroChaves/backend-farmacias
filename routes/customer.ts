@@ -9,6 +9,7 @@ import Customer from '../models/customer';
 import Sale from '../models/sale';
 
 const CUSTOMER_ROUTER = Router();
+CUSTOMER_ROUTER.use(fileUpload());
 
 /* #region  GET'S */
 CUSTOMER_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
@@ -610,7 +611,7 @@ CUSTOMER_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
 		});
 });
 
-CUSTOMER_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
+CUSTOMER_ROUTER.post('/xlsx', (req: Request, res: Response) => {
 	  // Sino envia ningún archivo
 	  if (!req.files) {
         return res.status(400).json({
@@ -645,13 +646,9 @@ CUSTOMER_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
 
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
-
-				let code: string = doc[0];
 				let nit: string = doc[1]
+				nit = nit.toString();
 
-				if (code) {
-					code = code.replace(/\s/g, '').toUpperCase();
-				}
 				if (nit) {
 					nit = nit.replace(/\s/g, '');
 					nit = nit.replace(/-/g, '').toUpperCase();
@@ -665,11 +662,11 @@ CUSTOMER_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
 					town: doc[5],
 					department: doc[6],
 					company: doc[7],
-					code: code,
+					code: doc[0],
 					transport: doc[8],
-					limitCredit: body.limitCredit,
-					limitDaysCredit: body.limitDaysCredit,
-					_seller: body._seller,
+					limitCredit: doc[11],
+					limitDaysCredit: doc[10],
+					_seller: '61e1e49c4beb0417187235ed', // IVAN MONTERROSO
 				});
 
                 let product = await CUSTOMER
@@ -682,7 +679,7 @@ CUSTOMER_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
 
         return res.status(201).json({
             ok: true,
-            m: 'PROVEEDORES INGRESADOS'
+            m: 'CLIENTES INGRESADOS'
         });
     });
 });
