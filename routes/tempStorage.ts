@@ -296,7 +296,6 @@ TEMP_STORAGE_ROUTER.get('/:cellar', mdAuth, (req: Request, res: Response) => {
             }
         );
     } else {
-
         let query = {
             _cellar,
         };
