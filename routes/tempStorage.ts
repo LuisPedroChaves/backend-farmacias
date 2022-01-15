@@ -150,6 +150,36 @@ TEMP_STORAGE_ROUTER.get('/stockConsolidated', mdAuth, (req: Request, res: Respon
     );
 });
 
+TEMP_STORAGE_ROUTER.get('/checkStock', mdAuth, (req: Request, res: Response) => {
+    const _product = req.query._product;
+    console.log("🚀 ~ file: tempStorage.ts ~ line 155 ~ TEMP_STORAGE_ROUTER.get ~ _product", _product)
+
+    TempStorage.find({
+        _product: _product,
+        stock: {
+            $gt: 0
+        }
+    })
+        .populate('_cellar')
+        .sort({
+            stock: -1
+        })
+        .exec((err, storages) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando inventarios',
+                    errors: err,
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                storages,
+            });
+        });
+});
+
 TEMP_STORAGE_ROUTER.get('/:cellar', mdAuth, (req: Request, res: Response) => {
     const _cellar: string = req.params.cellar;
     // Paginación
@@ -334,39 +364,6 @@ TEMP_STORAGE_ROUTER.get('/:cellar', mdAuth, (req: Request, res: Response) => {
                 });
             });
     }
-});
-
-TEMP_STORAGE_ROUTER.get('/checkStock/:cellar', mdAuth, (req: Request, res: Response) => {
-    const _cellar: string = req.params.cellar;
-    const _product = req.query._product;
-
-    TempStorage.find({
-        // _cellar: {
-        //     $ne: _cellar
-        // },
-        _product: _product,
-        stock: {
-            $gt: 0
-        }
-    })
-        .populate('_cellar')
-        .sort({
-            stock: -1
-        })
-        .exec((err, storages) => {
-            if (err) {
-                return res.status(500).json({
-                    ok: false,
-                    mensaje: 'Error listando inventarios',
-                    errors: err,
-                });
-            }
-
-            res.status(200).json({
-                ok: true,
-                storages,
-            });
-        });
 });
 /* #endregion */
 
