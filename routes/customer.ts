@@ -666,7 +666,7 @@ CUSTOMER_ROUTER.post('/xlsx', (req: Request, res: Response) => {
 					transport: doc[8],
 					limitCredit: doc[11],
 					limitDaysCredit: doc[10],
-					_seller: '61e1e49c4beb0417187235ed', // IVAN MONTERROSO
+					_seller: '61e2098ab454222f681dd228', // IVAN MONTERROSO
 				});
 
                 let product = await CUSTOMER

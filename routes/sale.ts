@@ -365,7 +365,7 @@ SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
                         const newSale = new Sale({
                             _cellar: '602ea4400831cb50f0495675',
                             _customer,
-                            _seller: '61e1e49c4beb0417187235ed', // IVAN MONTERROSO
+                            _seller: '61e2098ab454222f681dd228', // IVAN MONTERROSO
                             date: date,
                             noBill: doc[4],
                             total: total,
