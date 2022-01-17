@@ -9,6 +9,7 @@ import Product from '../models/product';
 import Brand from '../models/brand';
 import Substance from '../models/substance';
 import Symptoms from '../models/symptoms';
+import { IProduct } from '../models/product';
 
 const PRODUCT_ROUTER = Router();
 PRODUCT_ROUTER.use(fileUpload());
@@ -128,14 +129,68 @@ PRODUCT_ROUTER.get('/searchByIndex', mdAuth, (req: Request, res: Response) => {
     let search = req.query.search || '';
     search = String(search);
 
-    Product.find({
-        $text: { $search: search },
-        deleted: false,
-    })
-        .populate('_brand')
-        .sort({ barcode: 1 })
-        .limit(10)
-        .exec((err, products) => {
+    if (search.length > 0) {
+        Product.aggregate([
+            {
+                $search: {
+                    index: 'checkStock',
+                    "autocomplete": {
+                        "query": search,
+                        "path": "description",
+                        "fuzzy": {
+                            "maxEdits": 1,
+                            "prefixLength": 1,
+                            "maxExpansions": 256
+                          }
+                    }
+                    // Autocompletado en varios campos
+                    // "compound": {
+                    //     "should": [{
+                    //         "autocomplete": {
+                    //             "query": search,
+                    //             "path": "description",
+                    //             "fuzzy": {
+                    //                 "maxEdits": 1,
+                    //                 "prefixLength": 1,
+                    //                 "maxExpansions": 256
+                    //               }
+                    //         }
+                    //     },
+                    //     {
+                    //         "autocomplete": {
+                    //             "query": search,
+                    //             "path": "barcode",
+                    //         }
+                    //     }]
+                    // }
+                }
+            },
+            {
+                $match: {
+                    deleted: false
+                }
+            },
+            {
+                $limit: 10
+            },
+            {
+                $lookup:
+                {
+                    from: "brands",
+                    localField: "_brand",
+                    foreignField: "_id",
+                    as: "_brand"
+                }
+            },
+            {
+                $unwind: '$_brand',
+            },
+            {
+                $sort: {
+                    description: 1
+                }
+            }
+        ], (err: any, products: IProduct[]) => {
             if (err) {
                 return res.status(500).json({
                     ok: false,
@@ -148,7 +203,13 @@ PRODUCT_ROUTER.get('/searchByIndex', mdAuth, (req: Request, res: Response) => {
                 ok: true,
                 products,
             });
+        })
+    }else {
+        res.status(200).json({
+            ok: true,
+            products: [],
         });
+    }
 });
 /* #endregion */
 
