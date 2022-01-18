@@ -5,7 +5,7 @@ import { mdAuth } from '../middleware/auth'
 import Order from '../models/order';
 import Customer from '../models/customer';
 
-import { IOrder } from '../models/order';
+import { IOrder, IOrderDetail } from '../models/order';
 
 const ORDER_ROUTER = Router();
 
@@ -100,6 +100,52 @@ ORDER_ROUTER.get('/routes/:_cellar', mdAuth, (req: Request, res: Response) => {
         });
 });
 
+ORDER_ROUTER.get('/quotes/:_cellar', mdAuth, (req: Request, res: Response) => {
+    const _CELLAR = req.params._cellar;
+
+    let startDate = new Date(String(req.query.startDate));
+    let endDate = new Date(String(req.query.endDate));
+    endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
+
+    const FILTER: any =
+    {
+        date: {
+            $gte: new Date(startDate.toDateString()),
+            $lt: new Date(endDate.toDateString()),
+        },
+        state: 'COTIZACION',
+        deleted: false
+    };
+
+    if (_CELLAR !== 'all') {
+        FILTER._cellar = _CELLAR;
+    }
+
+    Order.find(
+        FILTER
+    )
+        .populate('_cellar', '')
+        .populate('_user', '')
+        .populate('_customer', '')
+        .sort({
+            noOrder: -1
+        })
+        .exec((err: any, orders: IOrder) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando ordenes',
+                    errors: err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                orders
+            });
+        });
+});
+
 ORDER_ROUTER.get('/order/:id', mdAuth, (req: Request, res: Response) => {
     const id = req.params.id;
 
@@ -137,14 +183,17 @@ ORDER_ROUTER.get('/:_cellar/:_delivery', mdAuth, (req: Request, res: Response) =
     const _DELIVERY = req.params._delivery;
 
     let startDate = new Date(String(req.query.startDate));
-	let endDate  = new Date(String(req.query.endDate));
-	endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
+    let endDate = new Date(String(req.query.endDate));
+    endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
 
     const FILTER: any =
     {
         date: {
             $gte: new Date(startDate.toDateString()),
             $lt: new Date(endDate.toDateString()),
+        },
+        state: {
+            $ne: 'COTIZACION'
         },
         deleted: false
     };
@@ -356,7 +405,7 @@ ORDER_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
                 },
                 BODY._customer
             ).exec();
-        }else {
+        } else {
             const customer = new Customer({
                 name: BODY.name,
                 nit: BODY.nit,
@@ -448,6 +497,137 @@ ORDER_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
         console.log("🚀 ~ file: order.ts ~ line 1248 ~ orderRouter.post ~ err", err)
     }
 });
+
+ORDER_ROUTER.post('/quote', mdAuth, async (req: Request, res: Response) => {
+    const BODY: IOrder = req.body;
+
+    try {
+        if (BODY._customer._id) {
+            if (BODY.nit) {
+                BODY.nit = BODY.nit.replace(/\s/g, '');
+                BODY.nit = BODY.nit.replace(/-/g, '').toUpperCase();
+            }
+
+            BODY._customer.name = BODY.name;
+            BODY._customer.nit = BODY.nit;
+            BODY._customer.phone = BODY.phone;
+
+            await Customer.updateOne(
+                {
+                    _id: BODY._customer._id,
+                },
+                BODY._customer
+            ).exec();
+        } else {
+            const customer = new Customer({
+                name: BODY.name,
+                nit: BODY.nit,
+                phone: BODY.phone,
+                address: BODY.address,
+                town: BODY.town,
+                department: BODY.department,
+            });
+
+            await customer
+                .save()
+                .then((NewCustomer) => {
+                    BODY._customer = NewCustomer;
+                })
+                .catch((err) => {
+                    res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al crear cliente',
+                        errors: err,
+                    });
+                });
+        }
+
+        BODY.detail = await SEARCH_PRESENTATIONS(BODY.detail);
+
+        Order.findOne(
+            {
+                _cellar: BODY._cellar,
+                deleted: false
+            },
+            'noOrder',
+            {
+                sort: {
+                    noOrder: -1
+                }
+            },
+            function (err, order) {
+                if (err) {
+                    return res.status(500).json({
+                        ok: false,
+                        mensaje: 'Error al buscar correlativo',
+                        errors: err,
+                    });
+                }
+
+                // Definiciones para la factura
+                let correlative = 0;
+                if (order) {
+                    correlative = Number(order.noOrder) + 1;
+                }
+
+                const newOrder = new Order({
+                    _cellar: BODY._cellar,
+                    _user: BODY._user,
+                    _customer: BODY._customer,
+                    noOrder: correlative,
+                    noBill: BODY.noBill,
+                    name: BODY.name,
+                    nit: BODY.nit,
+                    phone: BODY.phone,
+                    address: BODY.address,
+                    town: BODY.town,
+                    department: BODY.department,
+                    detail: BODY.detail,
+                    details: BODY.details,
+                    payment: BODY.payment,
+                    sellerCode: BODY.sellerCode,
+                    total: BODY.total,
+                    state: 'COTIZACION',
+                    date: moment().tz("America/Guatemala").format(),
+                    timeOrder: BODY.timeOrder
+                });
+
+                newOrder
+                    .save()
+                    .then((order) => {
+                        res.status(200).json({
+                            ok: true,
+                            order,
+                        });
+                    })
+                    .catch((err) => {
+                        res.status(400).json({
+                            ok: false,
+                            mensaje: 'Error al crear orden',
+                            errors: err,
+                        });
+                    });
+            }
+        );
+    } catch (err) {
+        // ERROR GLOBAL
+        console.log("🚀 ~ file: order.ts ~ line 1248 ~ orderRouter.post ~ err", err)
+    }
+});
+/* #endregion */
+
+/* #region  Functions */
+const SEARCH_PRESENTATIONS = async (detail: IOrderDetail[]): Promise<IOrderDetail[]> => {
+    return Promise.all(
+        detail.map((element: any) => {
+            element.presentation = {
+                name: element._product.presentations.name,
+                quantity: element._product.presentations.quantity
+            };
+            return element;
+        })
+    );
+}
 /* #endregion */
 
 export default ORDER_ROUTER;

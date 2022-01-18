@@ -5,6 +5,7 @@ const Float = require('mongoose-float').loadType(mongoose, 2);
 import { ICellar } from './cellar';
 import { ICustomer } from './customer';
 import { IUser } from './user';
+import { IProduct } from './product';
 
 export interface IOrder extends Document {
     _cellar: ICellar['_id'],
@@ -20,6 +21,7 @@ export interface IOrder extends Document {
     address: string,
     town: string,
     department: string,
+    detail: IOrderDetail[],
     details: string,
     payment: string,
     sellerCode?: string,
@@ -35,15 +37,36 @@ export interface IOrder extends Document {
     deleted: boolean
 }
 
+export interface IOrderDetail extends Document {
+    _product: IProduct['_id'],
+    presentation: IOrderDetailPresentation,
+    quantity: number,
+    price: number,
+}
+export interface IOrderDetailPresentation extends Document {
+    name: string,
+    quantity: number
+}
+
 let pagosValidos = {
     values: ['EFECTIVO', 'TARJETA'],
     message: '{VALUE} no es un tipo de pago permitido'
 };
 
 let estadosValidos = {
-    values: ['ORDEN', 'DESPACHO', 'ENVIO', 'ENTREGA', 'DEVOLUCION'],
+    values: ['COTIZACION', 'ORDEN', 'DESPACHO', 'ENVIO', 'ENTREGA', 'DEVOLUCION'],
     message: '{VALUE} no es un estado permitido'
 };
+
+const PRESENTATION_SCHEMA = new Schema({
+    name: {
+        type: String,
+    },
+    quantity: {
+        type: Float,
+        default: 0
+    },
+});
 
 const orderSchema: Schema = new Schema({
     _cellar: {
@@ -96,6 +119,25 @@ const orderSchema: Schema = new Schema({
     department: {
         type: String,
     },
+    detail: [{
+        _product: {
+            type: Schema.Types.ObjectId,
+            ref: 'Product',
+            required: [true, 'El producto es necesario']
+        },
+        presentation: {
+            type: PRESENTATION_SCHEMA,
+            default: {}
+        },
+        quantity: {
+            type: Float,
+            default: 0
+        },
+        price: {
+            type: Float,
+            default: 0
+        },
+    }],
     details: {
         type: String,
     },
