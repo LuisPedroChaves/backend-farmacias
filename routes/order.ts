@@ -127,6 +127,7 @@ ORDER_ROUTER.get('/quotes/:_cellar', mdAuth, (req: Request, res: Response) => {
         .populate('_cellar', '')
         .populate('_user', '')
         .populate('_customer', '')
+        .populate('detail._product')
         .sort({
             noOrder: -1
         })
