@@ -23,7 +23,6 @@ function haltOnTimedout(req: Request, res: Response, next: any) {
 TEMP_STORAGE_ROUTER.get('/stockConsolidated', mdAuth, (req: Request, res: Response) => {
     const _brand: any = req.query._brand;
     const withStock = req.query.withStock;
-    console.log("🚀 ~ file: tempStorage.ts ~ line 26 ~ TEMP_STORAGE_ROUTER.get ~ withStock", withStock)
 
     let query: any[] = [];
     // Filtro para laboratorio seleccionado
@@ -76,7 +75,7 @@ TEMP_STORAGE_ROUTER.get('/stockConsolidated', mdAuth, (req: Request, res: Respon
                 }
             },
         ]
-    }else {
+    } else {
         query = [
             {
                 $lookup: {
@@ -126,7 +125,7 @@ TEMP_STORAGE_ROUTER.get('/stockConsolidated', mdAuth, (req: Request, res: Respon
     if (withStock === 'true') {
         query.splice(0, 0, {
             $match: {
-                stock: { $gt: 0}
+                stock: { $gt: 0 }
             },
         });
     }
@@ -152,7 +151,6 @@ TEMP_STORAGE_ROUTER.get('/stockConsolidated', mdAuth, (req: Request, res: Respon
 
 TEMP_STORAGE_ROUTER.get('/checkStock', mdAuth, (req: Request, res: Response) => {
     const _product = req.query._product;
-    console.log("🚀 ~ file: tempStorage.ts ~ line 155 ~ TEMP_STORAGE_ROUTER.get ~ _product", _product)
 
     TempStorage.find({
         _product: _product,
@@ -365,6 +363,69 @@ TEMP_STORAGE_ROUTER.get('/:cellar', mdAuth, (req: Request, res: Response) => {
             });
     }
 });
+
+TEMP_STORAGE_ROUTER.get('/search/:cellar', mdAuth, (req: Request, res: Response) => {
+    const _cellar: string = req.params.cellar;
+
+    let search = req.query.search || '';
+    search = String(search);
+    const REGEX = new RegExp(search, 'i');
+
+    TempStorage.aggregate([
+        {
+            $match: {
+                _cellar: OBJECT_ID(_cellar),
+            },
+        },
+        {
+            $lookup: {
+                from: 'products',
+                localField: '_product',
+                foreignField: '_id',
+                as: '_product',
+            },
+        },
+        {
+            $unwind: '$_product',
+        },
+        {
+            $match: {
+                '_product.description': REGEX,
+                '_product.discontinued': false,
+                '_product.deleted': false
+            },
+        },
+        {
+            $unwind: '$_product.presentations'
+        },
+        {
+            $lookup: {
+                from: 'brands',
+                localField: '_product._brand',
+                foreignField: '_id',
+                as: '_product._brand',
+            },
+        },
+        {
+            $unwind: '$_product._brand',
+        },
+        {
+            $limit: 10
+        },
+    ]).then((products) => {
+        res.status(200).json({
+            ok: true,
+            products
+        });
+    })
+        .catch((err) => {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error listando productos',
+                errors: err
+            });
+        });
+});
 /* #endregion */
 
 /* #region  PUT */
@@ -489,7 +550,7 @@ TEMP_STORAGE_ROUTER.put('/global', mdAuth, async (req: Request, res: Response) =
                 }
             },
         ]
-    }else {
+    } else {
         query = [
             {
                 $match: {
