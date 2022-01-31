@@ -145,6 +145,193 @@ TEMP_SALE_ROUTER.get('/tempStatistics', mdAuth, (req: Request, res: Response) =>
             });
         });
 });
+
+// Productos más vendidos
+TEMP_SALE_ROUTER.get('/bestSellers', mdAuth, (req: Request, res: Response) => {
+    const _cellar: any = req.query._cellar;
+    // Rango de fechas para historial de ventas
+    let startDate = new Date(String(req.query.startDate));
+    let endDate = new Date(String(req.query.endDate));
+    endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
+
+    let query: any[] = [
+        {
+            $match: {
+                date: {
+                    $gte: new Date(startDate.toDateString()),
+                    $lt: new Date(endDate.toDateString()),
+                },
+            }
+        },
+        {
+            $lookup: {
+                from: 'products',
+                localField: '_product',
+                foreignField: '_id',
+                as: '_product',
+            },
+        },
+        {
+            $unwind: '$_product',
+        },
+        {
+            $lookup: {
+                from: 'brands',
+                localField: '_product._brand',
+                foreignField: '_id',
+                as: '_product._brand',
+            },
+        },
+        {
+            $unwind: '$_product._brand',
+        },
+        {
+            $group: {
+                _id: '$_product',
+                totalSales: {
+                    $sum: '$quantity'
+                }
+            }
+        },
+        {
+            $sort: { totalSales: -1 }
+        },
+        {
+            $limit: 1500
+        },
+        {
+            $project: {
+                _id: '$_id._id',
+                code: '$_id.code',
+                barcode: '$_id.barcode',
+                description: '$_id.description',
+                brand: '$_id._brand.name',
+                total: '$totalSales'
+            }
+        }
+    ];
+
+    if (_cellar !==  '') {
+        // Filtro por sucursal
+        query.splice(0,1, {
+            $match: {
+                _cellar: OBJECT_ID(_cellar),
+                date: {
+                    $gte: new Date(startDate.toDateString()),
+                    $lt: new Date(endDate.toDateString()),
+                },
+            }
+        })
+    }
+
+    TempSale.aggregate(query).then((tempSales) => {
+        res.status(200).json({
+            ok: true,
+            tempSales
+        });
+    })
+        .catch((err) => {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error listando productos',
+                errors: err
+            });
+        });
+});
+/* #endregion */
+
+// Productos menos vendidos
+TEMP_SALE_ROUTER.get('/worstSellers', mdAuth, (req: Request, res: Response) => {
+    const _cellar: any = req.query._cellar;
+    // Rango de fechas para historial de ventas
+    let startDate = new Date(String(req.query.startDate));
+    let endDate = new Date(String(req.query.endDate));
+    endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
+
+    let query: any[] = [
+        {
+            $match: {
+                date: {
+                    $gte: new Date(startDate.toDateString()),
+                    $lt: new Date(endDate.toDateString()),
+                },
+            }
+        },
+        {
+            $lookup: {
+                from: 'products',
+                localField: '_product',
+                foreignField: '_id',
+                as: '_product',
+            },
+        },
+        {
+            $unwind: '$_product',
+        },
+        {
+            $lookup: {
+                from: 'brands',
+                localField: '_product._brand',
+                foreignField: '_id',
+                as: '_product._brand',
+            },
+        },
+        {
+            $unwind: '$_product._brand',
+        },
+        {
+            $group: {
+                _id: '$_product',
+                totalSales: {
+                    $sum: '$quantity'
+                }
+            }
+        },
+        {
+            $sort: { totalSales: 1 }
+        },
+        {
+            $limit: 500
+        },
+        {
+            $project: {
+                _id: '$_id._id',
+                code: '$_id.code',
+                barcode: '$_id.barcode',
+                description: '$_id.description',
+                brand: '$_id._brand.name',
+                total: '$totalSales'
+            }
+        }
+    ];
+
+    if (_cellar !==  '') {
+        // Filtro por sucursal
+        query.splice(0,1, {
+            $match: {
+                _cellar: OBJECT_ID(_cellar),
+                date: {
+                    $gte: new Date(startDate.toDateString()),
+                    $lt: new Date(endDate.toDateString()),
+                },
+            }
+        })
+    }
+
+    TempSale.aggregate(query).then((tempSales) => {
+        res.status(200).json({
+            ok: true,
+            tempSales
+        });
+    })
+        .catch((err) => {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error listando productos',
+                errors: err
+            });
+        });
+});
 /* #endregion */
 
 /* #region  POST */
