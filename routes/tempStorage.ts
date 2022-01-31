@@ -503,84 +503,51 @@ TEMP_STORAGE_ROUTER.put('/global', mdAuth, async (req: Request, res: Response) =
     // Sí la diferencia queda en cero entonces la igualamos a 1
     const MONTHS = (END.diff(START, 'months') === 0) ? 1 : END.diff(START, 'months');
 
-    let query: any[] = [];
-    if (_brand) {
-        query = [
-            {
-                $match: {
-                    _cellar: OBJECT_ID(_cellar),
-                    date: {
-                        $gte: new Date(startDate.toDateString()),
-                        $lt: new Date(endDate.toDateString()),
-                    },
+    let query: any[] = [
+        {
+            $match: {
+                _cellar: OBJECT_ID(_cellar),
+                date: {
+                    $gte: new Date(startDate.toDateString()),
+                    $lt: new Date(endDate.toDateString()),
                 },
             },
-            {
-                $lookup: {
-                    from: 'products',
-                    localField: '_product',
-                    foreignField: '_id',
-                    as: '_product',
-                },
+        },
+        {
+            $lookup: {
+                from: 'products',
+                localField: '_product',
+                foreignField: '_id',
+                as: '_product',
             },
-            {
-                $unwind: '$_product',
+        },
+        {
+            $unwind: '$_product',
+        },
+        {
+            $match: {
+                '_product._brand': OBJECT_ID(_brand),
             },
-            {
-                $match: {
-                    '_product._brand': OBJECT_ID(_brand),
-                },
-            },
-            {
-                $sort: { _product: 1 },
-            },
-            {
-                $group: {
-                    _id: '$_product',
-                    suma: { $sum: "$quantity" },
-                    _cellar: { $first: "$_cellar" }
-                }
-            },
-            {
-                "$project": {
-                    _id: 1,
-                    suma: 1,
-                    _cellar: 1,
-                    promMonth: { $divide: ["$suma", MONTHS] },
-                }
-            },
-        ]
-    } else {
-        query = [
-            {
-                $match: {
-                    _cellar: OBJECT_ID(_cellar),
-                    date: {
-                        $gte: new Date(startDate.toDateString()),
-                        $lt: new Date(endDate.toDateString()),
-                    },
-                },
-            },
-            {
-                $sort: { _product: 1 },
-            },
-            {
-                $group: {
-                    _id: '$_product',
-                    suma: { $sum: "$quantity" },
-                    _cellar: { $first: "$_cellar" }
-                }
-            },
-            {
-                "$project": {
-                    _id: 1,
-                    suma: 1,
-                    _cellar: 1,
-                    promMonth: { $divide: ["$suma", MONTHS] },
-                }
-            },
-        ]
-    }
+        },
+        {
+            $sort: { _product: 1 },
+        },
+        {
+            $group: {
+                _id: '$_product',
+                suma: { $sum: "$quantity" },
+                _cellar: { $first: "$_cellar" }
+            }
+        },
+        {
+            "$project": {
+                _id: 1,
+                suma: 1,
+                _cellar: 1,
+                promMonth: { $divide: ["$suma", MONTHS] },
+            }
+        },
+    ];
 
     const TEMP_SALES: ITempSale[] = await TempSale.aggregate(
         query
