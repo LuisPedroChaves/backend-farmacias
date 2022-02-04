@@ -3,6 +3,7 @@ import { SERVER_PORT } from '../global/environment';
 import socketIO from "socket.io"
 import http from 'http';
 import * as socket from '../sockets/socket';
+const scheduledFunctions = require('../scheduledJobs/globalStatistics');
 
 export default class Server {
 
@@ -25,6 +26,7 @@ export default class Server {
         this.io = socketIO(this.httpServer);
 
         this.listenSockets();
+    scheduledFunctions.initScheduledJobs();
     }
 
     // patrón Singleton

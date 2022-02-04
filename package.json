@@ -23,6 +23,7 @@
     "mongoose-float": "^1.0.4",
     "mongoose-unique-validator": "^2.0.3",
     "morgan": "^1.10.0",
+    "node-cron": "^3.0.0",
     "node-xlsx": "^0.17.1",
     "socket.io": "^2.3.0",
     "tslib": "^2.3.1"
