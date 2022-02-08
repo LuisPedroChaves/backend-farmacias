@@ -686,15 +686,15 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response, next: an
                 // } else {
                 //     res.send('success');
                 // }
+
+                res.write(code.toString())
+                next()
             } catch (e: any) {
                 throw new Error(e.message);
             }
         });
 
-        return res.status(200).json({
-            ok: true,
-            errors
-        });
+        return res.end();
     });
 });
 /* #endregion */

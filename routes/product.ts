@@ -611,107 +611,96 @@ PRODUCT_ROUTER.post('/xlsx', (req: Request, res: Response) => {
         let code = 1;
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
-                let marca: string = doc[2];
-                if (marca) {
-                    marca = marca.replace(/\s/g, '');
-                    marca = marca.replace(/-/g, '').toUpperCase();
-                }
+                const BRAND_CODE: number = doc[2];
 
                 let _brand = await Brand.findOne({
-                    name: marca,
+                    code: BRAND_CODE,
                     deleted: false,
                 }).exec();
 
-                if (!_brand) {
-                    const BRAND = new Brand({
-                        name: marca
+                if (_brand) {
+                    // Seguimos solo si existe la marca
+                    let misSus: any = [];
+                    if (doc[14]) { // SUSTANCIAS
+                        let sustancias = doc[14].split('+');
+
+                        await bluebird.mapSeries(sustancias, async (sustain: any, index) => {
+                            if (sustain) {
+                                sustain = sustain.replace(/\s/g, '');
+                                sustain = sustain.replace(/-/g, '').toUpperCase();
+                            }
+
+                            let _sus = await Substance.findOne({
+                                name: sustain,
+                                deleted: false,
+                            }).exec();
+
+                            if (!_sus) {
+                                const SUBSTANCE = new Substance({
+                                    name: sustain
+                                });
+
+                                _sus = await SUBSTANCE
+                                    .save()
+                                    .then();
+                            }
+
+                            misSus.push({ _substanace: _sus });
+                        });
+                    }
+
+                    const DESCRIPTION: string = doc[1];
+
+                    // PRESENTACION POR UNIDAD
+                    const PRESENTATIONS: any = [];
+                    const name: string = 'UNIDAD';
+                    const cost: number = doc[3];
+                    const wholesale_price: number = doc[4];
+                    const distributor_price: number = doc[5];
+                    const retail_price: number = doc[6];
+                    const cf_price: number = doc[7];
+                    const quantity: number = 1;
+                    const commission: number = 0;
+                    PRESENTATIONS.push({
+                        name,
+                        wholesale_price,
+                        distributor_price,
+                        retail_price,
+                        cf_price,
+                        quantity,
+                        commission,
+                        cost
                     });
 
-                    _brand = await BRAND
-                        .save()
-                        .then();
-                }
-
-                let misSus: any = [];
-                if (doc[14]) { // SUSTANCIAS
-                    let sustancias = doc[14].split('+');
-
-                    await bluebird.mapSeries(sustancias, async (sustain: any, index) => {
-                        if (sustain) {
-                            sustain = sustain.replace(/\s/g, '');
-                            sustain = sustain.replace(/-/g, '').toUpperCase();
-                        }
-
-                        let _sus = await Substance.findOne({
-                            name: sustain,
-                            deleted: false,
-                        }).exec();
-
-                        if (!_sus) {
-                            const SUBSTANCE = new Substance({
-                                name: sustain
-                            });
-
-                            _sus = await SUBSTANCE
-                                .save()
-                                .then();
-                        }
-
-                        misSus.push({ _substanace: _sus });
-                    });
-                }
-
-                const DESCRIPTION: string = doc[1];
-
-                // PRESENTACION POR UNIDAD
-                const PRESENTATIONS: any = [];
-                const name: string = 'UNIDAD';
-                const cost: number = doc[3];
-                const wholesale_price: number = doc[4];
-                const distributor_price: number = doc[5];
-                const retail_price: number = doc[6];
-                const cf_price: number = doc[7];
-                const quantity: number = 1;
-                const commission: number = 0;
-                PRESENTATIONS.push({
-                    name,
-                    wholesale_price,
-                    distributor_price,
-                    retail_price,
-                    cf_price,
-                    quantity,
-                    commission,
-                    cost
-                });
-
-                const PRODUCT = await Product.findOne({
-                    barcode: doc[0],
-                }).exec();
-
-                if (!PRODUCT) {
-                    const NEW_PRODUCT = new Product({
-                        _brand,
-                        code: code,
+                    const PRODUCT = await Product.findOne({
                         barcode: doc[0],
-                        description: DESCRIPTION.toUpperCase(),
-                        substances: misSus,
-                        presentations: PRESENTATIONS
-                    });
-
-                    let product = await NEW_PRODUCT
-                        .save()
-                        .then();
-                } else {
-                    await Product.updateOne({
-                        _id: PRODUCT._id
-                    }, {
-                        _brand,
-                        code: code,
-                        barcode: doc[0],
-                        description: DESCRIPTION.toUpperCase(),
-                        substances: misSus,
-                        presentations: PRESENTATIONS
                     }).exec();
+
+                    if (!PRODUCT) {
+                        const NEW_PRODUCT = new Product({
+                            _brand,
+                            code: code,
+                            barcode: doc[0],
+                            description: DESCRIPTION.toUpperCase(),
+                            substances: misSus,
+                            presentations: PRESENTATIONS
+                        });
+
+                        let product = await NEW_PRODUCT
+                            .save()
+                            .then();
+                    } else {
+                        await Product.updateOne({
+                            _id: PRODUCT._id
+                        }, {
+                            _brand,
+                            code: code,
+                            barcode: doc[0],
+                            description: DESCRIPTION.toUpperCase(),
+                            substances: misSus,
+                            presentations: PRESENTATIONS
+                        }).exec();
+                    }
                 }
 
                 code++;
