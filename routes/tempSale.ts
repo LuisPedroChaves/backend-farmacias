@@ -418,10 +418,12 @@ TEMP_SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
             }
         });
 
-        res.send({
-            ok: true,
-            errors
-        });
+        res.end()
+
+        // res.send({
+        //     ok: true,
+        //     errors
+        // });
 
         // return res.status(200).json({
         //     ok: true,
