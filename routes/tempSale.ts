@@ -412,23 +412,23 @@ TEMP_SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
 
                 code++;
                 console.log("🚀 ~ file: product.ts ~ line 372 ~ awaitbluebird.mapSeries ~ code", code)
-                res.write(code.toString())
+                // res.write(code.toString())
             } catch (e: any) {
                 throw new Error(e.message);
             }
         });
 
-        res.end()
+        // res.end()
 
         // res.send({
         //     ok: true,
         //     errors
         // });
 
-        // return res.status(200).json({
-        //     ok: true,
-        //     errors
-        // });
+        return res.status(200).json({
+            ok: true,
+            errors
+        });
     });
 });
 
