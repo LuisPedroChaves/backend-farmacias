@@ -385,8 +385,9 @@ TEMP_SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
         let errors: any[] = [];
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
-                const BARCODE: string = doc[0];
-                const QUANTITY: number = doc[1];
+                const DATE =  new Date(moment(ExcelDateToJSDate(doc[0])).tz("America/Guatemala").format());
+                const BARCODE: string = doc[1];
+                const QUANTITY: number = doc[2];
 
                 let _product = await Product.findOne({
                     barcode: BARCODE,
@@ -402,7 +403,7 @@ TEMP_SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
                     const NEW_TEMP_SALE = new TempSale({
                         _cellar: BODY._cellar,
                         _product: _product._id,
-                        date: BODY.date,
+                        date: DATE,
                         quantity: QUANTITY
                     });
 
@@ -411,15 +412,21 @@ TEMP_SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
 
                 code++;
                 console.log("🚀 ~ file: product.ts ~ line 372 ~ awaitbluebird.mapSeries ~ code", code)
+                res.write(code.toString())
             } catch (e: any) {
                 throw new Error(e.message);
             }
         });
 
-        return res.status(200).json({
+        res.send({
             ok: true,
             errors
         });
+
+        // return res.status(200).json({
+        //     ok: true,
+        //     errors
+        // });
     });
 });
 
@@ -473,8 +480,9 @@ TEMP_SALE_ROUTER.post('/xlsx/delete', (req: Request, res: Response) => {
         let errors: any[] = [];
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
-                const BARCODE: string = doc[0];
-                const QUANTITY: number = doc[1];
+                const DATE =  new Date(moment(ExcelDateToJSDate(doc[0])).tz("America/Guatemala").format());
+                const BARCODE: string = doc[1];
+                const QUANTITY: number = doc[2];
 
                 let _product = await Product.findOne({
                     barcode: BARCODE,
@@ -490,7 +498,7 @@ TEMP_SALE_ROUTER.post('/xlsx/delete', (req: Request, res: Response) => {
                     let tempSale = await TempSale.findOne({
                         _cellar: BODY._cellar,
                         _product: _product._id,
-                        date: BODY.date,
+                        date: DATE,
                         quantity: QUANTITY
                     }).exec();
 
@@ -656,5 +664,24 @@ const SEARCH_TEMP_STOCK_SALES = async (detail: any[], _cellar: string, newStart:
         })
     );
 };
+
+const ExcelDateToJSDate = (serialXlsx: number) => {
+    var utc_days  = Math.floor(serialXlsx - 25569);
+    var utc_value = utc_days * 86400;
+    var date_info = new Date(utc_value * 1000);
+
+    var fractional_day = serialXlsx - Math.floor(serialXlsx) + 0.0000001;
+
+    var total_seconds = Math.floor(86400 * fractional_day);
+
+    var seconds = total_seconds % 60;
+
+    total_seconds -= seconds;
+
+    var hours = Math.floor(total_seconds / (60 * 60));
+    var minutes = Math.floor(total_seconds / 60) % 60;
+
+    return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
+ }
 
 export default TEMP_SALE_ROUTER;
