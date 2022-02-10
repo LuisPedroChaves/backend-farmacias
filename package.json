@@ -38,6 +38,7 @@
     "@types/jsonwebtoken": "^8.5.0",
     "@types/mongoose-unique-validator": "^1.0.4",
     "@types/morgan": "^1.9.2",
+    "@types/node-cron": "^3.0.1",
     "@types/node-xlsx": "^0.15.2",
     "@types/socket.io": "^2.1.10"
   }
