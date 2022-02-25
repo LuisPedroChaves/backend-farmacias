@@ -26,38 +26,6 @@ BRAND_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
             });
         });
 });
-
-// Actualiza el correlativo de los codigos en todas las marcas (SOLO SE USA UNA VEZ)
-//TODO:BORRAME
-BRAND_ROUTER.get('/updateCodes', (req: Request, res: Response) => {
-    Brand.find({
-        deleted: false,
-    })
-        .sort({ code: 1 })
-        .exec(async (err, brands) => {
-            if (err) {
-                return res.status(500).json({
-                    ok: false,
-                    mensaje: 'Error listando marcas',
-                    errors: err,
-                });
-            }
-
-            let count = 1;
-
-            brands = await brands.map((brand: IBrand) => {
-                brand.code = count;
-                brand.save();
-                count++;
-                return brand;
-            });
-
-            res.status(200).json({
-                ok: true,
-                brands,
-            });
-        });
-});
 /* #endregion */
 
 BRAND_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {

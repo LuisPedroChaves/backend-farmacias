@@ -4,7 +4,6 @@ import xlsx from 'node-xlsx';
 import bluebird from 'bluebird';
 import mongoose from 'mongoose';
 import moment from 'moment-timezone';
-import timeout from 'connect-timeout';
 
 import { mdAuth } from '../middleware/auth';
 import Product from '../models/product';
@@ -552,6 +551,8 @@ TEMP_STORAGE_ROUTER.put('/global', mdAuth, async (req: Request, res: Response) =
     const TEMP_SALES: ITempSale[] = await TempSale.aggregate(
         query
     ).allowDiskUse(true);
+
+    console.log(TEMP_SALES.length);
 
     //Sumamos un mes para calcular ventas al ultimo mes
     await SEARCH_STOCK_SALES(TEMP_SALES, startDate2, endDate2, MIN_X, MAX_X);

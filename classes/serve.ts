@@ -3,7 +3,7 @@ import { SERVER_PORT } from '../global/environment';
 import socketIO from "socket.io"
 import http from 'http';
 import * as socket from '../sockets/socket';
-const scheduledFunctions = require('../scheduledJobs/globalStatistics');
+const SCHDULED_FUNCTIONS = require('../scheduledJobs/globalStatistics');
 
 export default class Server {
 
@@ -26,18 +26,18 @@ export default class Server {
         this.io = socketIO(this.httpServer);
 
         this.listenSockets();
-    scheduledFunctions.initScheduledJobs();
+        SCHDULED_FUNCTIONS.initScheduledJobs();
     }
 
     // patrón Singleton
     public static get instance() {
-        return this._instance || ( this._instance = new this() );
+        return this._instance || (this._instance = new this());
     }
 
     // socket.io
     private listenSockets() {
         // console.log('Escuchando conexiones - sockets');
-        this.io.on('connection', cliente  => {
+        this.io.on('connection', cliente => {
             // console.log('Cliente conectado: ' + cliente.id);
 
             socket.cellarConnect(cliente);

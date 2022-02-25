@@ -20,10 +20,12 @@ import PROVIDER_ROUTER from './provider';
 import PURCHASE_ROUTER from './purchase';
 import TEMP_STORAGE_ROUTER from './tempStorage';
 import TEMP_SALE_ROUTER from './tempSale';
+import AUTO_STATISTIC_ROUTER from './autoStatistic';
 
 const router = Router();
 
 // Rutas
+router.use('/autoStatistic', AUTO_STATISTIC_ROUTER);
 router.use('/tempSale', TEMP_SALE_ROUTER);
 router.use('/tempStorage', TEMP_STORAGE_ROUTER);
 router.use('/purchase', PURCHASE_ROUTER);
