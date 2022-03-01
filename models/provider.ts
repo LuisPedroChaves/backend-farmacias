@@ -7,8 +7,11 @@ export interface IProvider extends Document {
 	phone: string,
 	email: string,
 	creditDays: number,
+	credit: number,
 	deleted: boolean
 }
+
+const FLOAT = require('mongoose-float').loadType(mongoose, 2);
 
 const providerSchema: Schema = new Schema({
 	name: {
@@ -30,6 +33,10 @@ const providerSchema: Schema = new Schema({
 	creditDays: {
 		type: Number,
         default: 0
+	},
+	credit: {
+		type: FLOAT,
+		default: 0
 	},
 	deleted: {
 		type: Boolean,

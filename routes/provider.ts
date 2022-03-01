@@ -68,6 +68,7 @@ PROVIDER_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         provider.phone = body.phone;
         provider.email = body.email;
         provider.creditDays = body.creditDays;
+        provider.credit = body.credit;
 
         provider.save((err, provider) => {
             if (err) {
@@ -142,6 +143,7 @@ PROVIDER_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         phone: body.phone,
         email: body.email,
         creditDays: body.creditDays,
+        credit: body.credit,
     });
 
     newProvider

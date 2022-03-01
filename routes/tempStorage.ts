@@ -9,6 +9,7 @@ import { mdAuth } from '../middleware/auth';
 import Product from '../models/product';
 import TempStorage, { ITempStorage } from '../models/tempStorage';
 import TempSale, { ITempSale } from '../models/tempSale';
+import { IProduct } from '../models/product';
 
 const TEMP_STORAGE_ROUTER = Router();
 TEMP_STORAGE_ROUTER.use(fileUpload());
@@ -579,6 +580,80 @@ TEMP_STORAGE_ROUTER.put('/stockReset/:cellar', mdAuth, async (req: Request, res:
     return res.status(200).json({
         ok: true,
         data: 'Inventario restablecido correctamente'
+    });
+});
+
+TEMP_STORAGE_ROUTER.put('/xlsx/:cellar', mdAuth, async (req: Request, res: Response) => {
+    const _cellar: string = req.params.cellar;
+    let barcode = req.query.barcode;
+    let stock: any = req.query.stock;
+    barcode = String(barcode);
+    stock = Number(stock);
+
+    Product.findOne({
+        barcode,
+        deleted: false,
+    }).exec((err: any, _product: IProduct) => {
+        if (err) {
+			return res.status(500).json({
+				ok: false,
+				mensaje: 'Error al buscar producto',
+				errors: err,
+			});
+		}
+
+		if (!_product) {
+			return res.status(400).json({
+				ok: false,
+				mensaje: 'El producto con el código' + barcode + ' no existe',
+				errors: {
+					message: 'No existe un producto con ese código',
+				},
+			});
+		}
+
+        TempStorage.findOne({
+            _product,
+            _cellar
+        }).exec(async (err: any, tempStorage: ITempStorage) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error al buscar inventario',
+                    errors: err,
+                });
+            }
+
+            if (!tempStorage) {
+                const NEW_TEMP_STORAGE = new TempStorage({
+                    _cellar,
+                    _product: _product._id,
+                    stock,
+                    lastUpdateStock: moment().tz("America/Guatemala").format()
+                });
+
+                await NEW_TEMP_STORAGE.save().then();
+                return res.status(200).json({
+                    ok: true,
+                    message: 'Inventario actualizado'
+                });
+            }
+
+            await TempStorage.updateOne(
+                {
+                    _id: tempStorage._id,
+                },
+                {
+                    stock,
+                    lastUpdateStock: moment().tz("America/Guatemala").format()
+                },
+            ).exec();
+
+            return res.status(200).json({
+                ok: true,
+                message: 'Inventario actualizado'
+            });
+        });
     });
 });
 /* #endregion */

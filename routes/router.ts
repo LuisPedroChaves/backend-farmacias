@@ -21,10 +21,14 @@ import PURCHASE_ROUTER from './purchase';
 import TEMP_STORAGE_ROUTER from './tempStorage';
 import TEMP_SALE_ROUTER from './tempSale';
 import AUTO_STATISTIC_ROUTER from './autoStatistic';
+import EXPENSE_ROUTER from './expense';
+import ACCOUNTS_PAYABLE_ROUTER from './accountsPayable';
 
 const router = Router();
 
 // Rutas
+router.use('/accountsPayable', ACCOUNTS_PAYABLE_ROUTER);
+router.use('/expense', EXPENSE_ROUTER);
 router.use('/autoStatistic', AUTO_STATISTIC_ROUTER);
 router.use('/tempSale', TEMP_SALE_ROUTER);
 router.use('/tempStorage', TEMP_STORAGE_ROUTER);
