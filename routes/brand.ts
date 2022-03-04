@@ -5,7 +5,6 @@ import { IBrand } from '../models/brand';
 
 const BRAND_ROUTER = Router();
 
-/* #region  GET */
 BRAND_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
     Brand.find({
         deleted: false,
@@ -26,7 +25,6 @@ BRAND_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
             });
         });
 });
-/* #endregion */
 
 BRAND_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
     const ID: string = req.params.id;
