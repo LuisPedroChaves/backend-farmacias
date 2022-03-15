@@ -25,7 +25,7 @@ mongoose.set('useFindAndModify', false);
 mongoose.Promise = global.Promise;
 
 mongoose.connection.openUri(
-    'mongodb://root:root@localhost:27017/farmaciasDB?authSource=admin&readPreference=primary',
+    'mongodb://localhost:27017/farmaciasDB?authSource=admin&readPreference=primary',
     {
         useNewUrlParser: true,
         useUnifiedTopology: true,
