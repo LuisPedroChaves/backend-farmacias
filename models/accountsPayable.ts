@@ -4,6 +4,7 @@ import { IPurchase } from './purchase';
 import { IUser } from "./user";
 import { IProvider } from "./provider";
 import { IExpense } from './expense';
+import { ICheck } from './check';
 
 export interface IAccountsPayable extends Document {
     _user: IUser['_id'],
@@ -24,6 +25,8 @@ export interface IAccountsPayable extends Document {
     total: number,
     type: string,
     file: string,
+    withholdingIVA: string,
+    withholdingISR: string,
     toCredit: boolean,
     expirationCredit: Date,
     paid: boolean,
@@ -31,6 +34,7 @@ export interface IAccountsPayable extends Document {
 }
 
 export interface IAccountsPayableBalance extends Document {
+    _check: ICheck['_id'],
     date: Date,
     document: string,
     credit: string,
@@ -47,7 +51,7 @@ const TIPOS_VALIDOS = {
     message: '{VALUE} no es un tipo de cuenta permitido'
 };
 const ABONOS_VALIDOS = {
-    values: ['CHEQUE', 'TARJETA', 'EFECTIVO', 'TRANSFERENCIA', 'DEPOSITO'],
+    values: ['CHEQUE', 'EFECTIVO'],
     message: '{VALUE} no es un tipo de pago permitido'
 };
 
@@ -90,6 +94,11 @@ const ACCOUNTS_PAYABLE_SCHEMA = new Schema({
         default: 'FACTURA'
     },
     balance: [{
+        _check: {
+            type: Schema.Types.ObjectId,
+            ref: 'Check',
+            default: null
+        },
         date: {
             type: Date,
             default: null
@@ -144,6 +153,12 @@ const ACCOUNTS_PAYABLE_SCHEMA = new Schema({
         default: 'PRODUCTOS'
     },
     file: {
+        type: String,
+    },
+    withholdingIVA: {
+        type: String,
+    },
+    withholdingISR: {
         type: String,
     },
     toCredit: {

@@ -586,9 +586,13 @@ TEMP_STORAGE_ROUTER.put('/stockReset/:cellar', mdAuth, async (req: Request, res:
 TEMP_STORAGE_ROUTER.put('/xlsx/:cellar', mdAuth, async (req: Request, res: Response) => {
     const _cellar: string = req.params.cellar;
     let barcode = req.query.barcode;
+    console.log(req.query.barcode);
+
     let stock: any = req.query.stock;
     barcode = String(barcode);
     stock = Number(stock);
+
+    console.log(barcode);
 
     Product.findOne({
         barcode,
@@ -603,7 +607,7 @@ TEMP_STORAGE_ROUTER.put('/xlsx/:cellar', mdAuth, async (req: Request, res: Respo
 		}
 
 		if (!_product) {
-			return res.status(400).json({
+			return res.status(200).json({
 				ok: false,
 				mensaje: 'El producto con el código' + barcode + ' no existe',
 				errors: {

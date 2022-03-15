@@ -23,10 +23,12 @@ import TEMP_SALE_ROUTER from './tempSale';
 import AUTO_STATISTIC_ROUTER from './autoStatistic';
 import EXPENSE_ROUTER from './expense';
 import ACCOUNTS_PAYABLE_ROUTER from './accountsPayable';
+import CHECK_ROUTER from './check';
 
 const router = Router();
 
 // Rutas
+router.use('/check', CHECK_ROUTER);
 router.use('/accountsPayable', ACCOUNTS_PAYABLE_ROUTER);
 router.use('/expense', EXPENSE_ROUTER);
 router.use('/autoStatistic', AUTO_STATISTIC_ROUTER);

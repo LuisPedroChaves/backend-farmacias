@@ -32,8 +32,8 @@ exports.initScheduledJobs = () => {
       const NOW_UTC = NOW.utc(true).format();
 
       autoStatistics.forEach(auto => {
-        console.log(auto.hour);
-        console.log(auto.minute);
+        // console.log(auto.hour);
+        // console.log(auto.minute);
 
         CronJob.schedule(`${auto.minute} ${auto.hour} * * *`, async () => {
         // CronJob.schedule(`${13} ${13} * * *`, async () => {

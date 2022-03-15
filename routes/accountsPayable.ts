@@ -8,7 +8,7 @@ const ACCOUNTS_PAYABLE_ROUTER = Router();
 ACCOUNTS_PAYABLE_ROUTER.get('/unpaids', mdAuth, (req: Request, res: Response) => {
     AccountsPayable.find(
         {
-            paid: false,
+            // paid: false,
             deleted: false
         }
     )

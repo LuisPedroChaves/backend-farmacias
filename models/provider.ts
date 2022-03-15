@@ -8,6 +8,9 @@ export interface IProvider extends Document {
 	email: string,
 	creditDays: number,
 	credit: number,
+	balance: number,
+	iva: boolean,
+	isr: boolean,
 	deleted: boolean
 }
 
@@ -37,6 +40,18 @@ const providerSchema: Schema = new Schema({
 	credit: {
 		type: FLOAT,
 		default: 0
+	},
+	balance: {
+		type: FLOAT,
+		default: 0
+	},
+	iva: {
+		type: Boolean,
+		default: false,
+	},
+	isr: {
+		type: Boolean,
+		default: false,
 	},
 	deleted: {
 		type: Boolean,

@@ -25,10 +25,10 @@ mongoose.set('useFindAndModify', false);
 mongoose.Promise = global.Promise;
 
 mongoose.connection.openUri(
-    'mongodb://localhost:27017/farmaciasDB', // Agregar nombre de la DB
+    'mongodb://root:root@localhost:27017/farmaciasDB?authSource=admin&readPreference=primary',
     {
         useNewUrlParser: true,
-        useUnifiedTopology: true
+        useUnifiedTopology: true,
     },
     (error, res) => {
         if (error) throw error;

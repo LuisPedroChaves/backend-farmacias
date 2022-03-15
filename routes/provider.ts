@@ -4,8 +4,7 @@ import xlsx from 'node-xlsx';
 import bluebird from 'bluebird';
 
 import { mdAuth } from '../middleware/auth'
-import Provider from '../models/provider';
-import { IProvider } from '../models/provider';
+import Provider, { IProvider } from '../models/provider';
 
 const PROVIDER_ROUTER = Router();
 PROVIDER_ROUTER.use(fileUpload());
@@ -38,7 +37,6 @@ PROVIDER_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
-/* #region  PUT */
 PROVIDER_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
     const id = req.params.id;
     const body = req.body;
@@ -69,6 +67,8 @@ PROVIDER_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         provider.email = body.email;
         provider.creditDays = body.creditDays;
         provider.credit = body.credit;
+        provider.iva = body.iva;
+        provider.isr = body.isr;
 
         provider.save((err, provider) => {
             if (err) {
@@ -87,9 +87,7 @@ PROVIDER_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
 
     });
 });
-/* #endregion */
 
-/* #region  DELETE */
 PROVIDER_ROUTER.delete('/:id', mdAuth, (req: Request, res: Response) => {
     const id = req.params.id;
 
@@ -130,11 +128,9 @@ PROVIDER_ROUTER.delete('/:id', mdAuth, (req: Request, res: Response) => {
         });
     });
 });
-/* #endregion */
 
-/* #region  POST cellar */
 PROVIDER_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
-    const body = req.body;
+    const body: IProvider = req.body;
 
     const newProvider = new Provider({
         name: body.name,
@@ -144,6 +140,8 @@ PROVIDER_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         email: body.email,
         creditDays: body.creditDays,
         credit: body.credit,
+        iva: body.iva,
+        isr: body.isr
     });
 
     newProvider
@@ -162,9 +160,7 @@ PROVIDER_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
             });
         });
 });
-/* #endregion */
 
-/* #region  POST xlsx */
 PROVIDER_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
 
     // Sino envia ningún archivo
@@ -223,6 +219,5 @@ PROVIDER_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
         });
     });
 });
-/* #endregion */
 
 export default PROVIDER_ROUTER;
