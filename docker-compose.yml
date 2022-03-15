@@ -1,12 +1,9 @@
-version: "4.5.1"
+version: "4.6.0"
 
 services:
   mongo:
     image: mongo:latest
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: root
     ports:
       - 27017:27017
     volumes:
-      - ./mongo_data:/data/db
+      - ../mongo_data:/data/db
