@@ -2,13 +2,14 @@ import { Router, Request, Response } from 'express';
 
 import { mdAuth } from '../middleware/auth';
 import AccountsPayable, { IAccountsPayable } from '../models/accountsPayable';
+import {UPDATE_BALANCE} from '../functions/provider';
 
 const ACCOUNTS_PAYABLE_ROUTER = Router();
 
 ACCOUNTS_PAYABLE_ROUTER.get('/unpaids', mdAuth, (req: Request, res: Response) => {
     AccountsPayable.find(
         {
-            // paid: false,
+            paid: false,
             deleted: false
         }
     )
@@ -172,7 +173,17 @@ ACCOUNTS_PAYABLE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
     })
 
     NEW_ACCOUNTS_PAYABLE.save()
-        .then((accountsPayable: IAccountsPayable) => {
+        .then(async (accountsPayable: IAccountsPayable) => {
+            let action = 'SUMA';
+            if (accountsPayable.docType === 'ABONO' || accountsPayable.docType === 'CREDITO') {
+                action = 'RESTA';
+            }
+
+            if (!accountsPayable.paid) {
+                // Solo si es cuenta al crédito
+                await UPDATE_BALANCE(accountsPayable._provider, accountsPayable.total, action)
+            }
+
             res.status(200).json({
                 ok: true,
                 accountsPayable,

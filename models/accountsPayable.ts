@@ -26,7 +26,9 @@ export interface IAccountsPayable extends Document {
     type: string,
     file: string,
     withholdingIVA: string,
+    amountIVA: number,
     withholdingISR: string,
+    amountISR: number,
     toCredit: boolean,
     expirationCredit: Date,
     paid: boolean,
@@ -158,8 +160,16 @@ const ACCOUNTS_PAYABLE_SCHEMA = new Schema({
     withholdingIVA: {
         type: String,
     },
+    amountIVA: {
+        type: FLOAT,
+        default: 0
+    },
     withholdingISR: {
         type: String,
+    },
+    amountISR: {
+        type: FLOAT,
+        default: 0
     },
     toCredit: {
         type: Boolean,

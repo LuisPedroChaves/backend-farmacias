@@ -61,6 +61,7 @@ PROVIDER_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         }
 
         provider.name = body.name;
+        provider.checkName = body.checkName;
         provider.address = body.address;
         provider.nit = body.nit;
         provider.phone = body.phone;
@@ -134,6 +135,7 @@ PROVIDER_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
 
     const newProvider = new Provider({
         name: body.name,
+        checkName: body.checkName,
         address: body.address,
         nit: body.nit,
         phone: body.phone,

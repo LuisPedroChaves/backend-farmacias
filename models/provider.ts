@@ -2,6 +2,7 @@ import mongoose, {Schema, Document} from 'mongoose';
 
 export interface IProvider extends Document {
 	name: string,
+	checkName: string,
 	address: string,
 	nit: string,
 	phone: string,
@@ -20,6 +21,9 @@ const providerSchema: Schema = new Schema({
 	name: {
 		type: String,
 		required: [true, 'El nombre es necesario'],
+	},
+	checkName: {
+		type: String,
 	},
 	address: {
 		type: String,
