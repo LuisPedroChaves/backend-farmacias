@@ -1,12 +1,17 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+import { IAccountsPayable } from './accountsPayable';
+import { IUser } from './user';
+
 export interface ICheck extends Document {
+    _user: IUser['_id'],
     no: string,
     city: string,
     date: Date,
     name: string,
-    description: string,
     amount: number,
+    note: string,
+    accountsPayables: IAccountsPayable[],
     state: string,
     delivered: boolean
 }
@@ -19,6 +24,11 @@ const ESTADOS_VALIDOS = {
 };
 
 const checkSchema = new Schema({
+    _user: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: [true, 'El usuario es necesario']
+    },
     no: {
         type: String,
     },
@@ -32,13 +42,17 @@ const checkSchema = new Schema({
     name: {
         type: String,
     },
-    description: {
-        type: String,
-    },
     amount: {
         type: FLOAT,
         default: 0
     },
+    note: {
+        type: String,
+    },
+    accountsPayables: [{
+        type: Schema.Types.ObjectId,
+        ref: 'AccountsPayable',
+    }],
     state: {
         type: String,
         enum: ESTADOS_VALIDOS.values,

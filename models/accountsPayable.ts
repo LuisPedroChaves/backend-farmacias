@@ -11,6 +11,7 @@ export interface IAccountsPayable extends Document {
     _provider: IProvider['_id'],
     _purchase: IPurchase['_id'],
     _expense: IExpense['_id'],
+    _check: ICheck['_id'],
     date: Date,
     serie: string,
     noBill: string,
@@ -78,6 +79,11 @@ const ACCOUNTS_PAYABLE_SCHEMA = new Schema({
     _expense: {
         type: Schema.Types.ObjectId,
         ref: 'Purchase',
+        default: null
+    },
+    _check: {
+        type: Schema.Types.ObjectId,
+        ref: 'Check',
         default: null
     },
     date: {
