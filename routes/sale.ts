@@ -14,7 +14,7 @@ const SALE_ROUTER = Router();
 SALE_ROUTER.use(fileUpload());
 // const ObjectId = mongoose.Types.ObjectId;
 
-/* #region  GET */
+/* #region  GET's */
 SALE_ROUTER.get('/history/:_customer', mdAuth, (req: Request, res: Response) => {
     const _customer = req.params._customer;
 

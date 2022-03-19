@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 
 import { mdAuth } from '../middleware/auth'
 import Check, { ICheck } from '../models/check';
+import AccountsPayable, { IAccountsPayable } from '../models/accountsPayable';
 
 const CHECK_ROUTER = Router();
 
@@ -82,7 +83,8 @@ CHECK_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
 
     newCheck
         .save()
-        .then((check) => {
+        .then(async (check) => {
+            await UPDATE_ACCOUNTS_PAYABLE(check._id, check.accountsPayables)
             res.status(200).json({
                 ok: true,
                 check,
@@ -96,5 +98,20 @@ CHECK_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
             });
         });
 });
+
+const UPDATE_ACCOUNTS_PAYABLE = async (_check: string, detail: IAccountsPayable[]): Promise<any> => {
+    return Promise.all(
+        detail.map(async (element: IAccountsPayable) => {
+            console.log("🚀 ~ file: check.ts ~ line 105 ~ detail.map ~ element", element)
+
+            return AccountsPayable.findByIdAndUpdate(element, {
+                _check
+            },
+                {
+                    new: true
+                }).exec()
+        })
+    );
+};
 
 export default CHECK_ROUTER;

@@ -17,6 +17,7 @@ ACCOUNTS_PAYABLE_ROUTER.get('/unpaids', mdAuth, (req: Request, res: Response) =>
         .populate('_provider')
         .populate('_purchase')
         .populate('_expense')
+        .populate('_check')
         .sort({})
         .then(accountsPayables => {
             res.status(200).json({
