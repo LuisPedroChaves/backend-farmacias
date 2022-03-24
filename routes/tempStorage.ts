@@ -16,9 +16,6 @@ TEMP_STORAGE_ROUTER.use(fileUpload());
 
 const OBJECT_ID = mongoose.Types.ObjectId;
 
-function haltOnTimedout(req: Request, res: Response, next: any) {
-    if (!req.timedout) next()
-}
 /* #region  GET'S */
 TEMP_STORAGE_ROUTER.get('/stockConsolidated', mdAuth, (req: Request, res: Response) => {
     const _brand: any = req.query._brand;
@@ -663,7 +660,6 @@ TEMP_STORAGE_ROUTER.put('/xlsx/:cellar', mdAuth, async (req: Request, res: Respo
 /* #endregion */
 
 /* #region  POST */
-// TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', timeout('5m'), haltOnTimedout, (req: Request, res: Response, next: any) => {
 TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response, next: any) => {
     // req.setTimeout((7 * 60 * 1000) + 1);
     const _cellar: string = req.params.cellar;
@@ -759,13 +755,6 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response, next: an
 
                 code++;
                 console.log("🚀 ~ file: product.ts ~ line 372 ~ awaitbluebird.mapSeries ~ code", code)
-
-                // if (req.timedout) {
-                //     console.log(req.timedout);
-                //     next();
-                // } else {
-                //     res.send('success');
-                // }
 
                 res.write(code.toString())
                 next()

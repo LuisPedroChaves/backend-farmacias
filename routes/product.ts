@@ -121,7 +121,55 @@ PRODUCT_ROUTER.get('/search', mdAuth, (req: Request, res: Response) => {
         });
 });
 
+PRODUCT_ROUTER.get('/searchBarcode', mdAuth, (req: Request, res: Response) => {
+    let search = req.query.search || '';
+    search = String(search);
+
+    const REGEX = new RegExp(search, 'i');
+
+    Product.aggregate([
+        {
+            $match: {
+                barcode: search,
+                discontinued: false,
+                deleted: false
+            }
+        },
+        {
+            $unwind: '$presentations'
+        },
+        {
+            $limit: 10
+        },
+        {
+            $lookup:
+            {
+                from: "brands",
+                localField: "_brand",
+                foreignField: "_id",
+                as: "_brand"
+            }
+        },
+        {
+            $unwind: '$_brand',
+        },
+    ]).then((products) => {
+        res.status(200).json({
+            ok: true,
+            products
+        });
+    })
+        .catch((err) => {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error listando productos',
+                errors: err
+            });
+        });
+});
+
 // Busqueda en index por BARCODE y DESCRIPTION
+// TODO: Eliminar si ya no funciona, Actualmente esta en desuso.
 PRODUCT_ROUTER.get('/searchByIndex', mdAuth, (req: Request, res: Response) => {
     let search = req.query.search || '';
     search = String(search);
