@@ -15,7 +15,8 @@ const PRODUCT_ROUTER = Router();
 PRODUCT_ROUTER.use(fileUpload());
 
 
-/* #region  GET pagination */
+/* #region  GET */
+// Pagination
 PRODUCT_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
     // Paginación
     let page = req.query.page || 0;
@@ -72,9 +73,7 @@ PRODUCT_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
             });
         });
 });
-/* #endregion */
 
-/* #region  GET search product */
 PRODUCT_ROUTER.get('/search', mdAuth, (req: Request, res: Response) => {
     let search = req.query.search || '';
     search = String(search);
@@ -121,9 +120,7 @@ PRODUCT_ROUTER.get('/search', mdAuth, (req: Request, res: Response) => {
             });
         });
 });
-/* #endregion */
 
-/* #region  GET search product */
 // Busqueda en index por BARCODE y DESCRIPTION
 PRODUCT_ROUTER.get('/searchByIndex', mdAuth, (req: Request, res: Response) => {
     let search = req.query.search || '';
@@ -141,7 +138,7 @@ PRODUCT_ROUTER.get('/searchByIndex', mdAuth, (req: Request, res: Response) => {
                             "maxEdits": 1,
                             "prefixLength": 1,
                             "maxExpansions": 256
-                          }
+                        }
                     }
                     // Autocompletado en varios campos
                     // "compound": {
@@ -204,16 +201,14 @@ PRODUCT_ROUTER.get('/searchByIndex', mdAuth, (req: Request, res: Response) => {
                 products,
             });
         })
-    }else {
+    } else {
         res.status(200).json({
             ok: true,
             products: [],
         });
     }
 });
-/* #endregion */
 
-/* #region  GET / ID */
 PRODUCT_ROUTER.get('/:id', mdAuth, (req: Request, res: Response) => {
     const id = req.params.id;
 
@@ -248,6 +243,84 @@ PRODUCT_ROUTER.get('/:id', mdAuth, (req: Request, res: Response) => {
 /* #endregion */
 
 /* #region  PUT */
+PRODUCT_ROUTER.put('/', mdAuth, async (req: Request, res: Response) => {
+    const BODY = req.body;
+
+    const barcode = BODY.barcode;
+    // PRESENTACION POR UNIDAD
+    const PRESENTATIONS: any = [];
+    const name: string = 'UNIDAD';
+    const cost: number = BODY.cost;
+    const wholesale_price: number = BODY.wholesale_price;
+    const distributor_price: number = BODY.distributor_price;
+    const retail_price: number = BODY.retail_price;
+    const cf_price: number = BODY.cf_price;
+    const quantity: number = 1;
+    const commission: number = 0;
+    PRESENTATIONS.push({
+        name,
+        wholesale_price,
+        distributor_price,
+        retail_price,
+        cf_price,
+        quantity,
+        commission,
+        cost
+    });
+
+    const PRODUCT = await Product.findOne({
+        barcode,
+    }).exec();
+
+    if (!PRODUCT) {
+        return res.status(200).json({
+            ok: false
+        });
+    }
+
+    if (BODY._brand) {
+        let _brand = await Brand.findOne({
+            code: BODY._brand,
+            deleted: false,
+        }).exec();
+
+        if (_brand) {
+            await Product.updateOne({
+                _id: PRODUCT._id
+            }, {
+                _brand,
+                barcode,
+                description: BODY.description.toUpperCase(),
+                presentations: PRESENTATIONS
+            }).exec();
+        } else {
+            await Product.updateOne({
+                _id: PRODUCT._id
+            }, {
+                barcode,
+                description: BODY.description.toUpperCase(),
+                presentations: PRESENTATIONS
+            }).exec();
+        }
+
+        res.status(200).json({
+            ok: true
+        });
+    } else {
+        await Product.updateOne({
+            _id: PRODUCT._id
+        }, {
+            barcode,
+            description: BODY.description.toUpperCase(),
+            presentations: PRESENTATIONS
+        }).exec();
+
+        res.status(200).json({
+            ok: true
+        });
+    }
+})
+
 PRODUCT_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
     try {
         const ID = req.params.id;
@@ -341,9 +414,7 @@ PRODUCT_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         console.log("🚀 ~ file: product.ts ~ line 23 ~ PRODUCT_ROUTER.put ~ error", error)
     }
 });
-/* #endregion */
 
-/* #region  PUT PRICES */
 PRODUCT_ROUTER.put('/prices/:id', mdAuth, (req: Request, res: Response) => {
     const ID = req.params.id;
     const BODY = req.body;
@@ -376,7 +447,7 @@ PRODUCT_ROUTER.put('/prices/:id', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
-/* #region  DELETE */
+/* #region  Delete */
 PRODUCT_ROUTER.delete('/:id', mdAuth, (req: Request, res: Response) => {
     try {
         const ID = req.params.id;
@@ -421,9 +492,7 @@ PRODUCT_ROUTER.delete('/:id', mdAuth, (req: Request, res: Response) => {
         console.log(error);
     }
 });
-/* #endregion */
 
-/* #region  DISCONTINUED */
 PRODUCT_ROUTER.delete('/discontinued/:id', mdAuth, (req: Request, res: Response) => {
     try {
         const ID = req.params.id;

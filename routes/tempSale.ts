@@ -16,7 +16,7 @@ TEMP_SALE_ROUTER.use(fileUpload());
 
 const OBJECT_ID = mongoose.Types.ObjectId;
 
-/* #region  GET'S */
+/* #region  GET */
 // REPORTE DE ESTADISTICAS
 TEMP_SALE_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
     const _cellar: any = req.query._cellar;
@@ -211,9 +211,9 @@ TEMP_SALE_ROUTER.get('/bestSellers', mdAuth, (req: Request, res: Response) => {
         }
     ];
 
-    if (_cellar !==  '') {
+    if (_cellar !== '') {
         // Filtro por sucursal
-        query.splice(0,1, {
+        query.splice(0, 1, {
             $match: {
                 _cellar: OBJECT_ID(_cellar),
                 date: {
@@ -238,7 +238,6 @@ TEMP_SALE_ROUTER.get('/bestSellers', mdAuth, (req: Request, res: Response) => {
             });
         });
 });
-/* #endregion */
 
 // Productos menos vendidos
 TEMP_SALE_ROUTER.get('/worstSellers', mdAuth, (req: Request, res: Response) => {
@@ -305,9 +304,9 @@ TEMP_SALE_ROUTER.get('/worstSellers', mdAuth, (req: Request, res: Response) => {
         }
     ];
 
-    if (_cellar !==  '') {
+    if (_cellar !== '') {
         // Filtro por sucursal
-        query.splice(0,1, {
+        query.splice(0, 1, {
             $match: {
                 _cellar: OBJECT_ID(_cellar),
                 date: {
@@ -333,6 +332,64 @@ TEMP_SALE_ROUTER.get('/worstSellers', mdAuth, (req: Request, res: Response) => {
         });
 });
 /* #endregion */
+
+TEMP_SALE_ROUTER.put('/', mdAuth, async (req: Request, res: Response) => {
+    const BODY = req.body;
+
+    const DATE = new Date(moment(ExcelDateToJSDate(BODY.date)).tz("America/Guatemala").format());
+    const BARCODE: string = BODY.barcode;
+    const QUANTITY: number = BODY.quantity;
+
+    let _product = await Product.findOne({
+        barcode: BARCODE,
+        deleted: false,
+    }).exec();
+
+    if (!_product) {
+        return res.status(200).json({
+            ok: false,
+        })
+    } else {
+
+        if (BODY.delete) {
+            let tempSale = await TempSale.findOne({
+                _cellar: BODY._cellar,
+                _product: _product._id,
+                date: DATE,
+                quantity: QUANTITY
+            }).exec();
+
+            if (!tempSale) {
+                return res.status(200).json({
+                    ok: false,
+                })
+            } else {
+                await TempSale.deleteOne(
+                    {
+                        _id: tempSale._id,
+                    }
+                ).exec();
+
+                return res.status(200).json({
+                    ok: true,
+                });
+            }
+        }else {
+            const NEW_TEMP_SALE = new TempSale({
+                _cellar: BODY._cellar,
+                _product: _product._id,
+                date: DATE,
+                quantity: QUANTITY
+            });
+
+            await NEW_TEMP_SALE.save().then();
+
+            return res.status(200).json({
+                ok: true,
+            });
+        }
+    }
+})
 
 /* #region  POST */
 TEMP_SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
@@ -385,7 +442,7 @@ TEMP_SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
         let errors: any[] = [];
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
-                const DATE =  new Date(moment(ExcelDateToJSDate(doc[0])).tz("America/Guatemala").format());
+                const DATE = new Date(moment(ExcelDateToJSDate(doc[0])).tz("America/Guatemala").format());
                 const BARCODE: string = doc[1];
                 const QUANTITY: number = doc[2];
 
@@ -482,7 +539,7 @@ TEMP_SALE_ROUTER.post('/xlsx/delete', (req: Request, res: Response) => {
         let errors: any[] = [];
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
-                const DATE =  new Date(moment(ExcelDateToJSDate(doc[0])).tz("America/Guatemala").format());
+                const DATE = new Date(moment(ExcelDateToJSDate(doc[0])).tz("America/Guatemala").format());
                 const BARCODE: string = doc[1];
                 const QUANTITY: number = doc[2];
 
@@ -668,7 +725,7 @@ const SEARCH_TEMP_STOCK_SALES = async (detail: any[], _cellar: string, newStart:
 };
 
 const ExcelDateToJSDate = (serialXlsx: number) => {
-    var utc_days  = Math.floor(serialXlsx - 25569);
+    var utc_days = Math.floor(serialXlsx - 25569);
     var utc_value = utc_days * 86400;
     var date_info = new Date(utc_value * 1000);
 
@@ -684,6 +741,6 @@ const ExcelDateToJSDate = (serialXlsx: number) => {
     var minutes = Math.floor(total_seconds / 60) % 60;
 
     return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
- }
+}
 
 export default TEMP_SALE_ROUTER;
