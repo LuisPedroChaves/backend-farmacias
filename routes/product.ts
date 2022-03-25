@@ -121,22 +121,32 @@ PRODUCT_ROUTER.get('/search', mdAuth, (req: Request, res: Response) => {
         });
 });
 
-PRODUCT_ROUTER.get('/searchBarcode', mdAuth, (req: Request, res: Response) => {
+PRODUCT_ROUTER.get('/searchCheckStock', mdAuth, (req: Request, res: Response) => {
     let search = req.query.search || '';
     search = String(search);
+    const FIELD = req.query.field || 'barcode';
 
-    const REGEX = new RegExp(search, 'i');
+    let query: any = {
+        barcode: search,
+        discontinued: false,
+        deleted: false
+    };
+
+    if (FIELD === 'description') {
+        const REGEX = new RegExp(search, 'i');
+        query = {
+            description: REGEX,
+            discontinued: false,
+            deleted: false
+        }
+    }
+
+    console.log(query);
+
 
     Product.aggregate([
         {
-            $match: {
-                barcode: search,
-                discontinued: false,
-                deleted: false
-            }
-        },
-        {
-            $unwind: '$presentations'
+            $match: query
         },
         {
             $limit: 10
@@ -321,8 +331,50 @@ PRODUCT_ROUTER.put('/', mdAuth, async (req: Request, res: Response) => {
     }).exec();
 
     if (!PRODUCT) {
+        if (BODY._brand) {
+            let _brand = await Brand.findOne({
+                code: BODY._brand,
+                deleted: false,
+            }).exec();
+
+            if (_brand) {
+                const NEW_PRODUCT = new Product({
+                    _brand,
+                    code: 0,
+                    barcode,
+                    description: BODY.description.toUpperCase(),
+                    presentations: PRESENTATIONS
+                });
+
+                let product = await NEW_PRODUCT
+                    .save()
+                    .then();
+            } else {
+                const NEW_PRODUCT = new Product({
+                    code: 0,
+                    barcode,
+                    description: BODY.description.toUpperCase(),
+                    presentations: PRESENTATIONS
+                });
+
+                let product = await NEW_PRODUCT
+                    .save()
+                    .then();
+            }
+        } else {
+            const NEW_PRODUCT = new Product({
+                code: 0,
+                barcode,
+                description: BODY.description.toUpperCase(),
+                presentations: PRESENTATIONS
+            });
+
+            let product = await NEW_PRODUCT
+                .save()
+                .then();
+        }
         return res.status(200).json({
-            ok: false
+            ok: true
         });
     }
 

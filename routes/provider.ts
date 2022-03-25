@@ -12,11 +12,34 @@ PROVIDER_ROUTER.use(fileUpload());
 /* #region  GET */
 PROVIDER_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
 
-    Provider.find(
-        {
-            deleted: false
-        }
-    )
+    Provider.find({
+        deleted: false
+    })
+        .sort({
+            name: 1
+        })
+        .exec(async (err: any, providers: IProvider[]) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando proveedores',
+                    errors: err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                providers
+            });
+        });
+});
+
+PROVIDER_ROUTER.get('/isExpenses', mdAuth, (req: Request, res: Response) => {
+
+    Provider.find({
+        isExpenses: true,
+        deleted: false
+    })
         .sort({
             name: 1
         })
@@ -70,6 +93,7 @@ PROVIDER_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         provider.credit = body.credit;
         provider.iva = body.iva;
         provider.isr = body.isr;
+        provider.isExpenses = body.isExpenses;
 
         provider.save((err, provider) => {
             if (err) {
@@ -130,6 +154,7 @@ PROVIDER_ROUTER.delete('/:id', mdAuth, (req: Request, res: Response) => {
     });
 });
 
+/* #region  POST */
 PROVIDER_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
     const body: IProvider = req.body;
 
@@ -143,7 +168,8 @@ PROVIDER_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         creditDays: body.creditDays,
         credit: body.credit,
         iva: body.iva,
-        isr: body.isr
+        isr: body.isr,
+        isExpenses: body.isExpenses,
     });
 
     newProvider
@@ -221,5 +247,6 @@ PROVIDER_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
         });
     });
 });
+/* #endregion */
 
 export default PROVIDER_ROUTER;

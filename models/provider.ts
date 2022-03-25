@@ -12,6 +12,7 @@ export interface IProvider extends Document {
 	balance: number,
 	iva: boolean,
 	isr: boolean,
+	isExpenses: boolean,
 	deleted: boolean
 }
 
@@ -54,6 +55,10 @@ const providerSchema: Schema = new Schema({
 		default: false,
 	},
 	isr: {
+		type: Boolean,
+		default: false,
+	},
+	isExpenses: {
 		type: Boolean,
 		default: false,
 	},
