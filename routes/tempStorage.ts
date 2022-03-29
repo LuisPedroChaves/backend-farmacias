@@ -579,84 +579,6 @@ TEMP_STORAGE_ROUTER.put('/stockReset/:cellar', mdAuth, async (req: Request, res:
         data: 'Inventario restablecido correctamente'
     });
 });
-
-TEMP_STORAGE_ROUTER.put('/xlsx/:cellar', mdAuth, async (req: Request, res: Response) => {
-    const _cellar: string = req.params.cellar;
-    let barcode = req.query.barcode;
-    console.log(req.query.barcode);
-
-    let stock: any = req.query.stock;
-    barcode = String(barcode);
-    stock = Number(stock);
-
-    console.log(barcode);
-
-    Product.findOne({
-        barcode,
-        deleted: false,
-    }).exec((err: any, _product: IProduct) => {
-        if (err) {
-			return res.status(500).json({
-				ok: false,
-				mensaje: 'Error al buscar producto',
-				errors: err,
-			});
-		}
-
-		if (!_product) {
-			return res.status(200).json({
-				ok: false,
-				mensaje: 'El producto con el código' + barcode + ' no existe',
-				errors: {
-					message: 'No existe un producto con ese código',
-				},
-			});
-		}
-
-        TempStorage.findOne({
-            _product,
-            _cellar
-        }).exec(async (err: any, tempStorage: ITempStorage) => {
-            if (err) {
-                return res.status(500).json({
-                    ok: false,
-                    mensaje: 'Error al buscar inventario',
-                    errors: err,
-                });
-            }
-
-            if (!tempStorage) {
-                const NEW_TEMP_STORAGE = new TempStorage({
-                    _cellar,
-                    _product: _product._id,
-                    stock,
-                    lastUpdateStock: moment().tz("America/Guatemala").format()
-                });
-
-                await NEW_TEMP_STORAGE.save().then();
-                return res.status(200).json({
-                    ok: true,
-                    message: 'Inventario actualizado'
-                });
-            }
-
-            await TempStorage.updateOne(
-                {
-                    _id: tempStorage._id,
-                },
-                {
-                    stock,
-                    lastUpdateStock: moment().tz("America/Guatemala").format()
-                },
-            ).exec();
-
-            return res.status(200).json({
-                ok: true,
-                message: 'Inventario actualizado'
-            });
-        });
-    });
-});
 /* #endregion */
 
 /* #region  POST */
@@ -710,6 +632,10 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response, next: an
         let code = 1;
         let errors: any[] = [];
 
+        res.status(200).json({
+            ok: true,
+            errors
+        });
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
                 const BARCODE: string = doc[0];
@@ -754,16 +680,12 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response, next: an
                 }
 
                 code++;
-                console.log("🚀 ~ file: product.ts ~ line 372 ~ awaitbluebird.mapSeries ~ code", code)
-
-                res.write(code.toString())
+                console.log(code);
                 next()
             } catch (e: any) {
                 throw new Error(e.message);
             }
         });
-
-        return res.end();
     });
 });
 /* #endregion */

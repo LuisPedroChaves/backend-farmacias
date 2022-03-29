@@ -333,64 +333,6 @@ TEMP_SALE_ROUTER.get('/worstSellers', mdAuth, (req: Request, res: Response) => {
 });
 /* #endregion */
 
-TEMP_SALE_ROUTER.put('/', mdAuth, async (req: Request, res: Response) => {
-    const BODY = req.body;
-
-    const DATE = new Date(moment(ExcelDateToJSDate(BODY.date)).tz("America/Guatemala").format());
-    const BARCODE: string = BODY.barcode;
-    const QUANTITY: number = BODY.quantity;
-
-    let _product = await Product.findOne({
-        barcode: BARCODE,
-        deleted: false,
-    }).exec();
-
-    if (!_product) {
-        return res.status(200).json({
-            ok: false,
-        })
-    } else {
-
-        if (BODY.delete) {
-            let tempSale = await TempSale.findOne({
-                _cellar: BODY._cellar,
-                _product: _product._id,
-                date: DATE,
-                quantity: QUANTITY
-            }).exec();
-
-            if (!tempSale) {
-                return res.status(200).json({
-                    ok: false,
-                })
-            } else {
-                await TempSale.deleteOne(
-                    {
-                        _id: tempSale._id,
-                    }
-                ).exec();
-
-                return res.status(200).json({
-                    ok: true,
-                });
-            }
-        }else {
-            const NEW_TEMP_SALE = new TempSale({
-                _cellar: BODY._cellar,
-                _product: _product._id,
-                date: DATE,
-                quantity: QUANTITY
-            });
-
-            await NEW_TEMP_SALE.save().then();
-
-            return res.status(200).json({
-                ok: true,
-            });
-        }
-    }
-})
-
 /* #region  POST */
 TEMP_SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
     const BODY = req.body;
@@ -440,6 +382,11 @@ TEMP_SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
 
         let code = 1;
         let errors: any[] = [];
+
+        res.status(200).json({
+            ok: true,
+            errors
+        });
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
                 const DATE = new Date(moment(ExcelDateToJSDate(doc[0])).tz("America/Guatemala").format());
@@ -481,11 +428,6 @@ TEMP_SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
         //     ok: true,
         //     errors
         // });
-
-        return res.status(200).json({
-            ok: true,
-            errors
-        });
     });
 });
 
