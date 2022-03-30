@@ -5,6 +5,7 @@ import bluebird from 'bluebird';
 
 import { mdAuth } from '../middleware/auth'
 import Provider, { IProvider } from '../models/provider';
+import { UPDATE_BALANCE } from '../functions/provider';
 
 const PROVIDER_ROUTER = Router();
 PROVIDER_ROUTER.use(fileUpload());
@@ -13,6 +14,10 @@ PROVIDER_ROUTER.use(fileUpload());
 PROVIDER_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
 
     Provider.find({
+        $or: [
+            { isExpenses: { $exists: false } },
+            { isExpenses: false }
+        ],
         deleted: false
     })
         .sort({
@@ -59,6 +64,17 @@ PROVIDER_ROUTER.get('/isExpenses', mdAuth, (req: Request, res: Response) => {
         });
 });
 /* #endregion */
+
+/* #region  PUT */
+PROVIDER_ROUTER.put('/balance', mdAuth, async (req: Request, res: Response) => {
+    const body = req.body;
+
+    await UPDATE_BALANCE(body._provider, body.amount, body.action);
+
+    return res.status(200).json({
+        ok: true,
+    });
+});
 
 PROVIDER_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
     const id = req.params.id;
@@ -112,6 +128,7 @@ PROVIDER_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
 
     });
 });
+/* #endregion */
 
 PROVIDER_ROUTER.delete('/:id', mdAuth, (req: Request, res: Response) => {
     const id = req.params.id;

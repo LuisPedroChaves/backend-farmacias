@@ -11,7 +11,7 @@ export interface IAccountsPayable extends Document {
     _provider: IProvider['_id'],
     _purchase: IPurchase['_id'],
     _expense: IExpense['_id'],
-    _check: ICheck['_id'],
+    // _check: ICheck['_id'],
     date: Date,
     serie: string,
     noBill: string,
@@ -26,10 +26,10 @@ export interface IAccountsPayable extends Document {
     total: number,
     type: string,
     file: string,
-    withholdingIVA: string,
-    amountIVA: number,
-    withholdingISR: string,
-    amountISR: number,
+    // withholdingIVA: string,
+    // amountIVA: number,
+    // withholdingISR: string,
+    // amountISR: number,
     toCredit: boolean,
     expirationCredit: Date,
     paid: boolean,
@@ -38,7 +38,7 @@ export interface IAccountsPayable extends Document {
 
 export interface IAccountsPayableBalance extends Document {
     _check: ICheck['_id'],
-    date: Date,
+    date: string,
     document: string,
     credit: string,
     amount: number,
@@ -54,7 +54,7 @@ const TIPOS_VALIDOS = {
     message: '{VALUE} no es un tipo de cuenta permitido'
 };
 const ABONOS_VALIDOS = {
-    values: ['CHEQUE', 'EFECTIVO'],
+    values: ['CHEQUE', 'DEPOSITO', 'TRANSFERENCIA', 'EFECTIVO', 'RETENCION_IVA', 'RETENCION_ISR'],
     message: '{VALUE} no es un tipo de pago permitido'
 };
 
@@ -81,11 +81,11 @@ const ACCOUNTS_PAYABLE_SCHEMA = new Schema({
         ref: 'Purchase',
         default: null
     },
-    _check: {
-        type: Schema.Types.ObjectId,
-        ref: 'Check',
-        default: null
-    },
+    // _check: {
+    //     type: Schema.Types.ObjectId,
+    //     ref: 'Check',
+    //     default: null
+    // },
     date: {
         type: Date,
         default: null
@@ -163,20 +163,20 @@ const ACCOUNTS_PAYABLE_SCHEMA = new Schema({
     file: {
         type: String,
     },
-    withholdingIVA: {
-        type: String,
-    },
-    amountIVA: {
-        type: FLOAT,
-        default: 0
-    },
-    withholdingISR: {
-        type: String,
-    },
-    amountISR: {
-        type: FLOAT,
-        default: 0
-    },
+    // withholdingIVA: {
+    //     type: String,
+    // },
+    // amountIVA: {
+    //     type: FLOAT,
+    //     default: 0
+    // },
+    // withholdingISR: {
+    //     type: String,
+    // },
+    // amountISR: {
+    //     type: FLOAT,
+    //     default: 0
+    // },
     toCredit: {
         type: Boolean,
         default: false,

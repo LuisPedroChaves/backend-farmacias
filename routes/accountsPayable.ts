@@ -59,7 +59,7 @@ ACCOUNTS_PAYABLE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         toCredit,
         expirationCredit,
         paid,
-    } = BODY;
+    }: IAccountsPayable = BODY;
 
     AccountsPayable.findByIdAndUpdate(ID, {
         _provider,

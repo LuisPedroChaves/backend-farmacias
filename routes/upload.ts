@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import fileUpload from 'express-fileupload';
 import fs from 'fs';
+
 import Server from '../classes/serve';
 import Sale from '../models/sale';
 import InternalOrder, { IInternalOrder } from '../models/internalOrder';
@@ -8,6 +9,7 @@ import Cellar from '../models/cellar';
 import User from '../models/user';
 import Product from '../models/product';
 import Purchase from '../models/purchase';
+import AccountsPayable from '../models/accountsPayable';
 
 // WebSockets Server
 const SERVER = Server.instance;
@@ -21,7 +23,7 @@ uploadRouter.put('/:type/:id', (req: any, res: Response) => {
     const id = req.params.id;
 
     // Tipos de colecciones
-    const VALID_TYPES = ['saleBalances', 'internalOrders', 'internalOrdersDispatch', 'products', 'purchases'];
+    const VALID_TYPES = ['saleBalances', 'internalOrders', 'internalOrdersDispatch', 'products', 'purchases', 'accountsPayable'];
 
     if (VALID_TYPES.indexOf(type) < 0) {
         return res.status(400).json({
@@ -363,6 +365,58 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
                 res.status(200).json({
                     ok: true,
                     purchase
+                });
+            });
+        }),
+        'accountsPayable': () => AccountsPayable.findById(id, (err, accountsPayable) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error al buscar cuenta por pagar',
+                    errors: err
+                });
+            }
+
+            if (!accountsPayable) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'La cuenta por pagar con el id' + id + ' no existe',
+                    errors: {
+                        message: 'No existe una cuenta por pagar con ese ID'
+                    }
+                });
+            }
+
+            // Si existe un archivo almacenado anteriormente
+            const oldPath = './uploads/accountsPayable/' + accountsPayable.file;
+
+            if (fs.existsSync(oldPath)) {
+                // Borramos el archivo antiguo
+                fs.unlink(oldPath, err => {
+                    if (err) {
+                        return res.status(500).json({
+                            ok: false,
+                            mensaje: 'Error al eliminar archivo antiguo',
+                            errors: err
+                        });
+                    }
+                });
+            }
+
+            accountsPayable.file = newNameFile;
+
+            accountsPayable.save((err, accountsPayable) => {
+                if (err) {
+                    return res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al guardar archivo',
+                        errors: err
+                    });
+                }
+
+                res.status(200).json({
+                    ok: true,
+                    accountsPayable
                 });
             });
         }),
