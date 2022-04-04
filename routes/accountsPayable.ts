@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 
 import { mdAuth } from '../middleware/auth';
 import AccountsPayable, { IAccountsPayable } from '../models/accountsPayable';
-import {UPDATE_BALANCE} from '../functions/provider';
+import { UPDATE_BALANCE } from '../functions/provider';
 
 const ACCOUNTS_PAYABLE_ROUTER = Router();
 
@@ -13,11 +13,11 @@ ACCOUNTS_PAYABLE_ROUTER.get('/unpaids', mdAuth, (req: Request, res: Response) =>
             deleted: false
         }
     )
+        .populate('_expense')
         .populate('_user')
         .populate('_provider')
         .populate('_purchase')
-        .populate('_expense')
-        .populate('_check')
+        .populate('balance._check')
         .sort({})
         .then(accountsPayables => {
             res.status(200).json({
@@ -56,6 +56,8 @@ ACCOUNTS_PAYABLE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         total,
         type,
         file,
+        emptyWithholdingIVA,
+        emptyWithholdingISR,
         toCredit,
         expirationCredit,
         paid,
@@ -79,6 +81,8 @@ ACCOUNTS_PAYABLE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         total,
         type,
         file,
+        emptyWithholdingIVA,
+        emptyWithholdingISR,
         toCredit,
         expirationCredit,
         paid,
@@ -144,6 +148,8 @@ ACCOUNTS_PAYABLE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         total,
         type,
         file,
+        emptyWithholdingIVA,
+        emptyWithholdingISR,
         toCredit,
         expirationCredit,
         paid,
@@ -168,6 +174,8 @@ ACCOUNTS_PAYABLE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         total,
         type,
         file,
+        emptyWithholdingIVA,
+        emptyWithholdingISR,
         toCredit,
         expirationCredit,
         paid,

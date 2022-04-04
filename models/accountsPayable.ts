@@ -11,7 +11,6 @@ export interface IAccountsPayable extends Document {
     _provider: IProvider['_id'],
     _purchase: IPurchase['_id'],
     _expense: IExpense['_id'],
-    // _check: ICheck['_id'],
     date: Date,
     serie: string,
     noBill: string,
@@ -26,10 +25,8 @@ export interface IAccountsPayable extends Document {
     total: number,
     type: string,
     file: string,
-    // withholdingIVA: string,
-    // amountIVA: number,
-    // withholdingISR: string,
-    // amountISR: number,
+    emptyWithholdingIVA: boolean,
+    emptyWithholdingISR: boolean,
     toCredit: boolean,
     expirationCredit: Date,
     paid: boolean,
@@ -78,14 +75,9 @@ const ACCOUNTS_PAYABLE_SCHEMA = new Schema({
     },
     _expense: {
         type: Schema.Types.ObjectId,
-        ref: 'Purchase',
+        ref: 'Expense',
         default: null
     },
-    // _check: {
-    //     type: Schema.Types.ObjectId,
-    //     ref: 'Check',
-    //     default: null
-    // },
     date: {
         type: Date,
         default: null
@@ -163,20 +155,14 @@ const ACCOUNTS_PAYABLE_SCHEMA = new Schema({
     file: {
         type: String,
     },
-    // withholdingIVA: {
-    //     type: String,
-    // },
-    // amountIVA: {
-    //     type: FLOAT,
-    //     default: 0
-    // },
-    // withholdingISR: {
-    //     type: String,
-    // },
-    // amountISR: {
-    //     type: FLOAT,
-    //     default: 0
-    // },
+    emptyWithholdingIVA: {
+        type: Boolean,
+        default: false,
+    },
+    emptyWithholdingISR: {
+        type: Boolean,
+        default: false,
+    },
     toCredit: {
         type: Boolean,
         default: false,

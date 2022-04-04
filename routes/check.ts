@@ -8,11 +8,17 @@ import AccountsPayable, { IAccountsPayable, IAccountsPayableBalance } from '../m
 const CHECK_ROUTER = Router();
 
 /* #region  GET */
-CHECK_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
+CHECK_ROUTER.get('/today', mdAuth, (req: Request, res: Response) => {
+
+    const DATE = new Date();
+    const MONTH = DATE.getUTCMonth() + 1; //months from 1-12
+    const YEAR = DATE.getUTCFullYear();
+    const DAY = DATE.getUTCDate();
 
     Check.find(
         {
-            deleted: false
+            date: new Date(`${YEAR}, ${MONTH}, ${DAY}`),
+            voided: false
         }
     )
         .sort({
@@ -22,7 +28,7 @@ CHECK_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
             if (err) {
                 return res.status(500).json({
                     ok: false,
-                    mensaje: 'Error listando proveedores',
+                    mensaje: 'Error listando cheques del dia',
                     errors: err
                 });
             }
@@ -46,7 +52,9 @@ CHECK_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         name: BODY.name,
         amount: BODY.amount,
         note: BODY.note,
+        receipt: BODY.receipt,
         accountsPayables: BODY.accountsPayables,
+        paymentDate: BODY.paymentDate,
         state: BODY.state,
     },
         {
@@ -79,7 +87,9 @@ CHECK_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         amount: BODY.amount,
         note: BODY.note,
         accountsPayables: BODY.accountsPayables,
+        bank: BODY.bank,
         state: BODY.state,
+        created: moment().tz("America/Guatemala").format(),
     });
 
     newCheck
