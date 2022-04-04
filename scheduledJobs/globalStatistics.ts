@@ -36,7 +36,7 @@ exports.initScheduledJobs = () => {
         // console.log(auto.minute);
 
         CronJob.schedule(`${auto.minute} ${auto.hour} * * *`, async () => {
-        // CronJob.schedule(`${13} ${13} * * *`, async () => {
+          // CronJob.schedule(`${13} ${13} * * *`, async () => {
           console.log(auto.name);
           await SEARCH_CELLARS(auto.cellars, auto.brands, LAST_YEAR, LAST_MONTH_UTC, NOW_UTC, auto.daysRequest, auto.daysSupply).then();
           console.log('ESTADISTICAS ACTUALIZADAS CON EXITO')
@@ -51,69 +51,69 @@ exports.initScheduledJobs = () => {
 const SEARCH_CELLARS = async (cellars: ICellar[], brands: IBrand[], LAST_YEAR: string, LAST_MONTH_UTC: string, NOW_UTC: string, daysRequest: number, daysSupply: number): Promise<any> => {
   return Promise.all(
     await bluebird.mapSeries(cellars, async (c: any) => {
-        console.log(c.name);
-        console.log(brands.length);
-        return await SEARCH_BRANDS(c, brands, LAST_YEAR, LAST_MONTH_UTC, NOW_UTC, daysRequest, daysSupply).then();
-      })
-    );
+      console.log(c.name);
+      console.log(brands.length);
+      return await SEARCH_BRANDS(c, brands, LAST_YEAR, LAST_MONTH_UTC, NOW_UTC, daysRequest, daysSupply).then();
+    })
+  );
 }
 
 const SEARCH_BRANDS = async (c: ICellar, brands: IBrand[], LAST_YEAR: string, LAST_MONTH_UTC: string, NOW_UTC: string, daysRequest: number, daysSupply: number): Promise<any> => {
   return Promise.all(
     await bluebird.mapSeries(brands, async (b: any) => {
-        let query: any[] = [
-          {
-            $match: {
-              _cellar: OBJECT_ID(c._id),
-              date: {
-                $gte: new Date(LAST_YEAR),
-                $lt: new Date(LAST_MONTH_UTC),
-              },
+      let query: any[] = [
+        {
+          $match: {
+            _cellar: OBJECT_ID(c._id),
+            date: {
+              $gte: new Date(LAST_YEAR),
+              $lt: new Date(LAST_MONTH_UTC),
             },
           },
-          {
-            $lookup: {
-              from: 'products',
-              localField: '_product',
-              foreignField: '_id',
-              as: '_product',
-            },
+        },
+        {
+          $lookup: {
+            from: 'products',
+            localField: '_product',
+            foreignField: '_id',
+            as: '_product',
           },
-          {
-            $unwind: '$_product',
+        },
+        {
+          $unwind: '$_product',
+        },
+        {
+          $match: {
+            '_product._brand': OBJECT_ID(b._id),
           },
-          {
-            $match: {
-              '_product._brand': OBJECT_ID(b._id),
-            },
-          },
-          {
-            $sort: { _product: 1 },
-          },
-          {
-            $group: {
-              _id: '$_product',
-              suma: { $sum: "$quantity" },
-              _cellar: { $first: "$_cellar" }
-            }
-          },
-          {
-            "$project": {
-              _id: 1,
-              suma: 1,
-              _cellar: 1,
-              promMonth: { $divide: ["$suma", 12] },
-            }
-          },
-        ];
+        },
+        {
+          $sort: { _product: 1 },
+        },
+        {
+          $group: {
+            _id: '$_product',
+            suma: { $sum: "$quantity" },
+            _cellar: { $first: "$_cellar" }
+          }
+        },
+        {
+          "$project": {
+            _id: 1,
+            suma: 1,
+            _cellar: 1,
+            promMonth: { $divide: ["$suma", 12] },
+          }
+        },
+      ];
 
-        const TEMP_SALES: ITempSale[] = await TempSale.aggregate(
-          query
-        );
+      const TEMP_SALES: ITempSale[] = await TempSale.aggregate(
+        query
+      );
 
-        return await SEARCH_STOCK_SALES(TEMP_SALES, LAST_MONTH_UTC, NOW_UTC, daysRequest, daysSupply).then();
-      })
-    );
+      return await SEARCH_STOCK_SALES(TEMP_SALES, LAST_MONTH_UTC, NOW_UTC, daysRequest, daysSupply).then();
+    })
+  );
 }
 
 const SEARCH_STOCK_SALES = async (detail: any[], newStart: string, newEnd: string, MIN_X: any, MAX_X: any): Promise<any> => {
@@ -169,8 +169,10 @@ const SEARCH_STOCK_SALES = async (detail: any[], newStart: string, newEnd: strin
 
       // VARIABLES LISTAS
       let request = 0;
+      let requestStatistic = 0;
       if (APROX_SUPPLY > 0) {
         request = +APROX_SUPPLY - +stock;
+        requestStatistic = APROX_SUPPLY;
       }
 
       const MIN_STOCK = Math.ceil(PROM_ADJUST_DAY * 15)
@@ -184,6 +186,7 @@ const SEARCH_STOCK_SALES = async (detail: any[], newStart: string, newEnd: strin
           minStock: MIN_STOCK,
           maxStock: MAX_STOCK,
           supply: request,
+          supplyStatistic: requestStatistic,
           lastUpdateStatics: moment().tz("America/Guatemala").format()
         });
 
@@ -197,6 +200,7 @@ const SEARCH_STOCK_SALES = async (detail: any[], newStart: string, newEnd: strin
             minStock: MIN_STOCK,
             maxStock: MAX_STOCK,
             supply: request,
+            supplyStatistic: requestStatistic,
             lastUpdateStatics: moment().tz("America/Guatemala").format()
           },
         ).exec();

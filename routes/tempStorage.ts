@@ -9,7 +9,6 @@ import { mdAuth } from '../middleware/auth';
 import Product from '../models/product';
 import TempStorage, { ITempStorage } from '../models/tempStorage';
 import TempSale, { ITempSale } from '../models/tempSale';
-import { IProduct } from '../models/product';
 
 const TEMP_STORAGE_ROUTER = Router();
 TEMP_STORAGE_ROUTER.use(fileUpload());
@@ -65,6 +64,7 @@ TEMP_STORAGE_ROUTER.get('/stockConsolidated', mdAuth, (req: Request, res: Respon
                             _cellar: "$_cellar",
                             stock: "$stock",
                             supply: "$supply",
+                            supplyStatistic: "$supplyStatistic",
                             minStock: "$minStock",
                             maxStock: "$maxStock",
                         },
@@ -109,6 +109,7 @@ TEMP_STORAGE_ROUTER.get('/stockConsolidated', mdAuth, (req: Request, res: Respon
                             _cellar: "$_cellar",
                             stock: "$stock",
                             supply: "$supply",
+                            supplyStatistic: "$supplyStatistic",
                             minStock: "$minStock",
                             maxStock: "$maxStock",
                         },

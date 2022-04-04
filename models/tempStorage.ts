@@ -10,6 +10,7 @@ export interface ITempStorage extends Document {
     minStock: number,
     maxStock: number,
     supply: number,
+    supplyStatistic: number,
 }
 
 const FLOAT = require('mongoose-float').loadType(mongoose, 2);
@@ -38,6 +39,10 @@ const tempStorageSchema = new Schema({
         default: 0
     },
     supply: {
+        type: FLOAT,
+        default: 0
+    },
+    supplyStatistic: {
         type: FLOAT,
         default: 0
     },
