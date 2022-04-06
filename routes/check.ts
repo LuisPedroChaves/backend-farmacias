@@ -3,17 +3,22 @@ import moment from 'moment-timezone';
 
 import { mdAuth } from '../middleware/auth'
 import Check, { ICheck } from '../models/check';
-import AccountsPayable, { IAccountsPayable, IAccountsPayableBalance } from '../models/accountsPayable';
+import AccountsPayable, { IAccountsPayable } from '../models/accountsPayable';
+import { UPDATE_BALANCE } from '../functions/provider';
 
 const CHECK_ROUTER = Router();
 
 /* #region  GET */
 CHECK_ROUTER.get('/today', mdAuth, (req: Request, res: Response) => {
 
-    const DATE = new Date();
-    const MONTH = DATE.getUTCMonth() + 1; //months from 1-12
-    const YEAR = DATE.getUTCFullYear();
-    const DAY = DATE.getUTCDate();
+    const DATE = moment().tz("America/Guatemala");
+
+    const MONTH = DATE.format('M');
+    const YEAR = DATE.format('YYYY');
+    const DAY = DATE.format('D');
+
+    console.log(new Date(`${YEAR}, ${MONTH}, ${DAY}`));
+
 
     Check.find(
         {
@@ -21,6 +26,8 @@ CHECK_ROUTER.get('/today', mdAuth, (req: Request, res: Response) => {
             voided: false
         }
     )
+        .populate('_user')
+        .populate('accountsPayables')
         .sort({
             name: 1
         })
@@ -39,28 +46,102 @@ CHECK_ROUTER.get('/today', mdAuth, (req: Request, res: Response) => {
             });
         });
 });
+
+CHECK_ROUTER.get('/state', mdAuth, (req: Request, res: Response) => {
+
+    Check.find(
+        {
+            $and: [
+                { state: { $ne: 'PAGADO' } },
+                { state: { $ne: 'RECHAZADO' } },
+            ],
+            voided: false
+        }
+    )
+        .populate('_user')
+        .populate('accountsPayables')
+        .sort({
+            name: 1
+        })
+        .exec(async (err: any, checks: ICheck[]) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando cheques',
+                    errors: err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                checks
+            });
+        });
+});
+
+CHECK_ROUTER.get('/deliveries', mdAuth, (req: Request, res: Response) => {
+
+    Check.find(
+        {
+            $and: [
+                { state: { $ne: 'PAGADO' } },
+                { state: { $ne: 'RECHAZADO' } },
+            ],
+            delivered: false,
+            voided: false,
+        }
+    )
+        .populate('_user')
+        .populate('accountsPayables')
+        .sort({
+            name: 1
+        })
+        .exec(async (err: any, checks: ICheck[]) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando cheques',
+                    errors: err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                checks
+            });
+        });
+});
 /* #endregion */
 
-CHECK_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
+CHECK_ROUTER.put('/state/:id', mdAuth, (req: Request, res: Response) => {
     const ID = req.params.id;
     const BODY: ICheck = req.body;
 
+    if (!BODY.voided && BODY.state === 'PAGADO') {
+        BODY.paymentDate = moment().tz("America/Guatemala").format()
+    }
+
     Check.findByIdAndUpdate(ID, {
-        no: BODY.no,
-        city: BODY.city,
-        date: BODY.date,
-        name: BODY.name,
-        amount: BODY.amount,
-        note: BODY.note,
-        receipt: BODY.receipt,
-        accountsPayables: BODY.accountsPayables,
-        paymentDate: BODY.paymentDate,
         state: BODY.state,
+        paymentDate: BODY.paymentDate,
+        receipt: BODY.receipt,
+        delivered: BODY.delivered,
+        voided: BODY.voided,
     },
         {
             new: true
         })
-        .then((check: ICheck | null) => {
+        .then(async (check: ICheck | null) => {
+
+            if (!BODY.voided && BODY.state === 'PAGADO') {
+                await PAY_ACCOUNTS_PAYABLE(BODY);
+            }
+            if (BODY.voided || BODY.state === 'RECHAZADO') {
+                // Si el cheque es anulado o rechazado
+                // Entonces eliminamos los balances de cada balances con el cheque
+                // para regresear las cuentas a pendientes de pago
+                await REMOVE_ACCOUNTS_PAYABLE(BODY);
+            }
             res.status(200).json({
                 ok: true,
                 check
@@ -95,7 +176,7 @@ CHECK_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
     newCheck
         .save()
         .then(async (check) => {
-            await UPDATE_ACCOUNTS_PAYABLE(check)
+            await PUSH_ACCOUNTS_PAYABLE(check)
             res.status(200).json({
                 ok: true,
                 check,
@@ -110,7 +191,7 @@ CHECK_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         });
 });
 
-const UPDATE_ACCOUNTS_PAYABLE = async (_check: ICheck): Promise<any> => {
+const PUSH_ACCOUNTS_PAYABLE = async (_check: ICheck): Promise<any> => {
     return Promise.all(
         _check.accountsPayables.map(async (_id: IAccountsPayable) => {
 
@@ -125,6 +206,36 @@ const UPDATE_ACCOUNTS_PAYABLE = async (_check: ICheck): Promise<any> => {
 
             return AccountsPayable.findByIdAndUpdate(_id, {
                 $push: { balance: BALANCE }
+            }).exec()
+        })
+    );
+};
+
+const REMOVE_ACCOUNTS_PAYABLE = async (_check: ICheck): Promise<any> => {
+    return Promise.all(
+        _check.accountsPayables.map(async (accountsPayable: IAccountsPayable) => {
+
+            accountsPayable.balance = accountsPayable.balance.filter(b => b._check !== _check._id);
+
+            return AccountsPayable.findByIdAndUpdate(accountsPayable._id, {
+                balance: accountsPayable.balance,
+            }).exec()
+        })
+    );
+};
+
+const PAY_ACCOUNTS_PAYABLE = async (_check: ICheck): Promise<any> => {
+    return Promise.all(
+        _check.accountsPayables.map(async (accountsPayable: IAccountsPayable) => {
+
+            const BALANCE = accountsPayable.balance.find(b => b._check === _check._id);
+
+            if (BALANCE && accountsPayable.type === 'PRODUCTOS') {
+                await UPDATE_BALANCE(accountsPayable._provider, BALANCE.amount, 'RESTA');
+            }
+
+            return AccountsPayable.findByIdAndUpdate(accountsPayable._id, {
+                paid: true,
             }).exec()
         })
     );

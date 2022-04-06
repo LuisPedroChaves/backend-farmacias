@@ -13,10 +13,11 @@ export interface ICheck extends Document {
     note: string,
     receipt: ICheckReceipt,
     accountsPayables: IAccountsPayable[],
-    paymentDate: Date,
+    paymentDate: Date | string,
     bank: string,
     state: string,
     delivered: boolean,
+    voided: boolean,
     created: Date,
 }
 
