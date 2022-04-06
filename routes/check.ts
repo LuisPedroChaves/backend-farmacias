@@ -17,9 +17,6 @@ CHECK_ROUTER.get('/today', mdAuth, (req: Request, res: Response) => {
     const YEAR = DATE.format('YYYY');
     const DAY = DATE.format('D');
 
-    console.log(new Date(`${YEAR}, ${MONTH}, ${DAY}`));
-
-
     Check.find(
         {
             date: new Date(`${YEAR}, ${MONTH}, ${DAY}`),
@@ -121,17 +118,39 @@ CHECK_ROUTER.put('/state/:id', mdAuth, (req: Request, res: Response) => {
         BODY.paymentDate = moment().tz("America/Guatemala").format()
     }
 
-    Check.findByIdAndUpdate(ID, {
-        state: BODY.state,
-        paymentDate: BODY.paymentDate,
-        receipt: BODY.receipt,
-        delivered: BODY.delivered,
-        voided: BODY.voided,
-    },
-        {
-            new: true
-        })
-        .then(async (check: ICheck | null) => {
+    Check.findById(ID, (err, check) => {
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error al buscar cheque',
+                errors: err
+            });
+        }
+
+        if (!check) {
+            return res.status(400).json({
+                ok: false,
+                mensaje: 'El cheque con el id' + ID + ' no existe',
+                errors: {
+                    message: 'No existe un cheque con ese ID'
+                }
+            });
+        }
+
+        check.state = BODY.state
+        check.paymentDate = BODY.paymentDate
+        check.receipt.no = BODY.receipt.no
+        check.delivered = BODY.delivered
+        check.voided = BODY.voided
+
+        check.save(async (err, check) => {
+            if (err) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'Error al actualizar cheque',
+                    errors: err
+                });
+            }
 
             if (!BODY.voided && BODY.state === 'PAGADO') {
                 await PAY_ACCOUNTS_PAYABLE(BODY);
@@ -146,14 +165,8 @@ CHECK_ROUTER.put('/state/:id', mdAuth, (req: Request, res: Response) => {
                 ok: true,
                 check
             });
-        })
-        .catch((err: any) => {
-            return res.status(400).json({
-                ok: false,
-                mensaje: 'Error al actualizar cheque',
-                errors: err
-            });
-        })
+        });
+    });
 });
 
 CHECK_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {

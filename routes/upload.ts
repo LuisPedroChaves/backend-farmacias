@@ -10,6 +10,7 @@ import User from '../models/user';
 import Product from '../models/product';
 import Purchase from '../models/purchase';
 import AccountsPayable from '../models/accountsPayable';
+import Check from '../models/check';
 
 // WebSockets Server
 const SERVER = Server.instance;
@@ -23,7 +24,7 @@ uploadRouter.put('/:type/:id', (req: any, res: Response) => {
     const id = req.params.id;
 
     // Tipos de colecciones
-    const VALID_TYPES = ['saleBalances', 'internalOrders', 'internalOrdersDispatch', 'products', 'purchases', 'accountsPayable'];
+    const VALID_TYPES = ['saleBalances', 'internalOrders', 'internalOrdersDispatch', 'products', 'purchases', 'accountsPayable', 'checkReceipts'];
 
     if (VALID_TYPES.indexOf(type) < 0) {
         return res.status(400).json({
@@ -76,7 +77,6 @@ uploadRouter.put('/:type/:id', (req: any, res: Response) => {
 
         uploadByType(type, id, newNameFile, res);
     });
-
 });
 
 // Funcion que sirve para enlazar nuestros archivos con los registros en la base de datos
@@ -417,6 +417,58 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
                 res.status(200).json({
                     ok: true,
                     accountsPayable
+                });
+            });
+        }),
+        'checkReceipts': () => Check.findById(id, (err, check) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error al buscar cheque',
+                    errors: err
+                });
+            }
+
+            if (!check) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'El cheque con el id' + id + ' no existe',
+                    errors: {
+                        message: 'No existe un cheque con ese ID'
+                    }
+                });
+            }
+
+            // Si existe un archivo almacenado anteriormente
+            const oldPath = './uploads/checkReceipts/' + check.receipt.file;
+
+            if (fs.existsSync(oldPath) && check.receipt.file.length > 0) {
+                // Borramos el archivo antiguo
+                fs.unlink(oldPath, err => {
+                    if (err) {
+                        return res.status(500).json({
+                            ok: false,
+                            mensaje: 'Error al eliminar archivo antiguo',
+                            errors: err
+                        });
+                    }
+                });
+            }
+
+            check.receipt.file = newNameFile;
+
+            check.save((err, check) => {
+                if (err) {
+                    return res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al guardar archivo',
+                        errors: err
+                    });
+                }
+
+                res.status(200).json({
+                    ok: true,
+                    newNameFile
                 });
             });
         }),
