@@ -108,6 +108,40 @@ CHECK_ROUTER.get('/deliveries', mdAuth, (req: Request, res: Response) => {
             });
         });
 });
+
+CHECK_ROUTER.get('/history', mdAuth, (req: Request, res: Response) => {
+    let startDate = new Date(String(req.query.startDate));
+    let endDate = new Date(String(req.query.endDate));
+    endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
+
+    Check.find(
+        {
+            date: {
+                $gte: new Date(startDate.toDateString()),
+                $lt: new Date(endDate.toDateString()),
+            },
+        }
+    )
+        .populate('_user')
+        .populate('accountsPayables')
+        .sort({
+            date: 1
+        })
+        .exec(async (err: any, checks: ICheck[]) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando cheques',
+                    errors: err
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                checks
+            });
+        });
+})
 /* #endregion */
 
 CHECK_ROUTER.put('/state/:id', mdAuth, (req: Request, res: Response) => {

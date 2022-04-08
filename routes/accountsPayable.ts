@@ -1,11 +1,12 @@
 import { Router, Request, Response } from 'express';
-
+import { FilterQuery } from 'mongoose';
 import { mdAuth } from '../middleware/auth';
 import AccountsPayable, { IAccountsPayable } from '../models/accountsPayable';
 import { UPDATE_BALANCE } from '../functions/provider';
 
 const ACCOUNTS_PAYABLE_ROUTER = Router();
 
+/* #region  GET */
 ACCOUNTS_PAYABLE_ROUTER.get('/unpaids', mdAuth, (req: Request, res: Response) => {
     AccountsPayable.find(
         {
@@ -33,6 +34,56 @@ ACCOUNTS_PAYABLE_ROUTER.get('/unpaids', mdAuth, (req: Request, res: Response) =>
             });
         })
 });
+
+ACCOUNTS_PAYABLE_ROUTER.get('/history/:_provider', mdAuth, (req: Request, res: Response) => {
+    const _provider = req.params._provider;
+    let startDate = new Date(String(req.query.startDate));
+    let endDate = new Date(String(req.query.endDate));
+    endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
+
+    let conditions: FilterQuery<IAccountsPayable> = {
+        date: {
+            $gte: new Date(startDate.toDateString()),
+            $lt: new Date(endDate.toDateString()),
+        },
+        deleted: false
+    };
+
+    if (_provider !== 'null') {
+        conditions = {
+            _provider,
+            date: {
+                $gte: new Date(startDate.toDateString()),
+                $lt: new Date(endDate.toDateString()),
+            },
+            deleted: false
+        }
+    }
+
+    AccountsPayable.find(
+        conditions
+    )
+        .populate('_expense')
+        .populate('_user')
+        .populate('_provider')
+        .populate('_purchase')
+        .populate('balance._check')
+        .sort({})
+        .then(accountsPayables => {
+            res.status(200).json({
+                ok: true,
+                accountsPayables,
+            });
+        })
+        .catch(err => {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error listando cuentas por pagar',
+                errors: err,
+            });
+        })
+});
+/* #endregion */
 
 ACCOUNTS_PAYABLE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
     const ID: string = req.params.id;
@@ -68,8 +119,8 @@ ACCOUNTS_PAYABLE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         _purchase,
         _expense,
         date,
-        serie,
-        noBill,
+        serie: serie.toUpperCase(),
+        noBill: noBill.toUpperCase(),
         docType,
         balance,
         unaffectedAmount,
@@ -161,8 +212,8 @@ ACCOUNTS_PAYABLE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         _purchase,
         _expense,
         date,
-        serie,
-        noBill,
+        serie: serie.toUpperCase(),
+        noBill: noBill.toUpperCase(),
         docType,
         balance,
         unaffectedAmount,
