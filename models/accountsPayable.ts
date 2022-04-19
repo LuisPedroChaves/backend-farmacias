@@ -27,6 +27,7 @@ export interface IAccountsPayable extends Document {
     file: string,
     emptyWithholdingIVA: boolean,
     emptyWithholdingISR: boolean,
+    additionalDiscount: boolean,
     toCredit: boolean,
     expirationCredit: Date,
     paid: boolean,
@@ -43,7 +44,7 @@ export interface IAccountsPayableBalance extends Document {
 }
 
 const DOCUMENTOS_VALIDOS = {
-    values: ['FACTURA', 'CAMBIARIA', 'PEQUEÑO', 'ABONO', 'CREDITO'],
+    values: ['FACTURA', 'CAMBIARIA', 'PEQUEÑO', 'ABONO', 'CREDITO', 'CREDITO_TEMP'],
     message: '{VALUE} no es un tipo de documento permitido'
 }
 const TIPOS_VALIDOS = {
@@ -160,6 +161,10 @@ const ACCOUNTS_PAYABLE_SCHEMA = new Schema({
         default: false,
     },
     emptyWithholdingISR: {
+        type: Boolean,
+        default: false,
+    },
+    additionalDiscount: {
         type: Boolean,
         default: false,
     },

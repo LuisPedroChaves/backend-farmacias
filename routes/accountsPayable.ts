@@ -35,6 +35,34 @@ ACCOUNTS_PAYABLE_ROUTER.get('/unpaids', mdAuth, (req: Request, res: Response) =>
         })
 });
 
+ACCOUNTS_PAYABLE_ROUTER.get('/tempCredits', mdAuth, (req: Request, res: Response) => {
+    AccountsPayable.find(
+        {
+            docType: 'CREDITO_TEMP',
+            deleted: false
+        }
+    )
+        .populate('_expense')
+        .populate('_user')
+        .populate('_provider')
+        .populate('_purchase')
+        .populate('balance._check')
+        .sort({})
+        .then(accountsPayables => {
+            res.status(200).json({
+                ok: true,
+                accountsPayables,
+            });
+        })
+        .catch(err => {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error listando cuentas por pagar',
+                errors: err,
+            });
+        })
+})
+
 ACCOUNTS_PAYABLE_ROUTER.get('/history/:_provider', mdAuth, (req: Request, res: Response) => {
     const _provider = req.params._provider;
     let startDate = new Date(String(req.query.startDate));
@@ -109,6 +137,7 @@ ACCOUNTS_PAYABLE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         file,
         emptyWithholdingIVA,
         emptyWithholdingISR,
+        additionalDiscount,
         toCredit,
         expirationCredit,
         paid,
@@ -122,7 +151,7 @@ ACCOUNTS_PAYABLE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         serie: serie.toUpperCase(),
         noBill: noBill.toUpperCase(),
         docType,
-        balance,
+        // balance,
         unaffectedAmount,
         exemptAmount,
         netPurchaseAmount,
@@ -134,6 +163,7 @@ ACCOUNTS_PAYABLE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         file,
         emptyWithholdingIVA,
         emptyWithholdingISR,
+        additionalDiscount,
         toCredit,
         expirationCredit,
         paid,
@@ -201,6 +231,7 @@ ACCOUNTS_PAYABLE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         file,
         emptyWithholdingIVA,
         emptyWithholdingISR,
+        additionalDiscount,
         toCredit,
         expirationCredit,
         paid,
@@ -227,6 +258,7 @@ ACCOUNTS_PAYABLE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         file,
         emptyWithholdingIVA,
         emptyWithholdingISR,
+        additionalDiscount,
         toCredit,
         expirationCredit,
         paid,
@@ -235,7 +267,7 @@ ACCOUNTS_PAYABLE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
     NEW_ACCOUNTS_PAYABLE.save()
         .then(async (accountsPayable: IAccountsPayable) => {
             let action = 'SUMA';
-            if (accountsPayable.docType === 'ABONO' || accountsPayable.docType === 'CREDITO') {
+            if (accountsPayable.docType === 'ABONO' || accountsPayable.docType === 'CREDITO' || accountsPayable.docType === 'CREDITO_TEMP') {
                 action = 'RESTA';
             }
 
