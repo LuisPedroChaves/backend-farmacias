@@ -99,6 +99,13 @@ TEMP_SALE_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
                 });
             }
 
+            // const tempsale = tempSales.find(ts => ts._id.barcode === '13375');
+            // console.log("🚀 ~ file: tempSale.ts ~ line 103 ~ tempsale", tempsale)
+            // console.log("🚀 ~ file: tempSale.ts ~ line 103 ~ startDate2", startDate2)
+            // console.log("🚀 ~ file: tempSale.ts ~ line 103 ~ endDate2", endDate2)
+            // console.log("🚀 ~ file: tempSale.ts ~ line 103 ~ MIN_X", MIN_X)
+            // console.log("🚀 ~ file: tempSale.ts ~ line 103 ~ MAX_X", MAX_X)
+
             //Sumamos un mes para calcular ventas al ultimo mes
             tempSales = await SEARCH_STOCK_SALES(tempSales, startDate2, endDate2, MIN_X, MAX_X);
 
@@ -564,6 +571,7 @@ const SEARCH_STOCK_SALES = async (detail: any[], newStart: Date, newEnd: Date, M
             let sales = 0;
             if (SEARCH_SALES.length > 0) {
                 sales = SEARCH_SALES[0].suma
+                console.log("🚀 ~ file: tempSale.ts ~ line 570 ~ detail.map ~ sales", sales)
             }
             element.salesMonth = sales;
             const PROM_ADJUST_MONTH = (+element.promMonth + +sales) / 2;

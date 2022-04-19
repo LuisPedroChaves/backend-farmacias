@@ -26,10 +26,10 @@ exports.initScheduledJobs = () => {
       }
 
       const NOW = moment().tz("America/Guatemala");
+      const NOW_UTC = NOW.utc(true).format();
       const LAST_MONTH = NOW.subtract(1, 'month');
       const LAST_MONTH_UTC = LAST_MONTH.utc(true).format();
       const LAST_YEAR = LAST_MONTH.subtract(1, 'year').utc(true).format();
-      const NOW_UTC = NOW.utc(true).format();
 
       autoStatistics.forEach(auto => {
         // console.log(auto.hour);
