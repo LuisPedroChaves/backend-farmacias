@@ -124,32 +124,16 @@ PRODUCT_ROUTER.get('/search', mdAuth, (req: Request, res: Response) => {
 PRODUCT_ROUTER.get('/searchCheckStock', mdAuth, (req: Request, res: Response) => {
     let search = req.query.search || '';
     search = String(search);
+    let searchSplit = search.split('.');
     const FIELD = req.query.field || 'barcode';
 
-    let query: any = {
-        barcode: search,
-        discontinued: false,
-        deleted: false
-    };
-
-    if (FIELD === 'description') {
-        const REGEX = new RegExp(search, 'i');
-        query = {
-            description: REGEX,
-            discontinued: false,
-            deleted: false
-        }
-    }
-
-    console.log(query);
-
-
-    Product.aggregate([
+    let query: any[] = [
         {
-            $match: query
-        },
-        {
-            $limit: 10
+            $match: {
+                barcode: search,
+                discontinued: false,
+                deleted: false
+            }
         },
         {
             $lookup:
@@ -163,7 +147,34 @@ PRODUCT_ROUTER.get('/searchCheckStock', mdAuth, (req: Request, res: Response) =>
         {
             $unwind: '$_brand',
         },
-    ]).then((products) => {
+        {
+            $limit: 10
+        },
+    ];
+
+    if (FIELD === 'description') {
+        const REGEX = new RegExp(searchSplit[0], 'i');
+        query[0] = {
+            $match: {
+                description: REGEX,
+                discontinued: false,
+                deleted: false
+            }
+        }
+
+        if (searchSplit.length > 1) {
+            const REGEX2 = new RegExp(searchSplit[1], 'i');
+            query.splice(3, 0, {
+                $match: {
+                    '_brand.name': REGEX2
+                }
+            })
+        }
+    }
+
+    // console.log(query);
+
+    Product.aggregate(query).then((products) => {
         res.status(200).json({
             ok: true,
             products
