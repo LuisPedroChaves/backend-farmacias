@@ -3,6 +3,5 @@
         "file:///c%3A/Users/luisp/.vscode/extensions/atlassian.atlascode-2.6.6/resources/schemas/pipelines-schema.json": "bitbucket-pipelines.yml",
         "https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json": "file://wsl%24/Ubuntu/home/applitech/backend-farmacias/docker-compose.yml"
     },
-    "appService.defaultWebAppToDeploy": "/subscriptions/56fe1ae5-f66a-4d7d-ab34-b3986dd85bc3/resourceGroups/Applitech/providers/Microsoft.Web/sites/backendfarmacias",
     "appService.deploySubpath": "."
 }
