@@ -148,7 +148,7 @@ PRODUCT_ROUTER.get('/searchCheckStock', mdAuth, (req: Request, res: Response) =>
             $unwind: '$_brand',
         },
         {
-            $limit: 10
+            $limit: 25
         },
     ];
 

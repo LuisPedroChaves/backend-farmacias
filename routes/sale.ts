@@ -195,118 +195,35 @@ SALE_ROUTER.delete('/:id', mdAuth, (req: Request, res: Response) => {
 SALE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
     const body = req.body;
 
-    try {
-        if (body.code) {
-            body.code = body.code.replace(/\s/g, '').toUpperCase();
-        }
+    const NEW_SALE = new Sale({
+        _cellar: body._cellar,
+        _customer: body._customer,
+        _seller: body._seller,
+        date: body.date,
+        noBill: body.noBill,
+        balance: body.balance,
+        total: body.total,
+    });
 
-        Customer.findOne({
-            $or: [{ code: body.code }, { nit: body.nit }],
-            deleted: false
-        }).exec(async (err, _customer) => {
-            if (err) {
-                res.status(500).json({
-                    ok: false,
-                    mensaje: 'Error al buscar cliente',
-                    errors: err,
+    NEW_SALE
+        .save()
+        .then((sale) => {
+            Customer.findByIdAndUpdate(sale._customer, {
+                _seller: sale._seller
+            }).exec().then(resp => {
+                res.status(200).json({
+                    ok: true,
+                    sale,
                 });
-            }
-
-            if (!_customer) {
-                if (
-                    !body.nit ||
-                    body.nit === '' ||
-                    body.nit === 'C/F' ||
-                    body.nit === 'c/f' ||
-                    body.nit === 'cf' ||
-                    body.nit === 'CF'
-                ) {
-                    body.nit = 'CF';
-                }
-                // hay que guaradar el cliente
-                const customer = new Customer({
-                    code: body.code,
-                    name: body.name,
-                    nit: body.nit,
-                    phone: body.phone,
-                    address: body.address,
-                    town: body.town,
-                    department: body.department,
-                    company: body.company,
-                    transport: body.transport,
-                    limitCredit: body.limitCredit,
-                    limitDaysCredit: body.limitDaysCredit,
-                    _seller: body._seller,
-                });
-
-                await customer
-                    .save()
-                    .then((NewCustomer) => {
-                        _customer = NewCustomer;
-                    })
-                    .catch((err) => {
-                        res.status(400).json({
-                            ok: false,
-                            mensaje: 'Error al crear cliente',
-                            errors: err,
-                        });
-                    });
-            } else if (_customer) {
-                _customer.code = body.code;
-                _customer.name = body.name;
-                _customer.nit = body.nit;
-                _customer.phone = body.phone;
-                _customer.address = body.address;
-                _customer.town = body.town;
-                _customer.department = body.department;
-                _customer.company = body.company;
-                _customer.transport = body.transport;
-                _customer.limitCredit = body.limitCredit;
-                _customer.limitDaysCredit = body.limitDaysCredit;
-                _customer._seller = body._seller;
-
-                await _customer.save((err, NewCustomer) => {
-                    if (err) {
-                        return res.status(400).json({
-                            ok: false,
-                            mensaje: 'Error al actualizar cliente',
-                            errors: err
-                        });
-                    }
-                    _customer = NewCustomer;
-                });
-            }
-
-            const newSale = new Sale({
-                _cellar: body._cellar,
-                _customer,
-                _seller: body._seller,
-                date: body.date,
-                noBill: body.noBill,
-                balance: body.balance,
-                total: body.total,
+            })
+        })
+        .catch((err) => {
+            res.status(400).json({
+                ok: false,
+                mensaje: 'Error al crear venta',
+                errors: err,
             });
-
-            newSale
-                .save()
-                .then((sale) => {
-                    res.status(200).json({
-                        ok: true,
-                        sale,
-                    });
-                })
-                .catch((err) => {
-                    res.status(400).json({
-                        ok: false,
-                        mensaje: 'Error al crear venta',
-                        errors: err,
-                    });
-                });
         });
-    } catch (err) {
-        // ERROR GLOBAL
-        console.log("🚀 ~ file: order.ts ~ line 1248 ~ orderRouter.post ~ err", err)
-    }
 });
 
 SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
@@ -360,7 +277,7 @@ SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
                         let total = doc[5];
                         total = parseFloat(total)
 
-                        let date =  new Date(moment(ExcelDateToJSDate(doc[3])).tz("America/Guatemala").format());
+                        let date = new Date(moment(ExcelDateToJSDate(doc[3])).tz("America/Guatemala").format());
 
                         const newSale = new Sale({
                             _cellar: '602ea4400831cb50f0495675',
@@ -375,7 +292,7 @@ SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
                             .save()
                             .then();
 
-                    }else {
+                    } else {
                         console.log(doc[1]);
 
                     }
@@ -395,7 +312,7 @@ SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
 /* #endregion */
 
 const ExcelDateToJSDate = (serialXlsx: number) => {
-    var utc_days  = Math.floor(serialXlsx - 25569);
+    var utc_days = Math.floor(serialXlsx - 25569);
     var utc_value = utc_days * 86400;
     var date_info = new Date(utc_value * 1000);
 
@@ -411,6 +328,6 @@ const ExcelDateToJSDate = (serialXlsx: number) => {
     var minutes = Math.floor(total_seconds / 60) % 60;
 
     return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
- }
+}
 
 export default SALE_ROUTER;
