@@ -3,6 +3,7 @@ import { FilterQuery } from 'mongoose';
 import { mdAuth } from '../middleware/auth';
 import AccountsPayable, { IAccountsPayable } from '../models/accountsPayable';
 import { UPDATE_BALANCE } from '../functions/provider';
+import { CREATE_LOG_DELETE } from '../functions/logDelete';
 
 const ACCOUNTS_PAYABLE_ROUTER = Router();
 
@@ -19,6 +20,7 @@ ACCOUNTS_PAYABLE_ROUTER.get('/unpaids', mdAuth, (req: Request, res: Response) =>
         .populate('_provider')
         .populate('_purchase')
         .populate('balance._check')
+        .populate('deletedBalance._check')
         .sort({})
         .then(accountsPayables => {
             res.status(200).json({
@@ -47,6 +49,7 @@ ACCOUNTS_PAYABLE_ROUTER.get('/tempCredits', mdAuth, (req: Request, res: Response
         .populate('_provider')
         .populate('_purchase')
         .populate('balance._check')
+        .populate('deletedBalance._check')
         .sort({})
         .then(accountsPayables => {
             res.status(200).json({
@@ -96,6 +99,7 @@ ACCOUNTS_PAYABLE_ROUTER.get('/history/:_provider', mdAuth, (req: Request, res: R
         .populate('_provider')
         .populate('_purchase')
         .populate('balance._check')
+        .populate('deletedBalance._check')
         .sort({})
         .then(accountsPayables => {
             res.status(200).json({
@@ -126,6 +130,7 @@ ACCOUNTS_PAYABLE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         noBill,
         docType,
         balance,
+        deletedBalance,
         unaffectedAmount,
         exemptAmount,
         netPurchaseAmount,
@@ -151,7 +156,8 @@ ACCOUNTS_PAYABLE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         serie: serie.toUpperCase(),
         noBill: noBill.toUpperCase(),
         docType,
-        // balance,
+        balance,
+        deletedBalance,
         unaffectedAmount,
         exemptAmount,
         netPurchaseAmount,
@@ -186,25 +192,49 @@ ACCOUNTS_PAYABLE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         })
 })
 
-ACCOUNTS_PAYABLE_ROUTER.delete('/:id', mdAuth, (req: Request, res: Response) => {
+ACCOUNTS_PAYABLE_ROUTER.delete('/:id', mdAuth, (req: any, res: Response) => {
     const ID: string = req.params.id;
+    const DETAILS: string = req.query.details;
 
-    AccountsPayable.findByIdAndUpdate(ID, {
-        deleted: true
-    })
-        .then((accountsPayable: IAccountsPayable | null) => {
-            res.status(200).json({
-                ok: true,
-                accountsPayable
-            });
-        })
-        .catch(err => {
-            return res.status(400).json({
-                ok: false,
-                mensaje: 'Error al eliminar cuenta por pagar',
-                errors: err
-            });
-        })
+    AccountsPayable.findById(ID, async (err, accountsPayable) => {
+        if (err) {
+			return res.status(500).json({
+				ok: false,
+				mensaje: 'Error al buscar documento',
+				errors: err,
+			});
+		}
+
+		if (!accountsPayable) {
+			return res.status(400).json({
+				ok: false,
+				mensaje: 'El documento con el id' + ID + ' no existe',
+				errors: {
+					message: 'No existe un documento con ese ID',
+				},
+			});
+		}
+
+        const LOG_DELETE = await CREATE_LOG_DELETE(req.user, `Cuenta por pagar - Documento: ${accountsPayable?.serie} ${accountsPayable?.noBill}`, DETAILS);
+
+		accountsPayable.deleted = true;
+        accountsPayable._logDelete = LOG_DELETE;
+
+		accountsPayable.save((err, accountsPayable) => {
+			if (err) {
+				return res.status(400).json({
+					ok: false,
+					mensaje: 'Error al borrar documento',
+					errors: err,
+				});
+			}
+
+			res.status(200).json({
+				ok: true,
+				accountsPayable,
+			});
+		});
+    });
 })
 
 ACCOUNTS_PAYABLE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
@@ -220,6 +250,7 @@ ACCOUNTS_PAYABLE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         noBill,
         docType,
         balance,
+        deletedBalance,
         unaffectedAmount,
         exemptAmount,
         netPurchaseAmount,
@@ -247,6 +278,7 @@ ACCOUNTS_PAYABLE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         noBill: noBill.toUpperCase(),
         docType,
         balance,
+        deletedBalance,
         unaffectedAmount,
         exemptAmount,
         netPurchaseAmount,

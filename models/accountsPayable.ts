@@ -5,6 +5,7 @@ import { IUser } from "./user";
 import { IProvider } from "./provider";
 import { IExpense } from './expense';
 import { ICheck } from './check';
+import { ILogDelete } from './logDelete';
 
 export interface IAccountsPayable extends Document {
     _user: IUser['_id'],
@@ -16,6 +17,7 @@ export interface IAccountsPayable extends Document {
     noBill: string,
     docType: string,
     balance: IAccountsPayableBalance[],
+    deletedBalance: IAccountsPayableBalance[],
     unaffectedAmount: number,
     exemptAmount: number,
     netPurchaseAmount: number,
@@ -31,7 +33,8 @@ export interface IAccountsPayable extends Document {
     toCredit: boolean,
     expirationCredit: Date,
     paid: boolean,
-    deleted: boolean
+    deleted: boolean,
+    _logDelete: ILogDelete['_id'],
 }
 
 export interface IAccountsPayableBalance extends Document {
@@ -120,6 +123,32 @@ const ACCOUNTS_PAYABLE_SCHEMA = new Schema({
             type: String,
         },
     }],
+    deletedBalance: [{
+        _check: {
+            type: Schema.Types.ObjectId,
+            ref: 'Check',
+            default: null
+        },
+        date: {
+            type: Date,
+            default: null
+        },
+        document: {
+            type: String,
+        },
+        credit: {
+            type: String,
+            enum: ABONOS_VALIDOS.values,
+            default: 'CHEQUE'
+        },
+        amount: {
+            type: FLOAT,
+            required: [true, 'El monto es necesario']
+        },
+        file: {
+            type: String,
+        },
+    }],
     unaffectedAmount: {
         type: FLOAT,
         default: 0
@@ -179,6 +208,11 @@ const ACCOUNTS_PAYABLE_SCHEMA = new Schema({
     paid: {
         type: Boolean,
         default: false,
+    },
+    _logDelete: {
+        type: Schema.Types.ObjectId,
+        ref: 'LogDelete',
+        default: null
     },
     deleted: {
         type: Boolean,
