@@ -24,10 +24,14 @@ import AUTO_STATISTIC_ROUTER from './autoStatistic';
 import EXPENSE_ROUTER from './expense';
 import ACCOUNTS_PAYABLE_ROUTER from './accountsPayable';
 import CHECK_ROUTER from './check';
+import CASH_ROUTER from './cash';
+import CASH_FLOW_ROUTER from './cashFlow';
 
 const router = Router();
 
 // Rutas
+router.use('/cashFlow', CASH_FLOW_ROUTER);
+router.use('/cash', CASH_ROUTER);
 router.use('/check', CHECK_ROUTER);
 router.use('/accountsPayable', ACCOUNTS_PAYABLE_ROUTER);
 router.use('/expense', EXPENSE_ROUTER);

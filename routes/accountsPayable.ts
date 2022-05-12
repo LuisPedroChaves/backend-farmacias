@@ -66,6 +66,47 @@ ACCOUNTS_PAYABLE_ROUTER.get('/tempCredits', mdAuth, (req: Request, res: Response
         })
 })
 
+ACCOUNTS_PAYABLE_ROUTER.get('/expenses', mdAuth, (req: Request, res: Response) => {
+    let startDate = new Date(String(req.query.startDate));
+    let endDate = new Date(String(req.query.endDate));
+    endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
+
+    let conditions: FilterQuery<IAccountsPayable> = {
+        date: {
+            $gte: new Date(startDate.toDateString()),
+            $lt: new Date(endDate.toDateString()),
+        },
+        type: 'GASTOS',
+        paid: true,
+        deleted: false
+    };
+
+    AccountsPayable.find(
+        conditions
+    )
+        .populate('_expense')
+        .populate('_user')
+        .populate('_provider')
+        .populate('_purchase')
+        .populate('balance._check')
+        .sort({
+            _expense: 1
+        })
+        .then(accountsPayables => {
+            res.status(200).json({
+                ok: true,
+                accountsPayables,
+            });
+        })
+        .catch(err => {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error listando cuentas por pagar',
+                errors: err,
+            });
+        })
+});
+
 ACCOUNTS_PAYABLE_ROUTER.get('/history/:_provider', mdAuth, (req: Request, res: Response) => {
     const _provider = req.params._provider;
     let startDate = new Date(String(req.query.startDate));
@@ -101,6 +142,48 @@ ACCOUNTS_PAYABLE_ROUTER.get('/history/:_provider', mdAuth, (req: Request, res: R
         .populate('balance._check')
         .populate('deletedBalance._check')
         .sort({})
+        .then(accountsPayables => {
+            res.status(200).json({
+                ok: true,
+                accountsPayables,
+            });
+        })
+        .catch(err => {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error listando cuentas por pagar',
+                errors: err,
+            });
+        })
+});
+
+ACCOUNTS_PAYABLE_ROUTER.get('/report/:_provider', mdAuth, (req: Request, res: Response) => {
+    const _provider = req.params._provider;
+    let startDate = new Date(String(req.query.startDate));
+    let endDate = new Date(String(req.query.endDate));
+    endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
+
+    let conditions: FilterQuery<IAccountsPayable> = {
+        _provider,
+        date: {
+            $gte: new Date(startDate.toDateString()),
+            $lt: new Date(endDate.toDateString()),
+        },
+        paid: true,
+        deleted: false
+    };
+
+    AccountsPayable.find(
+        conditions
+    )
+        .populate('_expense')
+        .populate('_user')
+        .populate('_provider')
+        .populate('_purchase')
+        .populate('balance._check')
+        .sort({
+            date: 1
+        })
         .then(accountsPayables => {
             res.status(200).json({
                 ok: true,
