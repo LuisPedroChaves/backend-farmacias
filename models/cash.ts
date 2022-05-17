@@ -4,6 +4,7 @@ import { ILogDelete } from './logDelete';
 import { IUser } from './user';
 
 export interface ICash extends Document {
+    _admin: IUser['_id'],
     _user: IUser['_id'],
     _logDelete: ILogDelete['_id'],
     type: string,
@@ -20,6 +21,11 @@ const TIPOS_VALIDOS = {
 const FLOAT = require('mongoose-float').loadType(mongoose, 2);
 
 const CASH_SCHEMA = new Schema({
+    _admin: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: [true, 'El usuario admin es necesario']
+    },
     _user: {
         type: Schema.Types.ObjectId,
         ref: 'User',
