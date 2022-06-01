@@ -26,10 +26,12 @@ import ACCOUNTS_PAYABLE_ROUTER from './accountsPayable';
 import CHECK_ROUTER from './check';
 import CASH_ROUTER from './cash';
 import CASH_FLOW_ROUTER from './cashFlow';
+import CASH_REQUISITION_ROUTER from './cashRequisition';
 
 const router = Router();
 
 // Rutas
+router.use('/cashRequisition', CASH_REQUISITION_ROUTER);
 router.use('/cashFlow', CASH_FLOW_ROUTER);
 router.use('/cash', CASH_ROUTER);
 router.use('/check', CHECK_ROUTER);

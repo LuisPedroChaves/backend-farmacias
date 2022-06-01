@@ -23,6 +23,7 @@ export interface ICheck extends Document {
 
 export interface ICheckReceipt extends Document {
     no: string,
+    name: string,
     file: string,
 }
 
@@ -40,6 +41,9 @@ const BANCOS_VALIDOS = {
 
 const RECEIPT_SCHEMA = new Schema({
     no: {
+        type: String,
+    },
+    name: {
         type: String,
     },
     file: {

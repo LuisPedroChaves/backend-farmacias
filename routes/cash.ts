@@ -11,6 +11,32 @@ const CASH_ROUTER = Router();
 CASH_ROUTER.get('/', mdAuth, (req: any, res: Response) => {
     Cash.find(
         {
+            _logDelete: null
+        }
+    )
+        .populate('_admin')
+        .populate('_user')
+        .sort({
+            type: 1
+        })
+        .then(cash => {
+            res.status(200).json({
+                ok: true,
+                cash,
+            });
+        })
+        .catch(err => {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error listando cajas',
+                errors: err,
+            });
+        })
+});
+
+CASH_ROUTER.get('/admin', mdAuth, (req: any, res: Response) => {
+    Cash.find(
+        {
             _admin: req.user._id,
             _logDelete: null
         }
