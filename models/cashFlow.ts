@@ -6,6 +6,9 @@ import { IUser } from './user';
 export interface ICashFlow extends Document {
     _user: IUser['_id'],
     _cash: ICash['_id'],
+    date: string | Date,
+    serie: string,
+    noBill: string,
     details: string,
     state: string,
     income: number,
@@ -15,8 +18,10 @@ export interface ICashFlow extends Document {
     updated: string,
 }
 
+// Caja independiente: 'SOLICITADO', 'APROBADO', 'RECHAZADO'
+// Caja contable: 'PENDIENTE', 'REQUISICION', 'PAGADO'
 const ESTADOS_VALIDOS = {
-    values: ['SOLICITADO', 'APROBADO', 'RECHAZADO'],
+    values: ['SOLICITADO', 'APROBADO', 'RECHAZADO', 'PENDIENTE', 'REQUISICION', 'PAGADO'],
     message: '{VALUE} no es un estado de movimiento permitido'
 };
 
@@ -32,6 +37,16 @@ const CASH_FLOW_SCHEMA = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Cash',
         required: [true, 'La caja es necesaria']
+    },
+    date: {
+        type: Date,
+        default: null
+    },
+    serie: {
+        type: String
+    },
+    noBill: {
+        type: String
     },
     details: {
         type: String

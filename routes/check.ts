@@ -120,6 +120,7 @@ CHECK_ROUTER.get('/history', mdAuth, (req: Request, res: Response) => {
                 $gte: new Date(startDate.toDateString()),
                 $lt: new Date(endDate.toDateString()),
             },
+            voided: false,
         }
     )
         .populate('_user')
@@ -174,6 +175,7 @@ CHECK_ROUTER.put('/state/:id', mdAuth, (req: Request, res: Response) => {
         check.state = BODY.state
         check.paymentDate = BODY.paymentDate
         check.receipt.no = BODY.receipt.no
+        check.receipt.name = BODY.receipt.name
         check.delivered = BODY.delivered
         check.voided = BODY.voided
 

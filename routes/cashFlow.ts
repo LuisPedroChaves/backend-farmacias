@@ -8,6 +8,36 @@ import { UPDATE_BALANCE } from '../functions/cash';
 const CASH_FLOW_ROUTER = Router();
 
 /* #region  GET */
+CASH_FLOW_ROUTER.get('/:cash', mdAuth, (req: Request, res: Response) => {
+    const _cash = req.params.cash;
+    let state = req.query.state;
+    state = String(state)
+
+    CashFlow.find(
+        {
+            _cash,
+            state
+        }
+    )
+        .populate('_user')
+        .sort({
+            created: -1
+        })
+        .then((cashFlows: ICashFlow[]) => {
+            res.status(200).json({
+                ok: true,
+                cashFlows,
+            });
+        })
+        .catch((err: any) => {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error listando movimientos',
+                errors: err,
+            });
+        })
+});
+
 CASH_FLOW_ROUTER.get('/today/:cash', mdAuth, (req: Request, res: Response) => {
     const _cash = req.params.cash;
 
@@ -119,10 +149,6 @@ CASH_FLOW_ROUTER.put('/:id', mdAuth, (req: any, res: Response) => {
                     })
                     .then(async (cashFlows) => {
 
-                        console.log(new Date(cashFlow.created));
-                        console.log(cashFlows);
-
-
                         const INIT_BALANCE = +cashFlow.balance + +cashFlow.expense;
                         await REFRESH_BALANCE(cashFlows, INIT_BALANCE)
 
@@ -160,17 +186,19 @@ CASH_FLOW_ROUTER.post('/', mdAuth, async (req: any, res: Response) => {
 
     const {
         _cash,
+        date,
+        serie,
+        noBill,
         details,
         income,
         expense,
+        state,
     } = BODY;
 
-    let state = 'SOLICITADO';
     let balance = 0;
 
     if (income > 0) { // Sumamos los ingresos
         balance = await UPDATE_BALANCE(_cash, income)
-        state = 'APROBADO';
     }
 
     if (expense > 0) { // Restamos los gastos
@@ -180,6 +208,9 @@ CASH_FLOW_ROUTER.post('/', mdAuth, async (req: any, res: Response) => {
     const NEW_CASH_FLOW = new CashFlow({
         _user: req.user._id,
         _cash,
+        date,
+        serie,
+        noBill,
         details,
         state,
         income,

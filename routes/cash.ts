@@ -8,12 +8,40 @@ import { CREATE_LOG_DELETE } from '../functions/logDelete';
 const CASH_ROUTER = Router();
 
 /* #region  GET */
-CASH_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
+CASH_ROUTER.get('/', mdAuth, (req: any, res: Response) => {
     Cash.find(
         {
             _logDelete: null
         }
     )
+        .populate('_admin')
+        .populate('_user')
+        .sort({
+            type: 1
+        })
+        .then(cash => {
+            res.status(200).json({
+                ok: true,
+                cash,
+            });
+        })
+        .catch(err => {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error listando cajas',
+                errors: err,
+            });
+        })
+});
+
+CASH_ROUTER.get('/admin', mdAuth, (req: any, res: Response) => {
+    Cash.find(
+        {
+            _admin: req.user._id,
+            _logDelete: null
+        }
+    )
+        .populate('_admin')
         .populate('_user')
         .sort({
             type: 1
@@ -69,11 +97,11 @@ CASH_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
     const BODY: ICash = req.body;
 
     const {
-        _user
+        _admin,
     }: ICash = BODY;
 
     Cash.findByIdAndUpdate(ID, {
-        _user,
+        _admin,
         updated: moment().tz("America/Guatemala").format(),
     },
         {
@@ -142,12 +170,14 @@ CASH_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
     const BODY: ICash = req.body
 
     const {
+        _admin,
         _user,
         type,
         balance,
     } = BODY;
 
     const NEW_CASH = new Cash({
+        _admin,
         _user,
         type,
         balance,
