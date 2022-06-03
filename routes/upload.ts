@@ -11,6 +11,7 @@ import Product from '../models/product';
 import Purchase from '../models/purchase';
 import AccountsPayable from '../models/accountsPayable';
 import Check from '../models/check';
+import Bank from '../models/bank';
 
 // WebSockets Server
 const SERVER = Server.instance;
@@ -24,7 +25,7 @@ uploadRouter.put('/:type/:id', (req: any, res: Response) => {
     const id = req.params.id;
 
     // Tipos de colecciones
-    const VALID_TYPES = ['saleBalances', 'internalOrders', 'internalOrdersDispatch', 'products', 'purchases', 'accountsPayable', 'checkReceipts'];
+    const VALID_TYPES = ['saleBalances', 'internalOrders', 'internalOrdersDispatch', 'products', 'purchases', 'accountsPayable', 'checkReceipts', 'banks'];
 
     if (VALID_TYPES.indexOf(type) < 0) {
         return res.status(400).json({
@@ -458,6 +459,58 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             check.receipt.file = newNameFile;
 
             check.save((err, check) => {
+                if (err) {
+                    return res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al guardar archivo',
+                        errors: err
+                    });
+                }
+
+                res.status(200).json({
+                    ok: true,
+                    newNameFile
+                });
+            });
+        }),
+        'banks': () => Bank.findById(id, (err, bank) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error al buscar banco',
+                    errors: err
+                });
+            }
+
+            if (!bank) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'El banco con el id' + id + ' no existe',
+                    errors: {
+                        message: 'No existe un banco con ese ID'
+                    }
+                });
+            }
+
+            // Si existe un archivo almacenado anteriormente
+            const oldPath = './uploads/banks/' + bank.image;
+
+            if (fs.existsSync(oldPath) && bank.image.length > 0) {
+                // Borramos el archivo antiguo
+                fs.unlink(oldPath, err => {
+                    if (err) {
+                        return res.status(500).json({
+                            ok: false,
+                            mensaje: 'Error al eliminar archivo antiguo',
+                            errors: err
+                        });
+                    }
+                });
+            }
+
+            bank.image = newNameFile;
+
+            bank.save((err, bank) => {
                 if (err) {
                     return res.status(400).json({
                         ok: false,

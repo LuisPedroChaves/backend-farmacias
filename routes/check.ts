@@ -5,6 +5,8 @@ import { mdAuth } from '../middleware/auth'
 import Check, { ICheck } from '../models/check';
 import AccountsPayable, { IAccountsPayable } from '../models/accountsPayable';
 import { UPDATE_BALANCE } from '../functions/provider';
+import { UPDATE_BANK_BALANCE } from '../functions/bank';
+import BankFlow from '../models/bankFlow';
 
 const CHECK_ROUTER = Router();
 
@@ -19,7 +21,10 @@ CHECK_ROUTER.get('/today', mdAuth, (req: Request, res: Response) => {
 
     Check.find(
         {
-            date: new Date(`${YEAR}, ${MONTH}, ${DAY}`),
+            date: {
+                $gte: new Date(`${YEAR}, ${MONTH}, ${DAY}`),
+                $lt: new Date(`${YEAR}, ${MONTH}, ${DAY + 1}`)
+            },
             voided: false
         }
     )
@@ -172,6 +177,7 @@ CHECK_ROUTER.put('/state/:id', mdAuth, (req: Request, res: Response) => {
             });
         }
 
+        check.date = BODY.date
         check.state = BODY.state
         check.paymentDate = BODY.paymentDate
         check.receipt.no = BODY.receipt.no
@@ -190,6 +196,20 @@ CHECK_ROUTER.put('/state/:id', mdAuth, (req: Request, res: Response) => {
 
             if (!BODY.voided && BODY.state === 'PAGADO') {
                 await PAY_ACCOUNTS_PAYABLE(BODY);
+
+                const NEW_BANK_FLOW = new BankFlow({
+                    _bankAccount: check._bankAccount,
+                    _check: check,
+                    date: moment().tz("America/Guatemala").format(),
+                    document: check.no,
+                    details: `Pago de cheque a nombre de ${check.name}`,
+                    credit: 0,
+                    debit: check.amount,
+                    balance: 0,
+                    type: 'Cheque'
+                })
+
+                await UPDATE_BANK_BALANCE(NEW_BANK_FLOW)
             }
             if (BODY.voided || BODY.state === 'RECHAZADO') {
                 // Si el cheque es anulado o rechazado
@@ -208,17 +228,30 @@ CHECK_ROUTER.put('/state/:id', mdAuth, (req: Request, res: Response) => {
 CHECK_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
     const BODY: ICheck = req.body;
 
+    const {
+        _user,
+        _bankAccount,
+        no,
+        city,
+        date,
+        name,
+        amount,
+        note,
+        accountsPayables,
+        state
+    } = BODY;
+
     const newCheck = new Check({
-        _user: BODY._user,
-        no: BODY.no,
-        city: BODY.city,
-        date: BODY.date,
-        name: BODY.name,
-        amount: BODY.amount,
-        note: BODY.note,
-        accountsPayables: BODY.accountsPayables,
-        bank: BODY.bank,
-        state: BODY.state,
+        _user,
+        _bankAccount,
+        no,
+        city,
+        date,
+        name,
+        amount,
+        note,
+        accountsPayables,
+        state,
         created: moment().tz("America/Guatemala").format(),
     });
 

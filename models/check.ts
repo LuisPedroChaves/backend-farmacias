@@ -1,10 +1,12 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 import { IAccountsPayable } from './accountsPayable';
+import { IBankAccount } from './bankAccount';
 import { IUser } from './user';
 
 export interface ICheck extends Document {
     _user: IUser['_id'],
+    _bankAccount: IBankAccount['_id'],
     no: string,
     city: string,
     date: Date,
@@ -14,7 +16,6 @@ export interface ICheck extends Document {
     receipt: ICheckReceipt,
     accountsPayables: IAccountsPayable[],
     paymentDate: Date | string,
-    bank: string,
     state: string,
     delivered: boolean,
     voided: boolean,
@@ -30,12 +31,7 @@ export interface ICheckReceipt extends Document {
 const FLOAT = require('mongoose-float').loadType(mongoose, 2);
 
 const ESTADOS_VALIDOS = {
-    values: ['CREADO', 'INTERBANCO', 'ESPERA', 'AUTORIZADO', 'PAGADO', 'RECHAZADO'],
-    message: '{VALUE} no es un estado permitido'
-};
-
-const BANCOS_VALIDOS = {
-    values: ['INTERBANCO', 'BANRURAL'],
+    values: ['CREADO', 'ACTUALIZADO', 'INTERBANCO', 'ESPERA', 'AUTORIZADO', 'PAGADO', 'RECHAZADO'],
     message: '{VALUE} no es un estado permitido'
 };
 
@@ -56,6 +52,11 @@ const checkSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: [true, 'El usuario es necesario']
+    },
+    _bankAccount: {
+        type: Schema.Types.ObjectId,
+        ref: 'BankAccount',
+        required: [true, 'La cuenta bancaria es necesaria']
     },
     no: {
         type: String,
@@ -88,11 +89,6 @@ const checkSchema = new Schema({
     paymentDate: {
         type: Date,
         default: null
-    },
-    bank: {
-        type: String,
-        enum: BANCOS_VALIDOS.values,
-        default: 'INTERBANCO'
     },
     state: {
         type: String,
