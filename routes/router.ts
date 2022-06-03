@@ -27,10 +27,16 @@ import CHECK_ROUTER from './check';
 import CASH_ROUTER from './cash';
 import CASH_FLOW_ROUTER from './cashFlow';
 import CASH_REQUISITION_ROUTER from './cashRequisition';
+import BANK_ROUTER from './bank';
+import BANK_ACCOUNT_ROUTER from './bankAccount';
+import BANK_FLOW_ROUTER from './bankFlow';
 
 const router = Router();
 
 // Rutas
+router.use('/bankFlow', BANK_FLOW_ROUTER);
+router.use('/bankAccount', BANK_ACCOUNT_ROUTER);
+router.use('/bank', BANK_ROUTER);
 router.use('/cashRequisition', CASH_REQUISITION_ROUTER);
 router.use('/cashFlow', CASH_FLOW_ROUTER);
 router.use('/cash', CASH_ROUTER);
