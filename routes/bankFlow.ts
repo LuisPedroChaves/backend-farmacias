@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { CREATE_FLOW } from '../functions/bank';
+import moment from 'moment-timezone';
+
+import { UPDATE_BANK_BALANCE } from '../functions/bank';
 
 import { mdAuth } from '../middleware/auth';
 import BankFlow, { IBankFlow } from '../models/bankFlow';
@@ -42,7 +44,7 @@ BANK_FLOW_ROUTER.get('/:bankAccount', mdAuth, (req: Request, res: Response) => {
 BANK_FLOW_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
     const BODY: IBankFlow = req.body
 
-    await CREATE_FLOW(BODY);
+    await UPDATE_BANK_BALANCE(BODY);
 
     res.status(200).json({
         ok: true,

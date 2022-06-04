@@ -36,13 +36,11 @@ BANK_ACCOUNT_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
     const BODY: IBankAccount = req.body;
 
     const {
-        no,
         name,
         type
     } = BODY;
 
     BankAccount.findByIdAndUpdate(ID, {
-        no,
         name,
         type
     },
@@ -50,9 +48,11 @@ BANK_ACCOUNT_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
             new: true
         })
         .then((bankAccount: IBankAccount | null) => {
-            res.status(200).json({
-                ok: true,
-                bankAccount
+            BankAccount.populate(bankAccount, { path: "_bank" }, function (err, bankAccount) {
+                res.status(200).json({
+                    ok: true,
+                    bankAccount,
+                });
             });
         })
         .catch((err: any) => {

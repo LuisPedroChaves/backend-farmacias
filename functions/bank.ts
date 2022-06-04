@@ -1,3 +1,5 @@
+import moment from 'moment-timezone';
+
 import BankAccount, { IBankAccount } from '../models/bankAccount'
 import BankFlow, { IBankFlow } from "../models/bankFlow";
 
@@ -29,6 +31,8 @@ export const UPDATE_BANK_BALANCE = (bankFlow: IBankFlow): Promise<boolean> => {
                 if (err) {
                     reject(err);
                 }
+
+                bankFlow.date = moment().tz("America/Guatemala").format()
 
                 await CREATE_FLOW(bankFlow)
 
