@@ -14,21 +14,27 @@ const CHECK_ROUTER = Router();
 CHECK_ROUTER.get('/today', mdAuth, (req: Request, res: Response) => {
 
     const DATE = moment().tz("America/Guatemala");
+    const DATE2 = moment().tz("America/Guatemala").add(1, 'days');
 
     const MONTH = DATE.format('M');
     const YEAR = DATE.format('YYYY');
     const DAY = DATE.format('D');
+    const DAY2 = DATE2.format('D');
+
+    const START_DATE = new Date(`${YEAR}, ${MONTH}, ${DAY}`)
+    const END_DATE = new Date(`${YEAR}, ${MONTH}, ${DAY2}`)
 
     Check.find(
         {
             date: {
-                $gte: new Date(`${YEAR}, ${MONTH}, ${DAY}`),
-                $lt: new Date(`${YEAR}, ${MONTH}, ${DAY + 1}`)
+                $gte: START_DATE,
+                $lt:  END_DATE
             },
             voided: false
         }
     )
         .populate('_user')
+        .populate('_bankAccount')
         .populate('accountsPayables')
         .sort({
             name: 1
@@ -61,6 +67,7 @@ CHECK_ROUTER.get('/state', mdAuth, (req: Request, res: Response) => {
         }
     )
         .populate('_user')
+        .populate('_bankAccount')
         .populate('accountsPayables')
         .sort({
             name: 1
@@ -94,6 +101,7 @@ CHECK_ROUTER.get('/deliveries', mdAuth, (req: Request, res: Response) => {
         }
     )
         .populate('_user')
+        .populate('_bankAccount')
         .populate('accountsPayables')
         .sort({
             name: 1
@@ -129,6 +137,7 @@ CHECK_ROUTER.get('/history', mdAuth, (req: Request, res: Response) => {
         }
     )
         .populate('_user')
+        .populate('_bankAccount')
         .populate('accountsPayables')
         .sort({
             date: 1
@@ -198,11 +207,11 @@ CHECK_ROUTER.put('/state/:id', mdAuth, (req: Request, res: Response) => {
                 await PAY_ACCOUNTS_PAYABLE(BODY);
 
                 const NEW_BANK_FLOW = new BankFlow({
-                    _bankAccount: check._bankAccount,
+                    _bankAccount: BODY._bankAccount,
                     _check: check,
                     date: moment().tz("America/Guatemala").format(),
                     document: check.no,
-                    details: `Pago de cheque a nombre de ${check.name}`,
+                    details: `Pago de cheque a nombre de ${check.name} con fecha: ${moment(check.date).tz("America/Guatemala").format('DD/MM/yyyy')}`,
                     credit: 0,
                     debit: check.amount,
                     balance: 0,
