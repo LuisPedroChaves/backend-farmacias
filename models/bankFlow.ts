@@ -6,7 +6,7 @@ import { ICheck } from './check';
 export interface IBankFlow extends Document {
     _bankAccount: IBankAccount['_id'],
     _check: ICheck['_id'],
-    date: Date,
+    date: Date | string,
     document: string,
     details: string,
     credit: number,
