@@ -7,6 +7,9 @@ import AccountsPayable, { IAccountsPayable } from '../models/accountsPayable';
 import { UPDATE_BALANCE } from '../functions/provider';
 import { UPDATE_BANK_BALANCE } from '../functions/bank';
 import BankFlow from '../models/bankFlow';
+import CashRequisition, { ICashRequisition } from '../models/cashRequisition';
+import CashFlow, { ICashFlow } from '../models/cashFlow';
+import { UPDATE_CASH_BALANCE } from '../functions/cash';
 
 const CHECK_ROUTER = Router();
 
@@ -28,7 +31,7 @@ CHECK_ROUTER.get('/today', mdAuth, (req: Request, res: Response) => {
         {
             date: {
                 $gte: START_DATE,
-                $lt:  END_DATE
+                $lt: END_DATE
             },
             voided: false
         }
@@ -36,6 +39,7 @@ CHECK_ROUTER.get('/today', mdAuth, (req: Request, res: Response) => {
         .populate('_user')
         .populate('_bankAccount')
         .populate('accountsPayables')
+        .populate('cashRequisitions')
         .sort({
             name: 1
         })
@@ -69,10 +73,12 @@ CHECK_ROUTER.get('/state', mdAuth, (req: Request, res: Response) => {
         .populate('_user')
         .populate('_bankAccount')
         .populate('accountsPayables')
+        .populate('cashRequisitions')
         .sort({
             name: 1
         })
         .exec(async (err: any, checks: ICheck[]) => {
+
             if (err) {
                 return res.status(500).json({
                     ok: false,
@@ -103,6 +109,7 @@ CHECK_ROUTER.get('/deliveries', mdAuth, (req: Request, res: Response) => {
         .populate('_user')
         .populate('_bankAccount')
         .populate('accountsPayables')
+        .populate('cashRequisitions')
         .sort({
             name: 1
         })
@@ -139,6 +146,7 @@ CHECK_ROUTER.get('/history', mdAuth, (req: Request, res: Response) => {
         .populate('_user')
         .populate('_bankAccount')
         .populate('accountsPayables')
+        .populate('cashRequisitions')
         .sort({
             date: 1
         })
@@ -205,6 +213,7 @@ CHECK_ROUTER.put('/state/:id', mdAuth, (req: Request, res: Response) => {
 
             if (!BODY.voided && BODY.state === 'PAGADO') {
                 await PAY_ACCOUNTS_PAYABLE(BODY);
+                await PAY_CASH_REQUISITIONS(BODY);
 
                 const NEW_BANK_FLOW = new BankFlow({
                     _bankAccount: BODY._bankAccount,
@@ -225,6 +234,7 @@ CHECK_ROUTER.put('/state/:id', mdAuth, (req: Request, res: Response) => {
                 // Entonces eliminamos los balances de cada balances con el cheque
                 // para regresear las cuentas a pendientes de pago
                 await REMOVE_ACCOUNTS_PAYABLE(BODY);
+                await REMOVE_CASH_REQUISITIONS(BODY);
             }
             res.status(200).json({
                 ok: true,
@@ -247,6 +257,7 @@ CHECK_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         amount,
         note,
         accountsPayables,
+        cashRequisitions,
         state
     } = BODY;
 
@@ -260,6 +271,7 @@ CHECK_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         amount,
         note,
         accountsPayables,
+        cashRequisitions,
         state,
         created: moment().tz("America/Guatemala").format(),
     });
@@ -268,6 +280,7 @@ CHECK_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         .save()
         .then(async (check) => {
             await PUSH_ACCOUNTS_PAYABLE(check)
+            await UPDATE_CASH_REQUISITIONS(check)
             res.status(200).json({
                 ok: true,
                 check,
@@ -302,6 +315,15 @@ const PUSH_ACCOUNTS_PAYABLE = async (_check: ICheck): Promise<any> => {
     );
 };
 
+const UPDATE_CASH_REQUISITIONS = async (_check: ICheck): Promise<any> => {
+    return Promise.all(
+        _check.cashRequisitions.map(async (_id: ICashRequisition) => CashRequisition.findByIdAndUpdate(_id, {
+            _check: _check._id,
+            updated: moment().tz("America/Guatemala").format(),
+        }).exec())
+    );
+};
+
 const REMOVE_ACCOUNTS_PAYABLE = async (_check: ICheck): Promise<any> => {
     return Promise.all(
         _check.accountsPayables.map(async (accountsPayable: IAccountsPayable) => {
@@ -312,6 +334,14 @@ const REMOVE_ACCOUNTS_PAYABLE = async (_check: ICheck): Promise<any> => {
                 balance: accountsPayable.balance,
             }).exec()
         })
+    );
+};
+
+const REMOVE_CASH_REQUISITIONS = async (_check: ICheck): Promise<any> => {
+    return Promise.all(
+        _check.cashRequisitions.map(async (cashRequisition: ICashRequisition) => CashRequisition.findByIdAndUpdate(cashRequisition._id, {
+            _check: null
+        }).exec())
     );
 };
 
@@ -331,5 +361,48 @@ const PAY_ACCOUNTS_PAYABLE = async (_check: ICheck): Promise<any> => {
         })
     );
 };
+
+const PAY_CASH_REQUISITIONS = async (_check: ICheck): Promise<any> => {
+    return Promise.all(
+        _check.cashRequisitions.map(async (cashRequisition: ICashRequisition) => {
+
+            let balance = 0
+
+            // Sumamos los ingresos
+            balance = await UPDATE_CASH_BALANCE(cashRequisition._cash, cashRequisition.total)
+
+            const NEW_CASH_FLOW = new CashFlow({
+                _user: _check._user,
+                _cash: cashRequisition._cash,
+                date: moment().tz("America/Guatemala").format(),
+                noBill: _check.no,
+                details: `Pago de requisición`,
+                state: 'SOLICITADO',
+                income: cashRequisition.total,
+                expense: 0,
+                balance,
+                created: moment().tz("America/Guatemala").format(),
+            })
+
+            await NEW_CASH_FLOW.save().then()
+
+            // Actualizamos el estado de los movimientos a pagados
+            await UPDATE_CASH_FLOWS(cashRequisition)
+
+
+            return CashRequisition.findByIdAndUpdate(cashRequisition._id, {
+            paid: true,
+        }).exec()
+})
+    );
+};
+
+const UPDATE_CASH_FLOWS = async (cashRequisition: ICashRequisition): Promise<any> =>
+    Promise.all(
+        cashRequisition._cashFlows.map(async (_id: ICashFlow) => CashFlow.findByIdAndUpdate(_id, {
+            state: 'PAGADO',
+            updated: moment().tz("America/Guatemala").format(),
+        }).exec())
+    );
 
 export default CHECK_ROUTER;

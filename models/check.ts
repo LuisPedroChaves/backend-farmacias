@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 import { IAccountsPayable } from './accountsPayable';
 import { IBankAccount } from './bankAccount';
+import { ICashRequisition } from './cashRequisition';
 import { IUser } from './user';
 
 export interface ICheck extends Document {
@@ -15,6 +16,7 @@ export interface ICheck extends Document {
     note: string,
     receipt: ICheckReceipt,
     accountsPayables: IAccountsPayable[],
+    cashRequisitions: ICashRequisition[],
     paymentDate: Date | string,
     state: string,
     delivered: boolean,
@@ -85,6 +87,10 @@ const checkSchema = new Schema({
     accountsPayables: [{
         type: Schema.Types.ObjectId,
         ref: 'AccountsPayable',
+    }],
+    cashRequisitions: [{
+        type: Schema.Types.ObjectId,
+        ref: 'CashRequisition',
     }],
     paymentDate: {
         type: Date,
