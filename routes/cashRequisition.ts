@@ -1,8 +1,9 @@
 import { Router, Request, Response } from 'express';
 import moment from 'moment-timezone';
-import { CREATE_LOG_DELETE } from '../functions/logDelete';
+import { FilterQuery } from 'mongoose';
 
 import { mdAuth } from '../middleware/auth';
+import { CREATE_LOG_DELETE } from '../functions/logDelete';
 import CashRequisition, { ICashRequisition } from '../models/cashRequisition';
 import CashFlow, { ICashFlow } from '../models/cashFlow';
 
@@ -14,7 +15,64 @@ CASH_REQUISITION_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
         paid: false,
         _logDelete: null
     })
-        .populate('_cashFlows')
+        .populate({
+            path: '_cash',
+            populate: {
+                path: '_user'
+            }
+        })
+        .populate('_check')
+        .populate({
+            path: '_cashFlows',
+            populate: {
+                path: '_user'
+            }
+        })
+        .sort({ created: 1 })
+        .exec((err, cashRequisitions) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando requisiciones',
+                    errors: err,
+                });
+            }
+
+            res.status(200).json({
+                ok: true,
+                cashRequisitions,
+            });
+        });
+});
+
+CASH_REQUISITION_ROUTER.get('/history', mdAuth, (req: Request, res: Response) => {
+    let startDate = new Date(String(req.query.startDate));
+    let endDate = new Date(String(req.query.endDate));
+    endDate.setDate(endDate.getDate() + 1); // Sumamos un día para aplicar bien el filtro
+
+    let conditions: FilterQuery<ICashRequisition> = {
+        created: {
+            $gte: new Date(startDate.toDateString()),
+            $lt: new Date(endDate.toDateString()),
+        },
+        paid: true,
+        _logDelete: null
+    };
+
+    CashRequisition.find(conditions)
+        .populate({
+            path: '_cash',
+            populate: {
+                path: '_user'
+            }
+        })
+        .populate('_check')
+        .populate({
+            path: '_cashFlows',
+            populate: {
+                path: '_user'
+            }
+        })
         .sort({ created: 1 })
         .exec((err, cashRequisitions) => {
             if (err) {
@@ -149,6 +207,7 @@ CASH_REQUISITION_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         _cash,
         _cashFlows,
         total,
+        created: moment().tz("America/Guatemala").format(),
     })
 
     NEW_CASH_REQUISITION.save()

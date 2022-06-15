@@ -1,7 +1,7 @@
 
 import Cash, { ICash } from '../models/cash';
 
-export const UPDATE_BALANCE = (_cash: string, amount: number): Promise<number> => {
+export const UPDATE_CASH_BALANCE = (_cash: string, amount: number): Promise<number> => {
 return new Promise((resolve, reject) => {
 
     Cash.findById(_cash, (err, cash: ICash) => {

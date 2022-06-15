@@ -3,7 +3,7 @@ import moment from 'moment-timezone';
 
 import { mdAuth } from '../middleware/auth';
 import CashFlow, { ICashFlow } from '../models/cashFlow';
-import { UPDATE_BALANCE } from '../functions/cash';
+import { UPDATE_CASH_BALANCE } from '../functions/cash';
 
 const CASH_FLOW_ROUTER = Router();
 
@@ -131,7 +131,7 @@ CASH_FLOW_ROUTER.put('/:id', mdAuth, (req: any, res: Response) => {
 
             if (cashFlow?.state === 'RECHAZADO') {
 
-                const CURRENT_BALANCE = await UPDATE_BALANCE(cashFlow._cash, +cashFlow.expense);
+                const CURRENT_BALANCE = await UPDATE_CASH_BALANCE(cashFlow._cash, +cashFlow.expense);
 
                 CashFlow.find(
                     {
@@ -198,11 +198,11 @@ CASH_FLOW_ROUTER.post('/', mdAuth, async (req: any, res: Response) => {
     let balance = 0;
 
     if (income > 0) { // Sumamos los ingresos
-        balance = await UPDATE_BALANCE(_cash, income)
+        balance = await UPDATE_CASH_BALANCE(_cash, income)
     }
 
     if (expense > 0) { // Restamos los gastos
-        balance = await UPDATE_BALANCE(_cash, -expense)
+        balance = await UPDATE_CASH_BALANCE(_cash, -expense)
     }
 
     const NEW_CASH_FLOW = new CashFlow({
