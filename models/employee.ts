@@ -11,6 +11,7 @@ export interface IEmployee extends Document {
     code: string,
     name: string,
     lastName: string,
+    family: IEmployeeFamily[],
     nit: string,
     email: string,
     birth: Date,
@@ -31,6 +32,17 @@ export interface IEmployee extends Document {
     lastVacationDate: Date,
     details: string,
     fired: string,
+}
+
+export interface IEmployeeFamily extends Document {
+    name: string,
+    birth: Date,
+    type: string
+}
+
+const TIPOS_FAMILIA_VALIDOS = {
+    values: ['partner', 'children', 'momFather'],
+    message: '{VALUE} no es un tipo de familia permitido'
 }
 
 const EMPLOYEE_SCHEMA: Schema = new Schema({
@@ -61,6 +73,20 @@ const EMPLOYEE_SCHEMA: Schema = new Schema({
         type: String,
         required: [true, 'El apellido es necesario'],
     },
+    family: [{
+        name: {
+            type: String,
+        },
+        birth: {
+            type: Date,
+            default: null
+        },
+        type: {
+            type: String,
+            enum: TIPOS_FAMILIA_VALIDOS.values,
+            default: 'partner'
+        },
+    }],
     nit: {
         type: String,
     },
