@@ -6,9 +6,11 @@ import EmployeeJob, { IEmployeeJob } from '../models/employeeJob';
 
 const EMPLOYEE_JOB_ROUTER = Router();
 
-EMPLOYEE_JOB_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
+EMPLOYEE_JOB_ROUTER.get('/:idEmployee', mdAuth, (req: Request, res: Response) => {
+    const _employee = req.params.idEmployee
 
     EmployeeJob.find({
+        _employee,
         _logDelete: null,
     })
         .exec((err, employeeJobs) => {
