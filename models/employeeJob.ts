@@ -21,6 +21,11 @@ export interface IEmployeeJob extends Document {
     workPlace: string
 }
 
+const TIPOS_PAGO_VALIDOS = {
+    values: ['cheque', 'efectivo', 'cuenta'],
+    message: '{VALUE} no es un tipo de pago permitido'
+}
+
 const FLOAT = require('mongoose-float').loadType(mongoose, 2);
 
 const EMPLOYEE_JOB_SCHEMA: Schema = new Schema({
@@ -73,7 +78,9 @@ const EMPLOYEE_JOB_SCHEMA: Schema = new Schema({
         thpe: String
     },
     paymentType: {
-        type: String
+        type: String,
+        enum: TIPOS_PAGO_VALIDOS.values,
+        default: 'cheque'
     },
     workPlace: {
         type: String
