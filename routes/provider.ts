@@ -243,11 +243,12 @@ PROVIDER_ROUTER.post('/xlsx', mdAuth, (req: Request, res: Response) => {
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
                 const PROVIDER = new Provider({
-                    name: doc[0],
-                    address: doc[1],
+                    code: doc[0],
+                    name: doc[1],
                     nit: doc[2],
-                    phone: doc[3],
-                    email: doc[4],
+                    address: doc[3],
+                    phone: doc[4],
+                    email: doc[5],
                 });
 
                 let product = await PROVIDER

@@ -1,6 +1,7 @@
-import mongoose, {Schema, Document} from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IProvider extends Document {
+	code: string,
 	name: string,
 	checkName: string,
 	address: string,
@@ -19,6 +20,10 @@ export interface IProvider extends Document {
 const FLOAT = require('mongoose-float').loadType(mongoose, 2);
 
 const providerSchema: Schema = new Schema({
+	code: {
+		type: Number,
+		default: 0
+	},
 	name: {
 		type: String,
 		required: [true, 'El nombre es necesario'],
@@ -40,7 +45,7 @@ const providerSchema: Schema = new Schema({
 	},
 	creditDays: {
 		type: Number,
-        default: 0
+		default: 0
 	},
 	credit: {
 		type: FLOAT,
