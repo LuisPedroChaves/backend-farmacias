@@ -9,7 +9,7 @@ import { mdAuth } from '../middleware/auth';
 import AccountsPayable, { IAccountsPayable } from '../models/accountsPayable';
 import { UPDATE_BALANCE } from '../functions/provider';
 import { CREATE_LOG_DELETE } from '../functions/logDelete';
-import Provider  from '../models/provider'
+import Provider from '../models/provider'
 
 const ACCOUNTS_PAYABLE_ROUTER = Router();
 ACCOUNTS_PAYABLE_ROUTER.use(fileUpload());
@@ -448,56 +448,40 @@ ACCOUNTS_PAYABLE_ROUTER.post('/xlsx', mdAuth, (req: any, res: Response) => {
 
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
-                Provider.findOne({
+
+                const _provider = await Provider.findOne({
                     code: doc[1],
                     deleted: false
-                }).exec(async (err, _provider) => {
-                    if (err) {
-                        res.status(500).json({
-                            ok: false,
-                            mensaje: 'Error al buscar proveedor',
-                            errors: err,
-                        });
-                    }
+                }).exec();
 
-                    if (_provider) {
-                        let total = doc[5];
-                        total = parseFloat(total)
+                if (_provider) {
+                    let total = doc[5];
+                    total = parseFloat(total)
 
-                        let date = new Date(moment(ExcelDateToJSDate(doc[2])).tz("America/Guatemala").format());
+                    let date = new Date(moment(ExcelDateToJSDate(doc[2])).tz("America/Guatemala").format());
 
-                        const NEW_ACCOUNTS_PAYABLE = new AccountsPayable({
-                            _user: req.user,
-                            _provider,
-                            date,
-                            serie: doc[3],
-                            noBill: doc[4],
-                            total,
-                            toCredit: true,
-                        });
+                    const NEW_ACCOUNTS_PAYABLE = new AccountsPayable({
+                        _user: req.user,
+                        _provider,
+                        date,
+                        serie: doc[3],
+                        noBill: doc[4],
+                        total,
+                        toCredit: true,
+                    });
 
-                        let accountsPayable = await NEW_ACCOUNTS_PAYABLE
-                            .save()
-                            .then(async (accountsPayable: IAccountsPayable) => {
-                                let action = 'SUMA';
+                    let accountsPayable = await NEW_ACCOUNTS_PAYABLE
+                        .save()
+                        .then()
 
-                                if (!accountsPayable.paid) {
-                                    // Solo si es cuenta al crédito
-                                    await UPDATE_BALANCE(accountsPayable._provider, accountsPayable.total, action)
-                                }
+                    let action = 'SUMA';
 
-                                Promise.resolve()
-                            })
-                            .catch(err => {
-                                console.log(err);
-                            })
+                    await UPDATE_BALANCE(accountsPayable._provider, accountsPayable.total, action)
 
-                        } else {
-                            console.log(doc[1]);
-                            console.log(doc[3]);
-                    }
-
-                });
+                } else {
+                    console.log(doc[1]);
+                    console.log(doc[3]);
+                }
             } catch (e: any) {
                 throw new Error(e.message);
             }
