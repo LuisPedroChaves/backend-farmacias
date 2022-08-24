@@ -13,6 +13,7 @@ EMPLOYEE_JOB_ROUTER.get('/:idEmployee', mdAuth, (req: Request, res: Response) =>
         _employee,
         _logDelete: null,
     })
+        .populate('_job')
         .exec((err, employeeJobs) => {
             if (err) {
                 return res.status(500).json({
