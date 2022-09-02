@@ -450,31 +450,32 @@ ACCOUNTS_PAYABLE_ROUTER.post('/xlsx', mdAuth, (req: any, res: Response) => {
             try {
 
                 const _provider = await Provider.findOne({
-                    code: doc[1],
+                    code: doc[0],
                     deleted: false
                 }).exec();
 
                 if (_provider) {
-                    let total = doc[5];
+                    let total = doc[4];
                     total = parseFloat(total)
 
-                    let date = new Date(moment(ExcelDateToJSDate(doc[2])).tz("America/Guatemala").format());
+                    let date = new Date(moment(ExcelDateToJSDate(doc[1])).tz("America/Guatemala").format());
 
                     const NEW_ACCOUNTS_PAYABLE = new AccountsPayable({
                         _user: req.user,
                         _provider,
                         date,
-                        serie: doc[3],
-                        noBill: doc[4],
+                        serie: doc[2],
+                        noBill: doc[3],
                         total,
                         toCredit: true,
+                        docType: 'CREDITO'
                     });
 
                     let accountsPayable = await NEW_ACCOUNTS_PAYABLE
                         .save()
                         .then()
 
-                    let action = 'SUMA';
+                    let action = 'RESTA';
 
                     await UPDATE_BALANCE(accountsPayable._provider, accountsPayable.total, action)
 
