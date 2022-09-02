@@ -11,6 +11,12 @@ DISCOUNT_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
     Discount.find({
         _logDelete: null,
     })
+        .populate({
+            path: '_employeeJob',
+            populate: {
+                path: '_employee'
+            }
+        })
         .sort({ date: -1 })
         .exec((err, discounts) => {
             if (err) {

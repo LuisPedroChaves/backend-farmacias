@@ -11,6 +11,12 @@ RISING_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
     Rising.find({
         _logDelete: null,
     })
+        .populate({
+            path: '_employeeJob',
+            populate: {
+                path: '_employee'
+            }
+        })
         .sort({ date: -1 })
         .exec((err, risings) => {
             if (err) {
