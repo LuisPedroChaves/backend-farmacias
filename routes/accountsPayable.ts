@@ -494,10 +494,78 @@ ACCOUNTS_PAYABLE_ROUTER.post('/xlsx', mdAuth, (req: any, res: Response) => {
         });
     });
 });
+
+ACCOUNTS_PAYABLE_ROUTER.post('/updatexlsx', (req: any, res: Response) => {
+    // Sino envia ningún archivo
+    if (!req.files) {
+        return res.status(400).json({
+            ok: false,
+            mensaje: 'No Selecciono nada',
+            errors: { message: 'Debe de seleccionar un archivo' }
+        });
+    }
+
+    // Obtener nombre y la extensión del archivo
+    const FILE: any = req.files.archivo;
+    const NAME_FILE = FILE.name.split('.');
+    const EXT_FILE = NAME_FILE[NAME_FILE.length - 1];
+
+    // Nombre del archivo personalizado
+    const NEW_NAME_FILE = `${new Date().getMilliseconds()}.${EXT_FILE}`;
+
+    // Mover el archivo de la memoria temporal a un path
+    const PATH = `./uploads/temp/${NEW_NAME_FILE}`;
+
+    FILE.mv(PATH, async (err: any) => {
+
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error al mover archivo',
+                errors: err
+            });
+        }
+
+        const DOC = xlsx.parse(PATH);
+
+        await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
+            try {
+
+                const accountsPayable = await AccountsPayable.findOne({
+                    noBill: doc[3],
+                    deleted: false
+                }).exec();
+
+                if (accountsPayable) {
+
+                    let total = doc[4];
+                    total = parseFloat(total)
+
+                    let date = new Date(moment(ExcelDateToJSDate(doc[1])).tz("America/Guatemala").format());
+
+                    const updated = await AccountsPayable.findByIdAndUpdate(accountsPayable._id, {
+                        date
+                    }).then()
+
+                } else {
+                    console.log(doc[1]);
+                    console.log(doc[3]);
+                }
+            } catch (e: any) {
+                throw new Error(e.message);
+            }
+        });
+
+        return res.status(201).json({
+            ok: true,
+            m: 'FACTURAS EDITADAS'
+        });
+    });
+});
 /* #endregion */
 
 const ExcelDateToJSDate = (serialXlsx: number) => {
-    var utc_days = Math.floor(serialXlsx - 25569);
+    var utc_days = Math.floor(serialXlsx - 25568);
     var utc_value = utc_days * 86400;
     var date_info = new Date(utc_value * 1000);
 
