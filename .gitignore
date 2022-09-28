@@ -2,3 +2,4 @@
 dist/
 node_modules/
 mongo_data/
+.DS_Store
