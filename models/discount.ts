@@ -19,7 +19,7 @@ export interface IDiscount extends Document {
 }
 
 const TIPOS_VALIDOS = {
-    values: ['falta', 'permiso', 'retención', 'suspensiónIGSS', 'citaIGSS'],
+    values: ['falta', 'permiso', 'retención', 'suspensiónIGSS', 'citaIGSS', 'suspensiónTemp', 'llamadasAtención'],
     message: '{VALUE} no es un tipo permitido'
 }
 

@@ -12,6 +12,8 @@ import Purchase from '../models/purchase';
 import AccountsPayable from '../models/accountsPayable';
 import Check from '../models/check';
 import Bank from '../models/bank';
+import Employee from '../models/employee';
+import EmployeeJob from '../models/employeeJob'
 
 // WebSockets Server
 const SERVER = Server.instance;
@@ -25,7 +27,18 @@ uploadRouter.put('/:type/:id', (req: any, res: Response) => {
     const id = req.params.id;
 
     // Tipos de colecciones
-    const VALID_TYPES = ['saleBalances', 'internalOrders', 'internalOrdersDispatch', 'products', 'purchases', 'accountsPayable', 'checkReceipts', 'banks'];
+    const VALID_TYPES = [
+        'saleBalances',
+        'internalOrders',
+        'internalOrdersDispatch',
+        'products',
+        'purchases',
+        'accountsPayable',
+        'checkReceipts',
+        'banks',
+        'employees',
+        'employeeJobs'
+    ];
 
     if (VALID_TYPES.indexOf(type) < 0) {
         return res.status(400).json({
@@ -511,6 +524,110 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             bank.image = newNameFile;
 
             bank.save((err, bank) => {
+                if (err) {
+                    return res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al guardar archivo',
+                        errors: err
+                    });
+                }
+
+                res.status(200).json({
+                    ok: true,
+                    newNameFile
+                });
+            });
+        }),
+        'employees': () => Employee.findById(id, (err, employee) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error al buscar empleado',
+                    errors: err
+                });
+            }
+
+            if (!employee) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'El empleado con el id' + id + ' no existe',
+                    errors: {
+                        message: 'No existe un empleado con ese ID'
+                    }
+                });
+            }
+
+            // Si existe un archivo almacenado anteriormente
+            const oldPath = './uploads/employees/' + employee.photo;
+
+            if (fs.existsSync(oldPath) && employee.photo.length > 0) {
+                // Borramos el archivo antiguo
+                fs.unlink(oldPath, err => {
+                    if (err) {
+                        return res.status(500).json({
+                            ok: false,
+                            mensaje: 'Error al eliminar archivo antiguo',
+                            errors: err
+                        });
+                    }
+                });
+            }
+
+            employee.photo = newNameFile;
+
+            employee.save((err, employee) => {
+                if (err) {
+                    return res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al guardar archivo',
+                        errors: err
+                    });
+                }
+
+                res.status(200).json({
+                    ok: true,
+                    newNameFile
+                });
+            });
+        }),
+        'employeeJobs': () => EmployeeJob.findById(id, (err, employeeJob) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error al buscar puesto del empleado',
+                    errors: err
+                });
+            }
+
+            if (!employeeJob) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'El puesto del empleado con el id' + id + ' no existe',
+                    errors: {
+                        message: 'No existe un puesto del empleado con ese ID'
+                    }
+                });
+            }
+
+            // Si existe un archivo almacenado anteriormente
+            const oldPath = './uploads/employeeJobs/' + employeeJob.contract;
+
+            if (fs.existsSync(oldPath) && employeeJob.contract.length > 0) {
+                // Borramos el archivo antiguo
+                fs.unlink(oldPath, err => {
+                    if (err) {
+                        return res.status(500).json({
+                            ok: false,
+                            mensaje: 'Error al eliminar archivo antiguo',
+                            errors: err
+                        });
+                    }
+                });
+            }
+
+            employeeJob.contract = newNameFile;
+
+            employeeJob.save((err, employeeJob) => {
                 if (err) {
                     return res.status(400).json({
                         ok: false,

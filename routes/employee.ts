@@ -6,10 +6,21 @@ import Employee, { IEmployee } from '../models/employee';
 
 const EMPLOYEE_ROUTER = Router();
 
-EMPLOYEE_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
+EMPLOYEE_ROUTER.get('/', mdAuth, (req: any, res: Response) => {
+
+    let cellars = JSON.parse(req.query.cellars);
+
+    let _cellars: any[] = [];
+
+    cellars.forEach((cellar: any) => {
+        _cellars.push(String(cellar));
+    });
 
     Employee.find({
         _logDelete: null,
+        _cellar: {
+            $in: _cellars
+        }
     })
         .sort({ code: 1 })
         .exec((err, employees) => {

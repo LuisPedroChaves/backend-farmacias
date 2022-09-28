@@ -41,7 +41,7 @@ export interface IEmployeeFamily extends Document {
 }
 
 const TIPOS_FAMILIA_VALIDOS = {
-    values: ['partner', 'children', 'momFather'],
+    values: ['father', 'mother', 'son', 'grandmother', 'grandfather', 'aunt', 'uncle', 'cousin'],
     message: '{VALUE} no es un tipo de familia permitido'
 }
 
