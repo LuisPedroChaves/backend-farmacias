@@ -834,11 +834,11 @@ PRODUCT_ROUTER.post('/xlsx', (req: Request, res: Response) => {
                     // PRESENTACION POR UNIDAD
                     const PRESENTATIONS: any = [];
                     const name: string = 'UNIDAD';
-                    const cost: number = doc[3];
-                    const wholesale_price: number = doc[4];
-                    const distributor_price: number = doc[5];
-                    const retail_price: number = doc[6];
-                    const cf_price: number = doc[7];
+                    const cost: number = 0;
+                    const wholesale_price: number = 0;
+                    const distributor_price: number = 0;
+                    const retail_price: number = 0;
+                    const cf_price: number = 0;
                     const quantity: number = 1;
                     const commission: number = 0;
                     PRESENTATIONS.push({
@@ -860,7 +860,7 @@ PRODUCT_ROUTER.post('/xlsx', (req: Request, res: Response) => {
                         const NEW_PRODUCT = new Product({
                             _brand,
                             code: code,
-                            barcode: doc[0],
+                            barcode: doc[0].trim(),
                             description: DESCRIPTION.toUpperCase(),
                             substances: misSus,
                             presentations: PRESENTATIONS

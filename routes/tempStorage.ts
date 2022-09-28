@@ -639,7 +639,7 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response, next: an
         });
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
-                const BARCODE: string = doc[0];
+                const BARCODE: string = doc[0].trim();
                 const STOCK: number = doc[1];
 
                 let _product = await Product.findOne({
@@ -652,6 +652,7 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response, next: an
                         barcode: BARCODE,
                         error: 'No se encontró un producto con este código'
                     })
+                    console.log('No se encontró un producto con este código')
                 } else {
                     let tempStorage = await TempStorage.findOne({
                         _product,
