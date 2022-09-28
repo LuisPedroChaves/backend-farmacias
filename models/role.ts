@@ -16,7 +16,7 @@ export interface IPermission {
 }
 
 const tiposValidos = {
-	values: ['FACTORY', 'PHARMA', 'ADMIN', 'DELIVERY', 'SELLER'],
+	values: ['FACTORY', 'PHARMA', 'ADMIN', 'DELIVERY', 'SELLER', 'EMPLOYEE'],
 	message: '{VALUE} no es un estado permitido'
 };
 
