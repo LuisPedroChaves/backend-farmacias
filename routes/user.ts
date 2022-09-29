@@ -14,10 +14,11 @@ USER_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
 		{
 			deleted: false,
 		},
-		'_role _cellar name username imageIndex email'
+		'_role _cellar _employee name username imageIndex email'
 	)
 		.populate('_role')
 		.populate('_cellar')
+		.populate('_employee')
 		.sort({ name: 1 })
 		.exec((err, users) => {
 			if (err) {
@@ -93,6 +94,7 @@ USER_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
 
 		user._role = body._role;
 		user._cellar = body._cellar;
+		user._employee = body._employee;
 		user.name = body.name;
 		user.username = body.username;
 		user.imageIndex = body.imageIndex;
@@ -224,6 +226,7 @@ USER_ROUTER.post('/login', mdAuth,  (req: Request, res: Response) => {
 	})
 		.populate('_role', '')
 		.populate('_cellar', '')
+		.populate('_employee', '')
 		.exec((err, userBD) => {
 			if (err) {
 				return res.status(500).json({
@@ -271,6 +274,7 @@ USER_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
 	const user = new User({
 		_role: body._role,
 		_cellar: body._cellar,
+		_employee: body._employee,
 		name: body.name,
 		username: body.username,
 		password: bcrypt.hashSync(body.password, 10),

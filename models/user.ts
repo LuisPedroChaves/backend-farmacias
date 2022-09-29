@@ -1,11 +1,14 @@
 import mongoose, {Schema, Document} from 'mongoose';
 import uniqueValidator from 'mongoose-unique-validator';
+
 import { IRole } from './role';
 import { ICellar } from './cellar';
+import { IEmployee } from './employee';
 
 export interface IUser extends Document {
 	_role: IRole['_id'];
 	_cellar: ICellar['_id'];
+	_employee: IEmployee['_id'];
 	name: string,
 	username: string,
 	password: string,
@@ -23,6 +26,11 @@ const userSchema = new Schema({
 	_cellar: {
 		type: Schema.Types.ObjectId,
 		ref: 'Cellar',
+		default: null
+	},
+	_employee: {
+		type: Schema.Types.ObjectId,
+		ref: 'Employee',
 		default: null
 	},
 	name: {
