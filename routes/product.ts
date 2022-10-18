@@ -791,7 +791,7 @@ PRODUCT_ROUTER.post('/xlsx', (req: Request, res: Response) => {
         let code = 1;
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
-                const BRAND_CODE: number = doc[2];
+                const BRAND_CODE: number = doc[4];
 
                 let _brand = await Brand.findOne({
                     code: BRAND_CODE,
@@ -860,7 +860,7 @@ PRODUCT_ROUTER.post('/xlsx', (req: Request, res: Response) => {
                         const NEW_PRODUCT = new Product({
                             _brand,
                             code: code,
-                            barcode: doc[0].trim(),
+                            barcode: doc[0],
                             description: DESCRIPTION.toUpperCase(),
                             substances: misSus,
                             presentations: PRESENTATIONS
