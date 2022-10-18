@@ -3,6 +3,7 @@ import { Router, Request, Response } from 'express';
 import { CREATE_LOG_DELETE } from '../functions/logDelete';
 import { mdAuth } from '../middleware/auth';
 import Discount, { IDiscount } from '../models/discount';
+import EmployeeJob, { IEmployeeJob } from '../models/employeeJob';
 
 const DISCOUNT_ROUTER = Router();
 
@@ -31,6 +32,34 @@ DISCOUNT_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
                 ok: true,
                 discounts,
             });
+        });
+});
+
+DISCOUNT_ROUTER.get('/:idEmployee', mdAuth, (req: Request, res: Response) => {
+
+    const _employee = req.params.idEmployee
+
+    EmployeeJob.find({
+        _employee,
+        _logDelete: null,
+    })
+        .populate('_job')
+        .exec(async (err, employeeJobs) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando puesto del empleado',
+                    errors: err,
+                });
+            }
+
+            let discounts: any = await SEARCH_DISCOUNTS(employeeJobs)
+
+            res.status(200).json({
+                ok: true,
+                discounts: discounts.flat()
+            });
+
         });
 });
 
@@ -171,5 +200,24 @@ DISCOUNT_ROUTER.post('/', mdAuth, (req: any, res: Response) => {
             });
         })
 })
+
+export const SEARCH_DISCOUNTS = (employeeJob: IEmployeeJob[]): Promise<IDiscount[][]> => {
+    return Promise.all(
+        employeeJob.map(async (_employeeJob: IEmployeeJob) => {
+
+            let discounts = await Discount.find({
+                                    _employeeJob,
+                                    _logDelete: null,
+                                })
+                                    .populate({
+                                        path: '_employeeJob',
+                                    })
+                                    .sort({ date: -1 })
+                                    .exec();
+
+            return discounts
+        })
+    );
+};
 
 export default DISCOUNT_ROUTER;

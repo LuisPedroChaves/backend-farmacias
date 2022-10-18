@@ -39,6 +39,38 @@ EMPLOYEE_ROUTER.get('/', mdAuth, (req: any, res: Response) => {
         });
 });
 
+EMPLOYEE_ROUTER.get('/user', mdAuth, (req: any, res: Response) => {
+
+    const _employee = req.user._employee
+
+	Employee.findById(_employee, (err, employee) => {
+		if (err) {
+			return res.status(500).json({
+				ok: false,
+				mensaje: 'Error al buscar empleado',
+				errors: err,
+			});
+		}
+
+		if (!employee) {
+			return res.status(400).json({
+				ok: false,
+				mensaje: 'El empleado con el id' + _employee + ' no existe',
+				errors: {
+					message: 'No existe un empleado con ese ID',
+				},
+			});
+		}
+
+        Employee.populate(employee, { path: "_job" }, function (err, employee) {
+            res.status(200).json({
+                ok: true,
+                employee,
+            });
+        });
+	});
+});
+
 EMPLOYEE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
     const ID: string = req.params.id;
     const BODY: IEmployee = req.body;
