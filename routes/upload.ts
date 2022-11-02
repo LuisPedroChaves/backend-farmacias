@@ -610,9 +610,9 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/employeeJobs/' + employeeJob.contract;
+            const oldPath = './uploads/employeeJobs/' + employeeJob.agreement;
 
-            if (fs.existsSync(oldPath) && employeeJob.contract.length > 0) {
+            if (fs.existsSync(oldPath) && employeeJob.agreement.length > 0) {
                 // Borramos el archivo antiguo
                 fs.unlink(oldPath, err => {
                     if (err) {
@@ -625,7 +625,7 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
                 });
             }
 
-            employeeJob.contract = newNameFile;
+            employeeJob.agreement = newNameFile;
 
             employeeJob.save((err, employeeJob) => {
                 if (err) {

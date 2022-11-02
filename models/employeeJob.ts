@@ -16,7 +16,7 @@ export interface IEmployeeJob extends Document {
     bonus: number,
     startDate: Date,
     contractType: string,
-    contract: string,
+    agreement: string,
     paymentType: string,
     workPlace: string
 }
@@ -74,7 +74,7 @@ const EMPLOYEE_JOB_SCHEMA: Schema = new Schema({
     contractType: {
         type: String
     },
-    contract: {
+    agreement: {
         thpe: String
     },
     paymentType: {
