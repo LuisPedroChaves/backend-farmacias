@@ -9,7 +9,7 @@ import Product from '../models/product';
 import Brand from '../models/brand';
 import Substance from '../models/substance';
 import Symptoms from '../models/symptoms';
-import { IProduct } from '../models/product';
+import { IProduct, IProductTicket } from '../models/product';
 
 const PRODUCT_ROUTER = Router();
 PRODUCT_ROUTER.use(fileUpload());
@@ -896,6 +896,81 @@ PRODUCT_ROUTER.post('/xlsx', (req: Request, res: Response) => {
         });
     });
 });
+
+PRODUCT_ROUTER.post('/xlsx/ticket', (req: Request, res: Response) => {
+
+    // Sino envia ningún archivo
+    if (!req.files) {
+        return res.status(400).json({
+            ok: false,
+            mensaje: 'No Selecciono nada',
+            errors: { message: 'Debe de seleccionar un archivo' }
+        });
+    }
+
+    // Obtener nombre y la extensión del archivo
+    const FILE: any = req.files.archivo;
+    const NAME_FILE = FILE.name.split('.');
+    const EXT_FILE = NAME_FILE[NAME_FILE.length - 1];
+
+    // Nombre del archivo personalizado
+    const NEW_NAME_FILE = `${new Date().getMilliseconds()}.${EXT_FILE}`;
+
+    // Mover el archivo de la memoria temporal a un path
+    const PATH = `./uploads/temp/${NEW_NAME_FILE}`;
+
+    FILE.mv(PATH, async (err: any) => {
+
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error al mover archivo',
+                errors: err
+            });
+        }
+
+        const DOC = xlsx.parse(PATH);
+
+        let code = 1;
+        await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
+            try {
+
+                let date = new Date(moment(ExcelDateToJSDate(doc[3])).tz("America/Guatemala").format());
+
+                const TICKET: IProductTicket = {
+                    providerCode: doc[1],
+                    loteCode: doc[2],
+                    date
+                }
+
+                const PRODUCT = await Product.findOne({
+                    barcode: doc[0],
+                }).exec();
+
+                if (PRODUCT) {
+
+                    await Product.updateOne({
+                        _id: PRODUCT._id
+                    }, {
+                        ticket: TICKET
+                    }).exec();
+
+                }
+
+                code++;
+                console.log("🚀 ~ file: product.ts ~ line 372 ~ awaitbluebird.mapSeries ~ code", code)
+
+            } catch (e: any) {
+                throw new Error(e.message);
+            }
+        });
+
+        return res.status(200).json({
+            ok: true,
+            m: 'PRODUCTOS INGRESADOS'
+        });
+    });
+});
 /* #endregion */
 
 const SEARCH_SUBSTANCES = (substances: string[]): Promise<[]> => {
@@ -979,5 +1054,24 @@ const SEARCH_SYMPTOMS = (symptoms: string[]): Promise<[]> => {
 
     return Promise.all(PROMISES).then();
 };
+
+const ExcelDateToJSDate = (serialXlsx: number) => {
+    var utc_days = Math.floor(serialXlsx - 25569);
+    var utc_value = utc_days * 86400;
+    var date_info = new Date(utc_value * 1000);
+
+    var fractional_day = serialXlsx - Math.floor(serialXlsx) + 0.0000001;
+
+    var total_seconds = Math.floor(86400 * fractional_day);
+
+    var seconds = total_seconds % 60;
+
+    total_seconds -= seconds;
+
+    var hours = Math.floor(total_seconds / (60 * 60));
+    var minutes = Math.floor(total_seconds / 60) % 60;
+
+    return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
+}
 
 export default PRODUCT_ROUTER;

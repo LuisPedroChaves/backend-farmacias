@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 import { IBrand } from './brand';
 import { ISubstance } from './substance';
 import { ISymptom } from './symptoms';
+import { IProvider } from './provider';
 
 export interface IProduct extends Document {
     _brand: IBrand['_id'];
@@ -17,6 +18,7 @@ export interface IProduct extends Document {
     lastUpdate: string,
     exempt: boolean,
     discontinued: boolean,
+    ticket: IProductTicket,
     deleted: boolean
 }
 export interface IProductPresentations extends Document {
@@ -29,8 +31,26 @@ export interface IProductPresentations extends Document {
     commission: number,
     cost: number,
 }
+export interface IProductTicket {
+    providerCode: string,
+    loteCode: string,
+    date: Date
+}
 
 const Float = require('mongoose-float').loadType(mongoose, 2);
+
+const TICKET_SCHEMA = new Schema({
+    providerCode: {
+        type: String,
+    },
+    loteCode: {
+        type: String,
+    },
+    date: {
+        type: Date,
+        default: null
+    },
+})
 
 const productSchema = new Schema({
     _brand: {
@@ -106,6 +126,10 @@ const productSchema = new Schema({
     discontinued: {
         type: Boolean,
         default: false,
+    },
+    ticket: {
+        type: TICKET_SCHEMA,
+        default: null
     },
     deleted: {
         type: Boolean,
