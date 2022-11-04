@@ -32,6 +32,13 @@ export interface IEmployee extends Document {
     lastVacationDate: Date,
     details: string,
     fired: string,
+    nationality: string,
+    disability: string,
+    foreignPermit: string,
+    igssNumber: string,
+    village: string,
+    linguisticCommunity: string,
+
 }
 
 export interface IEmployeeFamily extends Document {
@@ -43,6 +50,16 @@ export interface IEmployeeFamily extends Document {
 const TIPOS_FAMILIA_VALIDOS = {
     values: ['father', 'mother', 'son', 'grandmother', 'grandfather', 'aunt', 'uncle', 'cousin'],
     message: '{VALUE} no es un tipo de familia permitido'
+}
+
+const TIPOS_PUEBLO_VALIDOS = {
+    values: ['Maya', 'Garifuna', 'Xinca', 'Ladino', 'Otro'],
+    message: '{VALUE} no es un tipo de pueblo permitido'
+}
+
+const TIPOS_COMUNIDAD_VALIDAS = {
+    values: ['Otro', 'Español', 'Achi', 'Akateko', 'Awakateko', 'Chalchiteko', 'Ch’orti’', 'Chuj', 'Garífuna', 'Itza', 'Ixil', 'Kaqchikel', 'K’iche’', 'Mam', 'Mopan', 'Popti', 'Poqomam', 'Poqomchi’', 'Q’anjobal’', 'Q’eqchi', 'Sacapulteko', 'Sipakapense', 'Tektiteko', 'Tz’utujil', 'Uspanteko', 'Xinka'],
+    message: '{VALUE} no es un tipo de comunidad linguistica permitido'
 }
 
 const EMPLOYEE_SCHEMA: Schema = new Schema({
@@ -146,6 +163,28 @@ const EMPLOYEE_SCHEMA: Schema = new Schema({
     },
     fired: {
         type: String,
+    },
+    nationality: {
+        type: String,
+    },
+    disability: {
+        type: String,
+    },
+    foreignPermit: {
+        type: String,
+    },
+    igssNumber: {
+        type: String,
+    },
+    village: {
+        type: String,
+        enum: TIPOS_PUEBLO_VALIDOS.values,
+        default: 'Maya'
+    },
+    linguisticCommunity: {
+        type: String,
+        enum: TIPOS_COMUNIDAD_VALIDAS.values,
+        default: 'Español'
     },
 });
 

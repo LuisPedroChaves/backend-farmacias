@@ -24,7 +24,6 @@ mongoose.set('useCreateIndex', true);
 mongoose.set('useFindAndModify', false);
 mongoose.Promise = global.Promise;
 
-
 mongoose.connection.openUri(
     'mongodb://localhost:27017/farmaciasDB?authSource=admin&readPreference=primary',
     {

@@ -102,6 +102,12 @@ EMPLOYEE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         lastVacationDate,
         details,
         fired,
+        nationality,
+        disability,
+        foreignPermit,
+        igssNumber,
+        village,
+        linguisticCommunity,
     } = BODY;
 
     Employee.findByIdAndUpdate(ID, {
@@ -131,6 +137,12 @@ EMPLOYEE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         lastVacationDate,
         details,
         fired,
+        nationality,
+        disability,
+        foreignPermit,
+        igssNumber,
+        village,
+        linguisticCommunity,
     },
         {
             new: true
@@ -226,6 +238,12 @@ EMPLOYEE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         lastVacationDate,
         details,
         fired,
+        nationality,
+        disability,
+        foreignPermit,
+        igssNumber,
+        village,
+        linguisticCommunity,
     } = BODY;
 
     const NEW_EMPLOYEE = new Employee({
@@ -255,6 +273,12 @@ EMPLOYEE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         lastVacationDate,
         details,
         fired,
+        nationality,
+        disability,
+        foreignPermit,
+        igssNumber,
+        village,
+        linguisticCommunity,
     })
 
     NEW_EMPLOYEE.save()

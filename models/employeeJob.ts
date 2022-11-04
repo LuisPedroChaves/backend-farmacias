@@ -18,7 +18,9 @@ export interface IEmployeeJob extends Document {
     contractType: string,
     agreement: string,
     paymentType: string,
-    workPlace: string
+    workPlace: string,
+    endDate: string,
+    workingDay: string
 }
 
 const TIPOS_PAGO_VALIDOS = {
@@ -83,6 +85,12 @@ const EMPLOYEE_JOB_SCHEMA: Schema = new Schema({
         default: 'cheque'
     },
     workPlace: {
+        type: String
+    },
+    endDate: {
+        type: String
+    },
+    workingDay: {
         type: String
     }
 })

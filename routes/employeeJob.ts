@@ -47,7 +47,9 @@ EMPLOYEE_JOB_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         contractType,
         agreement,
         paymentType,
-        workPlace
+        workPlace,
+        endDate,
+        workingDay
     } = BODY;
 
     EmployeeJob.findByIdAndUpdate(ID, {
@@ -63,7 +65,9 @@ EMPLOYEE_JOB_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         contractType,
         agreement,
         paymentType,
-        workPlace
+        workPlace,
+        endDate,
+        workingDay
     },
         {
             new: true
@@ -149,7 +153,9 @@ EMPLOYEE_JOB_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         contractType,
         agreement,
         paymentType,
-        workPlace
+        workPlace,
+        endDate,
+        workingDay
     } = BODY;
 
     const NEW_EMPLOYEE_JOB = new EmployeeJob({
@@ -165,7 +171,9 @@ EMPLOYEE_JOB_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         contractType,
         agreement,
         paymentType,
-        workPlace
+        workPlace,
+        endDate,
+        workingDay
     })
 
     NEW_EMPLOYEE_JOB.save()

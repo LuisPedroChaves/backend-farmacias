@@ -11,7 +11,7 @@ PAYROLL_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
 
     Payroll.find({
         _logDelete: null,
-    })
+    }, 'description date total state created')
         .sort({ created: -1 })
         .exec((err, payrolls) => {
             if (err) {
@@ -29,12 +29,42 @@ PAYROLL_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
         });
 });
 
+PAYROLL_ROUTER.get('/:id', mdAuth, (req: Request, res: Response) => {
+	const id: string = req.params.id;
+
+	Payroll.findById(id, (err, payroll) => {
+		if (err) {
+			return res.status(500).json({
+				ok: false,
+				mensaje: 'Error al buscar planilla',
+				errors: err,
+			});
+		}
+
+		if (!payroll) {
+			return res.status(400).json({
+				ok: false,
+				mensaje: 'La planilla con el id' + id + ' no existe',
+				errors: {
+					message: 'No existe una planilla con ese ID',
+				},
+			});
+		}
+
+		res.status(200).json({
+			ok: true,
+			payroll,
+		});
+	});
+});
+
 PAYROLL_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
     const ID: string = req.params.id;
     const BODY: IPayroll = req.body;
 
     const {
         description,
+        date,
         details,
         total,
         state
@@ -42,6 +72,7 @@ PAYROLL_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
 
     Payroll.findByIdAndUpdate(ID, {
         description,
+        date,
         details,
         total,
         state
@@ -115,6 +146,7 @@ PAYROLL_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
 
     const {
         description,
+        date,
         details,
         total,
         state
@@ -122,6 +154,7 @@ PAYROLL_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
 
     const NEW_PAYROLL = new Payroll({
         description,
+        date,
         details,
         total,
         created: moment().tz("America/Guatemala").format(),
