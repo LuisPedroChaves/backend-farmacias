@@ -4,6 +4,8 @@ import moment from 'moment-timezone';
 import { CREATE_LOG_DELETE } from '../functions/logDelete';
 import { mdAuth } from '../middleware/auth';
 import Payroll, { IPayroll } from '../models/payroll';
+import EmployeeJob from '../models/employeeJob';
+import Employee from '../models/employee';
 
 const PAYROLL_ROUTER = Router();
 
@@ -30,32 +32,39 @@ PAYROLL_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
 });
 
 PAYROLL_ROUTER.get('/:id', mdAuth, (req: Request, res: Response) => {
-	const id: string = req.params.id;
+    const id: string = req.params.id;
 
-	Payroll.findById(id, (err, payroll) => {
-		if (err) {
-			return res.status(500).json({
-				ok: false,
-				mensaje: 'Error al buscar planilla',
-				errors: err,
-			});
-		}
+    Payroll.findById(id, (err, payroll) => {
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error al buscar planilla',
+                errors: err,
+            });
+        }
 
-		if (!payroll) {
-			return res.status(400).json({
-				ok: false,
-				mensaje: 'La planilla con el id' + id + ' no existe',
-				errors: {
-					message: 'No existe una planilla con ese ID',
-				},
-			});
-		}
+        if (!payroll) {
+            return res.status(400).json({
+                ok: false,
+                mensaje: 'La planilla con el id' + id + ' no existe',
+                errors: {
+                    message: 'No existe una planilla con ese ID',
+                },
+            });
+        }
 
-		res.status(200).json({
-			ok: true,
-			payroll,
-		});
-	});
+        EmployeeJob.populate(payroll, { path: "details._employeeJob" }, function (err, payroll) {
+            Employee.populate(payroll, { path: "details._employeeJob._employee" }, async function (err, payroll) {
+
+                res.status(200).json({
+                    ok: true,
+                    payroll,
+                });
+
+            });
+        });
+
+    });
 });
 
 PAYROLL_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
