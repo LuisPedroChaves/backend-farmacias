@@ -935,6 +935,7 @@ PRODUCT_ROUTER.post('/xlsx/ticket', (req: Request, res: Response) => {
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
 
+                const BARCODE: string = doc[0].trim();
                 let date = new Date(moment(ExcelDateToJSDate(doc[3])).tz("America/Guatemala").format());
 
                 const TICKET: IProductTicket = {
@@ -944,7 +945,7 @@ PRODUCT_ROUTER.post('/xlsx/ticket', (req: Request, res: Response) => {
                 }
 
                 const PRODUCT = await Product.findOne({
-                    barcode: doc[0],
+                    barcode: BARCODE,
                 }).exec();
 
                 if (PRODUCT) {
