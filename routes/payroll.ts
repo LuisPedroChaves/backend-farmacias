@@ -84,12 +84,14 @@ PAYROLL_ROUTER.get('/:id', mdAuth, (req: Request, res: Response) => {
 
         EmployeeJob.populate(payroll, { path: "details._employeeJob" }, function (err, payroll) {
             Employee.populate(payroll, { path: "details._employeeJob._employee" }, async function (err, payroll) {
+                Employee.populate(payroll, { path: "details._employeeJob._job" }, async function (err, payroll) {
 
-                res.status(200).json({
-                    ok: true,
-                    payroll,
+                    res.status(200).json({
+                        ok: true,
+                        payroll,
+                    });
+
                 });
-
             });
         });
 

@@ -54,6 +54,16 @@ const PAYROLL_SCHEMA: Schema = new Schema({
             ref: 'EmployeeJob',
             required: [true, 'El puesto del empleado es necesario'],
         },
+        risings: [{
+            type: Schema.Types.ObjectId,
+            ref: 'Rising',
+            default: null
+        }],
+        discounts: [{
+            type: Schema.Types.ObjectId,
+            ref: 'Discount',
+            default: null
+        }],
         incentiveBonus: {
             type: FLOAT,
             default: 0
