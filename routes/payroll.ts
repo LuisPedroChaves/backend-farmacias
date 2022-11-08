@@ -7,6 +7,7 @@ import Payroll, { IPayroll } from '../models/payroll';
 import { IPayrollDetail } from '../models/payroll';
 import EmployeeJob, { IEmployeeJob } from '../models/employeeJob';
 import Employee from '../models/employee';
+import Job from '../models/job';
 import Rising, { IRising } from '../models/rising';
 import Discount, { IDiscount } from '../models/discount';
 
@@ -84,7 +85,7 @@ PAYROLL_ROUTER.get('/:id', mdAuth, (req: Request, res: Response) => {
 
         EmployeeJob.populate(payroll, { path: "details._employeeJob" }, function (err, payroll) {
             Employee.populate(payroll, { path: "details._employeeJob._employee" }, async function (err, payroll) {
-                EmployeeJob.populate(payroll, { path: "details._employeeJob._job" }, async function (err, payroll) {
+                Job.populate(payroll, { path: "details._employeeJob._job" }, async function (err, payroll) {
 
                     res.status(200).json({
                         ok: true,
