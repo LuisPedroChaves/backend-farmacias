@@ -2,6 +2,8 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 import { ILogDelete } from './logDelete';
 import { IEmployeeJob } from './employeeJob';
+import { IRising } from './rising';
+import { IDiscount } from './discount';
 
 export interface IPayroll extends Document {
     _logDelete: ILogDelete['_id'],
@@ -23,6 +25,8 @@ export interface IPayrollDetail extends Document {
     credits: number,
     foults: number,
     total: number,
+    risings: IRising[],
+    discounts: IDiscount[]
 }
 
 const ESTADOS_VALIDOS = {

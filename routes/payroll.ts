@@ -4,6 +4,7 @@ import moment from 'moment-timezone';
 import { CREATE_LOG_DELETE } from '../functions/logDelete';
 import { mdAuth } from '../middleware/auth';
 import Payroll, { IPayroll } from '../models/payroll';
+import { IPayrollDetail } from '../models/payroll';
 import EmployeeJob, { IEmployeeJob } from '../models/employeeJob';
 import Employee from '../models/employee';
 import Rising, { IRising } from '../models/rising';
@@ -201,6 +202,8 @@ PAYROLL_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
     NEW_PAYROLL.save()
         .then(async (payroll: IPayroll) => {
 
+            await UPDATE_DETAILS(details)
+
             res.status(200).json({
                 ok: true,
                 payroll,
@@ -279,6 +282,19 @@ export const SEARCH_DETAILS = (employeeJob: IEmployeeJob[]): Promise<any> => {
     );
 };
 
+export const UPDATE_DETAILS = (details: IPayrollDetail[]): Promise<any> => {
+    return Promise.all(
+
+        details.map(async (detail: IPayrollDetail) => {
+
+            await UPDATE_DISCOUNTS(detail.discounts)
+            await UPDATE_RISINGS(detail.risings)
+
+            return true
+        })
+    );
+};
+
 const UPDATE_RISINGS = async (risings: IRising[]): Promise<any> => {
     return Promise.all(
         risings.map(async (rising: IRising) => {
@@ -310,7 +326,5 @@ const UPDATE_DISCOUNTS = async (discounts: IDiscount[]): Promise<any> => {
         })
     );
 };
-
-
 
 export default PAYROLL_ROUTER;
