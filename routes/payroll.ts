@@ -165,7 +165,7 @@ PAYROLL_ROUTER.delete('/:id', mdAuth, (req: any, res: Response) => {
 
         payroll._logDelete = LOG_DELETE;
 
-        payroll.save((err, payroll) => {
+        payroll.save(async (err, payroll) => {
             if (err) {
                 return res.status(400).json({
                     ok: false,
@@ -173,6 +173,8 @@ PAYROLL_ROUTER.delete('/:id', mdAuth, (req: any, res: Response) => {
                     errors: err,
                 });
             }
+
+            await UPDATE_DETAILS(payroll.details, false)
 
             res.status(200).json({
                 ok: true,
@@ -205,7 +207,7 @@ PAYROLL_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
     NEW_PAYROLL.save()
         .then(async (payroll: IPayroll) => {
 
-            await UPDATE_DETAILS(details)
+            await UPDATE_DETAILS(details, true)
 
             res.status(200).json({
                 ok: true,
@@ -285,47 +287,70 @@ export const SEARCH_DETAILS = (employeeJob: IEmployeeJob[]): Promise<any> => {
     );
 };
 
-export const UPDATE_DETAILS = (details: IPayrollDetail[]): Promise<any> => {
+export const UPDATE_DETAILS = (details: IPayrollDetail[], applied: boolean): Promise<any> => {
     return Promise.all(
 
         details.map(async (detail: IPayrollDetail) => {
 
-            await UPDATE_DISCOUNTS(detail.discounts)
-            await UPDATE_RISINGS(detail.risings)
+            await UPDATE_DISCOUNTS(detail.discounts, applied)
+            await UPDATE_RISINGS(detail.risings, applied)
 
             return true
         })
     );
 };
 
-const UPDATE_RISINGS = async (risings: IRising[]): Promise<any> => {
+const UPDATE_RISINGS = async (risings: IRising[], applied: boolean): Promise<any> => {
     return Promise.all(
         risings.map(async (rising: IRising) => {
 
+            if (applied) {
+                return Rising.updateOne(
+                    {
+                        _id: rising._id,
+                    },
+                    {
+                        applied,
+                    },
+                ).exec();
+            }
+
             return Rising.updateOne(
                 {
-                    _id: rising._id,
+                    _id: rising,
                 },
                 {
-                    applied: true,
+                    applied,
                 },
             ).exec();
         })
     );
 };
 
-const UPDATE_DISCOUNTS = async (discounts: IDiscount[]): Promise<any> => {
+const UPDATE_DISCOUNTS = async (discounts: IDiscount[], applied: boolean): Promise<any> => {
     return Promise.all(
         discounts.map(async (discount: IDiscount) => {
 
+            if (applied) {
+                return Discount.updateOne(
+                    {
+                        _id: discount._id,
+                    },
+                    {
+                        applied,
+                    },
+                ).exec();
+            }
+
             return Discount.updateOne(
                 {
-                    _id: discount._id,
+                    _id: discount,
                 },
                 {
-                    applied: true,
+                    applied,
                 },
             ).exec();
+
         })
     );
 };
