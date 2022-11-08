@@ -4,8 +4,10 @@ import moment from 'moment-timezone';
 import { CREATE_LOG_DELETE } from '../functions/logDelete';
 import { mdAuth } from '../middleware/auth';
 import Payroll, { IPayroll } from '../models/payroll';
-import EmployeeJob from '../models/employeeJob';
+import EmployeeJob, { IEmployeeJob } from '../models/employeeJob';
 import Employee from '../models/employee';
+import Rising, { IRising } from '../models/rising';
+import Discount, { IDiscount } from '../models/discount';
 
 const PAYROLL_ROUTER = Router();
 
@@ -27,6 +29,32 @@ PAYROLL_ROUTER.get('/', mdAuth, (req: Request, res: Response) => {
             res.status(200).json({
                 ok: true,
                 payrolls,
+            });
+        });
+});
+
+PAYROLL_ROUTER.get('/details', mdAuth, (req: Request, res: Response) => {
+
+    EmployeeJob.find({
+        _logDelete: null,
+    })
+        .populate('_job')
+        .populate('_employee')
+        .sort({ created: -1 })
+        .exec(async (err, employeeJobs) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error listando detalle de planilla',
+                    errors: err,
+                });
+            }
+
+            let details: any[] = await SEARCH_DETAILS(employeeJobs)
+
+            res.status(200).json({
+                ok: true,
+                details,
             });
         });
 });
@@ -187,5 +215,102 @@ PAYROLL_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
             });
         })
 })
+
+export const SEARCH_DETAILS = (employeeJob: IEmployeeJob[]): Promise<any> => {
+    return Promise.all(
+        employeeJob.map(async (_employeeJob: IEmployeeJob) => {
+
+            let detail: any = {}
+            let total: number = _employeeJob.initialSalary;
+
+            detail._employeeJob = _employeeJob
+            detail.incentiveBonus = 250
+            total += 250
+
+            let risings = await Rising.find({
+                approved: true,
+                applied: false
+            })
+                .sort({ date: -1 })
+                .exec()
+
+            const jobBonus = risings.reduce((sum, item) => {
+                if (item.type === 'horasExtra' || item.type === 'comisión' || item.type === 'bono') {
+                    return sum + item.amount
+                }
+                return sum + 0
+            }, 0)
+
+            detail.jobBonus = jobBonus
+            total += jobBonus
+            detail.otherBonus = 0
+
+            const igss = +(_employeeJob.initialSalary * 0.0483).toFixed(2)
+
+            detail.igss = igss
+            total -= igss
+            detail.productCharges = 0
+            detail.credits = 0
+
+            let discounts = await Discount.find({
+                approved: true,
+                hasDiscount: true,
+                applied: false
+            })
+                .sort({ date: -1 })
+                .exec()
+
+            const foults = risings.reduce((sum, item) => {
+                if (item.type === 'horasExtra' || item.type === 'comisión' || item.type === 'bono') {
+                    return sum + item.amount
+                }
+                return sum + 0
+            }, 0)
+
+            detail.foults = foults
+            total -= foults
+
+            detail.total = total
+            detail.risings = risings
+            detail.discounts = discounts
+
+            return detail
+        })
+    );
+};
+
+const UPDATE_RISINGS = async (risings: IRising[]): Promise<any> => {
+    return Promise.all(
+        risings.map(async (rising: IRising) => {
+
+            return Rising.updateOne(
+                {
+                    _id: rising._id,
+                },
+                {
+                    applied: true,
+                },
+            ).exec();
+        })
+    );
+};
+
+const UPDATE_DISCOUNTS = async (discounts: IDiscount[]): Promise<any> => {
+    return Promise.all(
+        discounts.map(async (discount: IDiscount) => {
+
+            return Discount.updateOne(
+                {
+                    _id: discount._id,
+                },
+                {
+                    applied: true,
+                },
+            ).exec();
+        })
+    );
+};
+
+
 
 export default PAYROLL_ROUTER;
