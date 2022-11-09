@@ -269,7 +269,7 @@ export const SEARCH_DETAILS = (employeeJob: IEmployeeJob[]): Promise<any> => {
                 .exec()
 
             const foults = risings.reduce((sum, item) => {
-                if (item.type === 'horasExtra' || item.type === 'comisión' || item.type === 'bono') {
+                if (item.type === 'comisión' || item.type === 'bono') {
                     return sum + item.amount
                 }
                 return sum + 0
@@ -277,6 +277,16 @@ export const SEARCH_DETAILS = (employeeJob: IEmployeeJob[]): Promise<any> => {
 
             detail.foults = foults
             total -= foults
+
+            const extraHours = risings.reduce((sum, item) => {
+                if (item.type === 'horasExtra') {
+                    return sum + item.amount
+                }
+                return sum + 0
+            }, 0)
+
+            detail.extraHours = extraHours
+            total -= extraHours
 
             detail.total = total
             detail.risings = risings
