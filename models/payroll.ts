@@ -25,6 +25,7 @@ export interface IPayrollDetail extends Document {
     credits: number,
     foults: number,
     extraHours: number,
+    holiday: number,
     total: number,
     risings: IRising[],
     discounts: IDiscount[]
@@ -94,6 +95,10 @@ const PAYROLL_SCHEMA: Schema = new Schema({
             default: 0
         },
         extraHours: {
+            type: FLOAT,
+            default: 0
+        },
+        holiday: {
             type: FLOAT,
             default: 0
         },

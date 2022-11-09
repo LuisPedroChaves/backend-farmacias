@@ -243,14 +243,41 @@ export const SEARCH_DETAILS = (employeeJob: IEmployeeJob[]): Promise<any> => {
                 .exec()
 
             const jobBonus = risings.reduce((sum, item) => {
-                if (item.type === 'horasExtra' || item.type === 'comisión' || item.type === 'bono') {
+
+                if (item.type === 'comisión' || item.type === 'bono') {
                     return sum + item.amount
                 }
-                return sum + 0
-            }, 0)
 
+                return sum + 0
+
+            }, 0)
             detail.jobBonus = jobBonus
             total += jobBonus
+
+            const extraHours = risings.reduce((sum, item) => {
+
+                if (item.type === 'horasExtra') {
+                    return sum + item.amount
+                }
+
+                return sum + 0
+
+            }, 0)
+            detail.extraHours = extraHours
+            total += extraHours
+
+            const holiday = risings.reduce((sum, item) => {
+
+                if (item.type === 'asueto') {
+                    return sum + item.amount
+                }
+
+                return sum + 0
+
+            }, 0)
+            detail.holiday = holiday
+            total += holiday
+
             detail.otherBonus = 0
 
             const igss = +(_employeeJob.initialSalary * 0.0483).toFixed(2)
@@ -268,25 +295,18 @@ export const SEARCH_DETAILS = (employeeJob: IEmployeeJob[]): Promise<any> => {
                 .sort({ date: -1 })
                 .exec()
 
-            const foults = risings.reduce((sum, item) => {
-                if (item.type === 'comisión' || item.type === 'bono') {
+            const foults = discounts.reduce((sum, item) => {
+
+                if (item.type === 'citaIGSS' || item.type === 'falta' || item.type === 'permiso' || item.type === 'suspensiónIGSS' || item.type === 'suspensiónTemp') {
                     return sum + item.amount
                 }
+
                 return sum + 0
+
             }, 0)
 
             detail.foults = foults
             total -= foults
-
-            const extraHours = risings.reduce((sum, item) => {
-                if (item.type === 'horasExtra') {
-                    return sum + item.amount
-                }
-                return sum + 0
-            }, 0)
-
-            detail.extraHours = extraHours
-            total -= extraHours
 
             detail.total = total
             detail.risings = risings

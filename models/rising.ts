@@ -18,7 +18,7 @@ export interface IRising extends Document {
 }
 
 const TIPOS_VALIDOS = {
-    values: ['horasExtra', 'comisión', 'bono', 'aumentoSalario'],
+    values: ['horasExtra', 'comisión', 'bono', 'aumentoSalario', 'asueto'],
     message: '{VALUE} no es un tipo permitido'
 }
 
