@@ -236,6 +236,7 @@ export const SEARCH_DETAILS = (employeeJob: IEmployeeJob[]): Promise<any> => {
             total += 250
 
             let risings = await Rising.find({
+                _employeeJob: _employeeJob._id,
                 approved: true,
                 applied: false
             })
@@ -288,6 +289,7 @@ export const SEARCH_DETAILS = (employeeJob: IEmployeeJob[]): Promise<any> => {
             detail.credits = 0
 
             let discounts = await Discount.find({
+                _employeeJob: _employeeJob._id,
                 approved: true,
                 hasDiscount: true,
                 applied: false
