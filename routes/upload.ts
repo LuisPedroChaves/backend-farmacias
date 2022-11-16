@@ -37,7 +37,11 @@ uploadRouter.put('/:type/:id', (req: any, res: Response) => {
         'checkReceipts',
         'banks',
         'employees',
-        'employeeJobs'
+        'vacations',
+        'contractLaw',
+        'internalContract',
+        'confidentialityContract',
+        'newContract',
     ];
 
     if (VALID_TYPES.indexOf(type) < 0) {
@@ -590,29 +594,92 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
                 });
             });
         }),
-        'employeeJobs': () => EmployeeJob.findById(id, (err, employeeJob) => {
+        'vacations': () => Employee.findOne(
+            { "vacations._id": id },
+            { "vacations.$": true },
+            (err, employee) => {
+
+                if (err) {
+                    return res.status(500).json({
+                        ok: false,
+                        mensaje: 'Error when searching for vacation',
+                        errors: err
+                    });
+                }
+
+                if (!employee) {
+                    return res.status(400).json({
+                        ok: false,
+                        mensaje: 'The vacation with the id' + id + ' does not exist',
+                        errors: {
+                            message: 'There is no vacation with this ID'
+                        }
+                    });
+                }
+
+                // Si existe un archivo almacenado anteriormente
+                const oldPath = './uploads/vacations/' + employee.vacations[0].constancy;
+
+                if (fs.existsSync(oldPath)) {
+                    // Borramos el archivo antiguo
+                    fs.unlink(oldPath, err => {
+                        if (err) {
+                            return res.status(500).json({
+                                ok: false,
+                                mensaje: 'Error deleting old file',
+                                errors: err
+                            });
+                        }
+                    });
+                }
+
+
+                Employee.updateOne(
+                    {
+                        _id: employee._id,
+                        'vacations._id': id,
+                    },
+                    {
+                        'vacations.$.constancy': newNameFile,
+                    },
+                ).exec((err: any, result: any) => {
+                    if (err) {
+                        return res.status(400).json({
+                            ok: false,
+                            mensaje: 'Error saving file',
+                            errors: err
+                        });
+                    }
+
+                    res.status(200).json({
+                        ok: true,
+                        newNameFile
+                    });
+                });
+        }),
+        'contractLaw': () => Employee.findById(id, (err, employee) => {
             if (err) {
                 return res.status(500).json({
                     ok: false,
-                    mensaje: 'Error al buscar puesto del empleado',
+                    mensaje: 'Error al buscar empleado',
                     errors: err
                 });
             }
 
-            if (!employeeJob) {
+            if (!employee) {
                 return res.status(400).json({
                     ok: false,
-                    mensaje: 'El puesto del empleado con el id' + id + ' no existe',
+                    mensaje: 'El empleado con el id' + id + ' no existe',
                     errors: {
-                        message: 'No existe un puesto del empleado con ese ID'
+                        message: 'No existe un empleado con ese ID'
                     }
                 });
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/employeeJobs/' + employeeJob.agreement;
+            const oldPath = './uploads/contractLaws/' + employee.contractLaw;
 
-            if (fs.existsSync(oldPath) && employeeJob.agreement.length > 0) {
+            if (fs.existsSync(oldPath) && employee.contractLaw.length > 0) {
                 // Borramos el archivo antiguo
                 fs.unlink(oldPath, err => {
                     if (err) {
@@ -625,9 +692,217 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
                 });
             }
 
-            employeeJob.agreement = newNameFile;
+            employee.contractLaw = newNameFile;
 
-            employeeJob.save((err, employeeJob) => {
+            employee.save((err, employee) => {
+                if (err) {
+                    return res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al guardar archivo',
+                        errors: err
+                    });
+                }
+
+                res.status(200).json({
+                    ok: true,
+                    newNameFile
+                });
+            });
+        }),
+        'internalContract': () => Employee.findById(id, (err, employee) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error al buscar empleado',
+                    errors: err
+                });
+            }
+
+            if (!employee) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'El empleado con el id' + id + ' no existe',
+                    errors: {
+                        message: 'No existe un empleado con ese ID'
+                    }
+                });
+            }
+
+            // Si existe un archivo almacenado anteriormente
+            const oldPath = './uploads/internalContracts/' + employee.internalContract;
+
+            if (fs.existsSync(oldPath) && employee.internalContract.length > 0) {
+                // Borramos el archivo antiguo
+                fs.unlink(oldPath, err => {
+                    if (err) {
+                        return res.status(500).json({
+                            ok: false,
+                            mensaje: 'Error al eliminar archivo antiguo',
+                            errors: err
+                        });
+                    }
+                });
+            }
+
+            employee.internalContract = newNameFile;
+
+            employee.save((err, employee) => {
+                if (err) {
+                    return res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al guardar archivo',
+                        errors: err
+                    });
+                }
+
+                res.status(200).json({
+                    ok: true,
+                    newNameFile
+                });
+            });
+        }),
+        'confidentialityContract': () => Employee.findById(id, (err, employee) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error al buscar empleado',
+                    errors: err
+                });
+            }
+
+            if (!employee) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'El empleado con el id' + id + ' no existe',
+                    errors: {
+                        message: 'No existe un empleado con ese ID'
+                    }
+                });
+            }
+
+            // Si existe un archivo almacenado anteriormente
+            const oldPath = './uploads/confidentialityContracts/' + employee.confidentialityContract;
+
+            if (fs.existsSync(oldPath) && employee.confidentialityContract.length > 0) {
+                // Borramos el archivo antiguo
+                fs.unlink(oldPath, err => {
+                    if (err) {
+                        return res.status(500).json({
+                            ok: false,
+                            mensaje: 'Error al eliminar archivo antiguo',
+                            errors: err
+                        });
+                    }
+                });
+            }
+
+            employee.confidentialityContract = newNameFile;
+
+            employee.save((err, employee) => {
+                if (err) {
+                    return res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al guardar archivo',
+                        errors: err
+                    });
+                }
+
+                res.status(200).json({
+                    ok: true,
+                    newNameFile
+                });
+            });
+        }),
+        'newContract': () => Employee.findById(id, (err, employee) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error al buscar empleado',
+                    errors: err
+                });
+            }
+
+            if (!employee) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'El empleado con el id' + id + ' no existe',
+                    errors: {
+                        message: 'No existe un empleado con ese ID'
+                    }
+                });
+            }
+
+            // Si existe un archivo almacenado anteriormente
+            const oldPath = './uploads/newContracts/' + employee.newContract;
+
+            if (fs.existsSync(oldPath) && employee.newContract.length > 0) {
+                // Borramos el archivo antiguo
+                fs.unlink(oldPath, err => {
+                    if (err) {
+                        return res.status(500).json({
+                            ok: false,
+                            mensaje: 'Error al eliminar archivo antiguo',
+                            errors: err
+                        });
+                    }
+                });
+            }
+
+            employee.newContract = newNameFile;
+
+            employee.save((err, employee) => {
+                if (err) {
+                    return res.status(400).json({
+                        ok: false,
+                        mensaje: 'Error al guardar archivo',
+                        errors: err
+                    });
+                }
+
+                res.status(200).json({
+                    ok: true,
+                    newNameFile
+                });
+            });
+        }),
+        'cv': () => Employee.findById(id, (err, employee) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error al buscar empleado',
+                    errors: err
+                });
+            }
+
+            if (!employee) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'El empleado con el id' + id + ' no existe',
+                    errors: {
+                        message: 'No existe un empleado con ese ID'
+                    }
+                });
+            }
+
+            // Si existe un archivo almacenado anteriormente
+            const oldPath = './uploads/cvs/' + employee.cv;
+
+            if (fs.existsSync(oldPath) && employee.cv.length > 0) {
+                // Borramos el archivo antiguo
+                fs.unlink(oldPath, err => {
+                    if (err) {
+                        return res.status(500).json({
+                            ok: false,
+                            mensaje: 'Error al eliminar archivo antiguo',
+                            errors: err
+                        });
+                    }
+                });
+            }
+
+            employee.cv = newNameFile;
+
+            employee.save((err, employee) => {
                 if (err) {
                     return res.status(400).json({
                         ok: false,

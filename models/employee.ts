@@ -8,7 +8,8 @@ export interface IEmployee extends Document {
     _logDelete: ILogDelete['_id'],
     _bank: IBank['_id'],
     _cellar: ICellar['_id'],
-    code: string,
+    _cellarIGSS: ICellar['_id'],
+    code: number,
     name: string,
     lastName: string,
     family: IEmployeeFamily[],
@@ -38,13 +39,33 @@ export interface IEmployee extends Document {
     igssNumber: string,
     village: string,
     linguisticCommunity: string,
-
+    emergencyContact: IEmployeeEmergencyContact,
+    vacations: IEmployeeVacation[],
+    contractLaw: string,
+    internalContract: string,
+    confidentialityContract: string,
+    newContract: string,
+    cv: string
 }
 
 export interface IEmployeeFamily extends Document {
     name: string,
     birth: Date,
-    type: string
+    type: string,
+    phone: string,
+}
+
+export interface IEmployeeEmergencyContact {
+    name: string,
+    phone: string
+}
+
+export interface IEmployeeVacation extends Document {
+    year: number,
+    start: Date,
+    end: Date,
+    constancy: string,
+    details: string,
 }
 
 const TIPOS_FAMILIA_VALIDOS = {
@@ -62,6 +83,15 @@ const TIPOS_COMUNIDAD_VALIDAS = {
     message: '{VALUE} no es un tipo de comunidad linguistica permitido'
 }
 
+const EMERGENCY_CONTACT_SCHEMA = new Schema({
+    name: {
+        type: String,
+    },
+    phone: {
+        type: String,
+    },
+})
+
 const EMPLOYEE_SCHEMA: Schema = new Schema({
     _logDelete: {
         type: Schema.Types.ObjectId,
@@ -78,9 +108,14 @@ const EMPLOYEE_SCHEMA: Schema = new Schema({
         ref: 'Cellar',
         required: [true, 'La sucursal es necesaria'],
     },
+    _cellarIGSS: {
+        type: Schema.Types.ObjectId,
+        ref: 'Cellar',
+        required: [true, 'La sucursal de IGSS es necesaria'],
+    },
     code: {
-        type: String,
-        required: [true, 'El código es necesario'],
+        type: Number,
+        default: 0
     },
     name: {
         type: String,
@@ -102,6 +137,9 @@ const EMPLOYEE_SCHEMA: Schema = new Schema({
             type: String,
             enum: TIPOS_FAMILIA_VALIDOS.values,
             default: 'partner'
+        },
+        phone: {
+            type: String,
         },
     }],
     nit: {
@@ -185,6 +223,50 @@ const EMPLOYEE_SCHEMA: Schema = new Schema({
         type: String,
         enum: TIPOS_COMUNIDAD_VALIDAS.values,
         default: 'Español'
+    },
+    emergencyContact: {
+        type: EMERGENCY_CONTACT_SCHEMA,
+        default: null
+    },
+    vacations: [{
+        year: {
+            type: Number,
+            default: 0
+        },
+        start: {
+            type: Date,
+            default: null
+        },
+        end: {
+            type: Date,
+            default: null
+        },
+        constancy: {
+            type: String,
+        },
+        details: {
+            type: String,
+        },
+    }],
+    contractLaw: {
+        type: String,
+        default: null
+    },
+    internalContract: {
+        type: String,
+        default: null
+    },
+    confidentialityContract: {
+        type: String,
+        default: null
+    },
+    newContract: {
+        type: String,
+        default: null
+    },
+    cv: {
+        type: String,
+        default: null
     },
 });
 

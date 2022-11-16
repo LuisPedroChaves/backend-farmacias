@@ -43,24 +43,24 @@ EMPLOYEE_ROUTER.get('/user', mdAuth, (req: any, res: Response) => {
 
     const _employee = req.user._employee
 
-	Employee.findById(_employee, (err, employee) => {
-		if (err) {
-			return res.status(500).json({
-				ok: false,
-				mensaje: 'Error al buscar empleado',
-				errors: err,
-			});
-		}
+    Employee.findById(_employee, (err, employee) => {
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error al buscar empleado',
+                errors: err,
+            });
+        }
 
-		if (!employee) {
-			return res.status(400).json({
-				ok: false,
-				mensaje: 'El empleado con el id' + _employee + ' no existe',
-				errors: {
-					message: 'No existe un empleado con ese ID',
-				},
-			});
-		}
+        if (!employee) {
+            return res.status(400).json({
+                ok: false,
+                mensaje: 'El empleado con el id' + _employee + ' no existe',
+                errors: {
+                    message: 'No existe un empleado con ese ID',
+                },
+            });
+        }
 
         Employee.populate(employee, { path: "_job" }, function (err, employee) {
             res.status(200).json({
@@ -68,7 +68,7 @@ EMPLOYEE_ROUTER.get('/user', mdAuth, (req: any, res: Response) => {
                 employee,
             });
         });
-	});
+    });
 });
 
 EMPLOYEE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
@@ -78,7 +78,7 @@ EMPLOYEE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
     const {
         _bank,
         _cellar,
-        code,
+        _cellarIGSS,
         name,
         lastName,
         family,
@@ -108,12 +108,14 @@ EMPLOYEE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         igssNumber,
         village,
         linguisticCommunity,
+        emergencyContact,
+        vacations
     } = BODY;
 
     Employee.findByIdAndUpdate(ID, {
         _bank,
         _cellar,
-        code,
+        _cellarIGSS,
         name,
         lastName,
         family,
@@ -143,6 +145,8 @@ EMPLOYEE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         igssNumber,
         village,
         linguisticCommunity,
+        emergencyContact,
+        vacations
     },
         {
             new: true
@@ -208,13 +212,13 @@ EMPLOYEE_ROUTER.delete('/:id', mdAuth, (req: any, res: Response) => {
     });
 })
 
-EMPLOYEE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
+EMPLOYEE_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
     const BODY: IEmployee = req.body
 
     const {
         _bank,
         _cellar,
-        code,
+        _cellarIGSS,
         name,
         lastName,
         family,
@@ -244,11 +248,30 @@ EMPLOYEE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         igssNumber,
         village,
         linguisticCommunity,
+        emergencyContact,
+        vacations
     } = BODY;
+
+    let code = 1
+    const employee = await Employee.findOne(
+        {
+            _logDelete: null,
+        },
+        'code',
+        {
+            sort: {
+                code: -1
+            }
+        }).exec()
+
+    if (employee) {
+        code = Number(employee.code) + 1;
+    }
 
     const NEW_EMPLOYEE = new Employee({
         _bank,
         _cellar,
+        _cellarIGSS,
         code,
         name,
         lastName,
@@ -279,6 +302,8 @@ EMPLOYEE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         igssNumber,
         village,
         linguisticCommunity,
+        emergencyContact,
+        vacations
     })
 
     NEW_EMPLOYEE.save()

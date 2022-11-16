@@ -45,9 +45,7 @@ EMPLOYEE_JOB_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         bonus,
         startDate,
         contractType,
-        agreement,
         paymentType,
-        workPlace,
         endDate,
         workingDay
     } = BODY;
@@ -63,9 +61,7 @@ EMPLOYEE_JOB_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         bonus,
         startDate,
         contractType,
-        agreement,
         paymentType,
-        workPlace,
         endDate,
         workingDay
     },
@@ -151,9 +147,7 @@ EMPLOYEE_JOB_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         bonus,
         startDate,
         contractType,
-        agreement,
         paymentType,
-        workPlace,
         endDate,
         workingDay
     } = BODY;
@@ -169,9 +163,7 @@ EMPLOYEE_JOB_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         bonus,
         startDate,
         contractType,
-        agreement,
         paymentType,
-        workPlace,
         endDate,
         workingDay
     })
