@@ -13,7 +13,7 @@ import AccountsPayable from '../models/accountsPayable';
 import Check from '../models/check';
 import Bank from '../models/bank';
 import Employee from '../models/employee';
-import EmployeeJob from '../models/employeeJob'
+import Vacation from '../models/vacation';
 
 // WebSockets Server
 const SERVER = Server.instance;
@@ -42,6 +42,7 @@ uploadRouter.put('/:type/:id', (req: any, res: Response) => {
         'internalContract',
         'confidentialityContract',
         'newContract',
+        'cv'
     ];
 
     if (VALID_TYPES.indexOf(type) < 0) {
@@ -594,68 +595,57 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
                 });
             });
         }),
-        'vacations': () => Employee.findOne(
-            { "vacations._id": id },
-            { "vacations.$": true },
-            (err, employee) => {
+        'vacations': () => Vacation.findById(id, (err, vacation) => {
+            if (err) {
+                return res.status(500).json({
+                    ok: false,
+                    mensaje: 'Error al buscar vacaciones',
+                    errors: err
+                });
+            }
 
+            if (!vacation) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: 'Las vacaciones con el id' + id + ' no existe',
+                    errors: {
+                        message: 'No existe unas vacaciones con ese ID'
+                    }
+                });
+            }
+
+            // Si existe un archivo almacenado anteriormente
+            const oldPath = './uploads/vacations/' + vacation.constancy;
+
+            if (fs.existsSync(oldPath) && vacation.constancy.length > 0) {
+                // Borramos el archivo antiguo
+                fs.unlink(oldPath, err => {
+                    if (err) {
+                        return res.status(500).json({
+                            ok: false,
+                            mensaje: 'Error al eliminar archivo antiguo',
+                            errors: err
+                        });
+                    }
+                });
+            }
+
+            vacation.constancy = newNameFile;
+
+            vacation.save((err, vacation) => {
                 if (err) {
-                    return res.status(500).json({
+                    return res.status(400).json({
                         ok: false,
-                        mensaje: 'Error when searching for vacation',
+                        mensaje: 'Error al guardar archivo',
                         errors: err
                     });
                 }
 
-                if (!employee) {
-                    return res.status(400).json({
-                        ok: false,
-                        mensaje: 'The vacation with the id' + id + ' does not exist',
-                        errors: {
-                            message: 'There is no vacation with this ID'
-                        }
-                    });
-                }
-
-                // Si existe un archivo almacenado anteriormente
-                const oldPath = './uploads/vacations/' + employee.vacations[0].constancy;
-
-                if (fs.existsSync(oldPath)) {
-                    // Borramos el archivo antiguo
-                    fs.unlink(oldPath, err => {
-                        if (err) {
-                            return res.status(500).json({
-                                ok: false,
-                                mensaje: 'Error deleting old file',
-                                errors: err
-                            });
-                        }
-                    });
-                }
-
-
-                Employee.updateOne(
-                    {
-                        _id: employee._id,
-                        'vacations._id': id,
-                    },
-                    {
-                        'vacations.$.constancy': newNameFile,
-                    },
-                ).exec((err: any, result: any) => {
-                    if (err) {
-                        return res.status(400).json({
-                            ok: false,
-                            mensaje: 'Error saving file',
-                            errors: err
-                        });
-                    }
-
-                    res.status(200).json({
-                        ok: true,
-                        newNameFile
-                    });
+                res.status(200).json({
+                    ok: true,
+                    newNameFile
                 });
+            });
         }),
         'contractLaw': () => Employee.findById(id, (err, employee) => {
             if (err) {

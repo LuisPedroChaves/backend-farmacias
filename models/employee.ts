@@ -40,7 +40,6 @@ export interface IEmployee extends Document {
     village: string,
     linguisticCommunity: string,
     emergencyContact: IEmployeeEmergencyContact,
-    vacations: IEmployeeVacation[],
     contractLaw: string,
     internalContract: string,
     confidentialityContract: string,
@@ -58,14 +57,6 @@ export interface IEmployeeFamily extends Document {
 export interface IEmployeeEmergencyContact {
     name: string,
     phone: string
-}
-
-export interface IEmployeeVacation extends Document {
-    year: number,
-    start: Date,
-    end: Date,
-    constancy: string,
-    details: string,
 }
 
 const TIPOS_FAMILIA_VALIDOS = {
@@ -228,26 +219,6 @@ const EMPLOYEE_SCHEMA: Schema = new Schema({
         type: EMERGENCY_CONTACT_SCHEMA,
         default: null
     },
-    vacations: [{
-        year: {
-            type: Number,
-            default: 0
-        },
-        start: {
-            type: Date,
-            default: null
-        },
-        end: {
-            type: Date,
-            default: null
-        },
-        constancy: {
-            type: String,
-        },
-        details: {
-            type: String,
-        },
-    }],
     contractLaw: {
         type: String,
         default: null

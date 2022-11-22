@@ -37,10 +37,12 @@ import EMPLOYEE_JOB_ROUTER from './employeeJob';
 import PAYROLL_ROUTER from './payroll';
 import DISCOUNT_ROUTER from './discount';
 import RISING_ROUTER from './rising';
+import VACATION_ROUTER from './vacation';
 
 const router = Router();
 
 // Rutas
+router.use('/vacation', VACATION_ROUTER);
 router.use('/rising', RISING_ROUTER);
 router.use('/discount', DISCOUNT_ROUTER);
 router.use('/payroll', PAYROLL_ROUTER);

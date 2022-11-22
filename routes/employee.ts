@@ -109,7 +109,6 @@ EMPLOYEE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         village,
         linguisticCommunity,
         emergencyContact,
-        vacations
     } = BODY;
 
     Employee.findByIdAndUpdate(ID, {
@@ -146,7 +145,6 @@ EMPLOYEE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         village,
         linguisticCommunity,
         emergencyContact,
-        vacations
     },
         {
             new: true
@@ -249,7 +247,6 @@ EMPLOYEE_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
         village,
         linguisticCommunity,
         emergencyContact,
-        vacations
     } = BODY;
 
     let code = 1
@@ -303,7 +300,6 @@ EMPLOYEE_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
         village,
         linguisticCommunity,
         emergencyContact,
-        vacations
     })
 
     NEW_EMPLOYEE.save()
