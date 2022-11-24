@@ -30,10 +30,26 @@ import CASH_REQUISITION_ROUTER from './cashRequisition';
 import BANK_ROUTER from './bank';
 import BANK_ACCOUNT_ROUTER from './bankAccount';
 import BANK_FLOW_ROUTER from './bankFlow';
+import JOB_DEPARTMENT_ROUTER from './jobDepartment';
+import JOB_ROUTER from './job';
+import EMPLOYEE_ROUTER from './employee';
+import EMPLOYEE_JOB_ROUTER from './employeeJob';
+import PAYROLL_ROUTER from './payroll';
+import DISCOUNT_ROUTER from './discount';
+import RISING_ROUTER from './rising';
+import VACATION_ROUTER from './vacation';
 
 const router = Router();
 
 // Rutas
+router.use('/vacation', VACATION_ROUTER);
+router.use('/rising', RISING_ROUTER);
+router.use('/discount', DISCOUNT_ROUTER);
+router.use('/payroll', PAYROLL_ROUTER);
+router.use('/employeeJob', EMPLOYEE_JOB_ROUTER);
+router.use('/employee', EMPLOYEE_ROUTER);
+router.use('/job', JOB_ROUTER);
+router.use('/jobDepartment', JOB_DEPARTMENT_ROUTER);
 router.use('/bankFlow', BANK_FLOW_ROUTER);
 router.use('/bankAccount', BANK_ACCOUNT_ROUTER);
 router.use('/bank', BANK_ROUTER);
