@@ -877,7 +877,7 @@ PRODUCT_ROUTER.post("/xlsx", (req: Request, res: Response) => {
               const NEW_PRODUCT = new Product({
                 _brand,
                 code: code,
-                barcode: doc[0],
+                barcode: doc[0].replace(/^\s+|\s+$/g, ""),
                 description: DESCRIPTION.toUpperCase(),
                 substances: misSus,
                 presentations: PRESENTATIONS,
@@ -893,7 +893,7 @@ PRODUCT_ROUTER.post("/xlsx", (req: Request, res: Response) => {
                 {
                   _brand,
                   code: code,
-                  barcode: doc[0],
+                  barcode: doc[0].replace(/^\s+|\s+$/g, ""),
                   description: DESCRIPTION.toUpperCase(),
                   substances: misSus,
                   presentations: PRESENTATIONS,
@@ -989,7 +989,7 @@ PRODUCT_ROUTER.post("/xlsx", (req: Request, res: Response) => {
               const NEW_PRODUCT = new Product({
                 _brand: SAVE_BRAND,
                 code: code,
-                barcode: doc[0],
+                barcode: doc[0].replace(/^\s+|\s+$/g, ""),
                 description: DESCRIPTION.toUpperCase(),
                 substances: misSus,
                 presentations: PRESENTATIONS,
@@ -1005,7 +1005,7 @@ PRODUCT_ROUTER.post("/xlsx", (req: Request, res: Response) => {
                 {
                   _brand: SAVE_BRAND,
                   code: code,
-                  barcode: doc[0],
+                  barcode: doc[0].replace(/^\s+|\s+$/g, ""),
                   description: DESCRIPTION.toUpperCase(),
                   substances: misSus,
                   presentations: PRESENTATIONS,
