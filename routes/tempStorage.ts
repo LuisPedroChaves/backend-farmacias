@@ -639,7 +639,7 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response, next: an
         });
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
-                const BARCODE: string = doc[0].trim();
+                const BARCODE: string = doc[0].replace(/^\s+|\s+$/g, "");
                 const STOCK: number = doc[1];
 
                 let _product = await Product.findOne({

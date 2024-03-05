@@ -397,7 +397,7 @@ TEMP_SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
         await bluebird.mapSeries(DOC[0].data, async (doc: any, index) => {
             try {
                 const DATE = new Date(moment(ExcelDateToJSDate(doc[0])).tz("America/Guatemala").format());
-                const BARCODE: string = doc[1];
+                const BARCODE: string = doc[1].replace(/^\s+|\s+$/g, "");
                 const QUANTITY: number = doc[2];
 
                 let _product = await Product.findOne({
@@ -423,6 +423,7 @@ TEMP_SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
 
                 code++;
                 console.log("🚀 ~ file: product.ts ~ line 372 ~ awaitbluebird.mapSeries ~ code", code)
+                console.log(errors);
                 // res.write(code.toString())
             } catch (e: any) {
                 throw new Error(e.message);
