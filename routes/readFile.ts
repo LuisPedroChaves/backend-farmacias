@@ -7,7 +7,7 @@ readFileRouter.get('/:type/:file', (req: Request, res: Response) => {
     const type = req.params.type;
     const file = req.params.file;
 
-    const path = `./uploads/${type}/${file}`;
+    const path = `dist/uploads/${type}/${file}`;
 
     fs.stat(path, (err, stats) => {
 

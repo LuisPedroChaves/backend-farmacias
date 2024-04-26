@@ -457,7 +457,7 @@ internalOrderRouter.put('/delete/:id', mdAuth, (req: Request, res: Response) => 
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/internalOrders/' + internalOrder.file;
+            const oldPath = 'dist/uploads/internalOrders/' + internalOrder.file;
 
             if (fs.existsSync(oldPath)) {
                 // Borramos el archivo antiguo
