@@ -616,7 +616,7 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response, next: an
     const NEW_NAME_FILE = `${new Date().getMilliseconds()}.${EXT_FILE}`;
 
     // Mover el archivo de la memoria temporal a un path
-    const PATH = `dist/uploads/temp/${NEW_NAME_FILE}`;
+    const PATH = `./uploads/temp/${NEW_NAME_FILE}`;
 
     FILE.mv(PATH, async (err: any) => {
 
