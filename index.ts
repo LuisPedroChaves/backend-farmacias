@@ -20,33 +20,33 @@ server.app.use(morgan('tiny'));
 server.app.use(cors({ origin: true, credentials: true }));
 
 // Mongodb Configuración
-mongoose.set('useCreateIndex', true);
-mongoose.set('useFindAndModify', false);
+// mongoose.set('useCreateIndex', true);
+// mongoose.set('useFindAndModify', false);
 mongoose.Promise = global.Promise;
 
-mongoose.connection.openUri(
-    'mongodb://localhost:27017/farmaciasDB?authSource=admin&readPreference=primary',
-    {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-    },
-    (error, res) => {
-        if (error) throw error;
-        console.log('Base de datos: \x1b[32m%s\x1b[0m', 'ONLINE');
-    }
-);
+// mongoose.connection.openUri(
+//     'mongodb://localhost:27017/farmaciasDB?authSource=admin&readPreference=primary',
+//     {
+//         useNewUrlParser: true,
+//         useUnifiedTopology: true,
+//     },
+//     (error, res) => {
+//         if (error) throw error;
+//         console.log('Base de datos: \x1b[32m%s\x1b[0m', 'ONLINE');
+//     }
+// );
 
-// mongoose.connection
-//     .openUri(process.env.CUSTOMCONNSTR_COSMOS_CONNSTR,
-//         {
-//             useNewUrlParser: true,
-//             useUnifiedTopology: true
-//         },
-//         (error: any, res: any) => {
-//             if (error) throw error;
-//             console.log('Connection to CosmosDB successful')
-//         }
-//     );
+mongoose.connection
+    .openUri(process.env.CUSTOMCONNSTR_COSMOS_CONNSTR,
+        {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        },
+        (error: any, res: any) => {
+            if (error) throw error;
+            console.log('Connection to CosmosDB successful')
+        }
+    );
 
 // Definición de router principal
 server.app.use('/', router);
