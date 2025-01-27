@@ -174,8 +174,6 @@ CHECK_ROUTER.get("/report", mdAuth, (req: Request, res: Response) => {
     };
   }
 
-  console.log(QUERY);
-
   Check.find(QUERY)
     .populate("_user")
     .sort({
