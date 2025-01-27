@@ -161,14 +161,14 @@ CHECK_ROUTER.get("/report", mdAuth, (req: Request, res: Response) => {
   };
 
   if (type === "date") {
-    QUERY["date"] = {
+    QUERY["created"] = {
       $gte: new Date(startDate.toDateString()),
       $lt: new Date(endDate.toDateString()),
     };
   }
 
   if (type === "paymentDate") {
-    QUERY["paymentDate"] = {
+    QUERY["date"] = {
       $gte: new Date(startDate.toDateString()),
       $lt: new Date(endDate.toDateString()),
     };
