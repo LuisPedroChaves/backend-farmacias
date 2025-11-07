@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import fileUpload from 'express-fileupload';
 import fs from 'fs';
+import { getUploadPath } from '../config/paths';
 
 import Server from '../classes/serve';
 import Sale from '../models/sale';
@@ -82,7 +83,7 @@ uploadRouter.put('/:type/:id', (req: any, res: Response) => {
     const newNameFile = `${id}-${new Date().getMilliseconds()}.${extFile}`;
 
     // Mover el archivo de la memoria temporal a un path
-    const path = `./uploads/${type}/${newNameFile}`;
+    const path = getUploadPath(type, newNameFile);
 
     file.mv(path, (err: any) => {
 
@@ -127,7 +128,7 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
                 }
 
                 // Si existe un archivo almacenado anteriormente
-                const oldPath = './uploads/saleBalances/' + balance.file;
+                const oldPath = getUploadPath('saleBalances', balance.file);
 
                 if (fs.existsSync(oldPath)) {
                     // Borramos el archivo antiguo
@@ -187,7 +188,7 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/internalOrders/' + internalOrder.file;
+            const oldPath = getUploadPath('internalOrders', internalOrder.file);
 
             if (fs.existsSync(oldPath)) {
                 // Borramos el archivo antiguo
@@ -251,7 +252,7 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/internalOrders/' + internalOrder.dispatchFile;
+            const oldPath = getUploadPath('internalOrders', internalOrder.dispatchFile);
 
             if (fs.existsSync(oldPath)) {
                 // Borramos el archivo antiguo
@@ -303,7 +304,7 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/products/' + product.picture;
+            const oldPath = getUploadPath('products', product.picture);
 
             if (fs.existsSync(oldPath)) {
                 // Borramos el archivo antiguo
@@ -355,7 +356,7 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/purchases/' + purchase.file;
+            const oldPath = getUploadPath('purchases', purchase.file);
 
             if (fs.existsSync(oldPath)) {
                 // Borramos el archivo antiguo
@@ -407,7 +408,7 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/accountsPayable/' + accountsPayable.file;
+            const oldPath = getUploadPath('accountsPayable', accountsPayable.file);
 
             if (fs.existsSync(oldPath)) {
                 // Borramos el archivo antiguo
@@ -459,7 +460,7 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/checkReceipts/' + check.receipt.file;
+            const oldPath = getUploadPath('checkReceipts', check.receipt.file);
 
             if (fs.existsSync(oldPath) && check.receipt.file.length > 0) {
                 // Borramos el archivo antiguo
@@ -511,7 +512,7 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/banks/' + bank.image;
+            const oldPath = getUploadPath('banks', bank.image);
 
             if (fs.existsSync(oldPath) && bank.image.length > 0) {
                 // Borramos el archivo antiguo
@@ -563,7 +564,7 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/employees/' + employee.photo;
+            const oldPath = getUploadPath('employees', employee.photo);
 
             if (fs.existsSync(oldPath) && employee.photo.length > 0) {
                 // Borramos el archivo antiguo
@@ -615,7 +616,7 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/vacation/' + vacation.constancy;
+            const oldPath = getUploadPath('vacation', vacation.constancy);
 
             if (fs.existsSync(oldPath) && vacation.constancy.length > 0) {
                 // Borramos el archivo antiguo
@@ -667,7 +668,7 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/contractLaw/' + employee.contractLaw;
+            const oldPath = getUploadPath('contractLaw', employee.contractLaw);
 
             if (fs.existsSync(oldPath) && employee.contractLaw.length > 0) {
                 // Borramos el archivo antiguo
@@ -719,7 +720,7 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/internalContract/' + employee.internalContract;
+            const oldPath = getUploadPath('internalContract', employee.internalContract);
 
             if (fs.existsSync(oldPath) && employee.internalContract.length > 0) {
                 // Borramos el archivo antiguo
@@ -771,7 +772,7 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/confidentialityContract/' + employee.confidentialityContract;
+            const oldPath = getUploadPath('confidentialityContract', employee.confidentialityContract);
 
             if (fs.existsSync(oldPath) && employee.confidentialityContract.length > 0) {
                 // Borramos el archivo antiguo
@@ -823,7 +824,7 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/newContract/' + employee.newContract;
+            const oldPath = getUploadPath('newContract', employee.newContract);
 
             if (fs.existsSync(oldPath) && employee.newContract.length > 0) {
                 // Borramos el archivo antiguo
@@ -875,7 +876,7 @@ const uploadByType = (type: string, id: string, newNameFile: string, res: Respon
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/cv/' + employee.cv;
+            const oldPath = getUploadPath('cv', employee.cv);
 
             if (fs.existsSync(oldPath) && employee.cv.length > 0) {
                 // Borramos el archivo antiguo

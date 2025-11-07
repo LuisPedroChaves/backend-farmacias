@@ -15,7 +15,7 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     volumes:
-      - uploads_data:/app/dist/uploads
+      - uploads_data:/app/uploads
     networks:
       - farmacias-network
       - dokploy-network

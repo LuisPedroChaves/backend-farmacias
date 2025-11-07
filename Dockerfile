@@ -30,15 +30,24 @@ RUN npm ci --omit=dev --legacy-peer-deps
 # Copiar el código compilado desde el stage de build
 COPY --from=builder /app/dist ./dist
 
-# Crear directorios para uploads
-RUN mkdir -p /app/dist/uploads/saleBalances \
-    /app/dist/uploads/internalOrders \
-    /app/dist/uploads/internalOrdersDispatch \
-    /app/dist/uploads/products \
-    /app/dist/uploads/purchases \
-    /app/dist/uploads/accountsPayable \
-    /app/dist/uploads/checkReceipts \
-    /app/dist/uploads/banks
+# Crear directorios para uploads en el directorio raíz de la app
+# Esto permite que process.cwd() + '/uploads' funcione correctamente
+RUN mkdir -p /app/uploads/saleBalances \
+    /app/uploads/internalOrders \
+    /app/uploads/internalOrdersDispatch \
+    /app/uploads/products \
+    /app/uploads/purchases \
+    /app/uploads/accountsPayable \
+    /app/uploads/checkReceipts \
+    /app/uploads/banks \
+    /app/uploads/temp \
+    /app/uploads/employees \
+    /app/uploads/vacation \
+    /app/uploads/contractLaw \
+    /app/uploads/internalContract \
+    /app/uploads/confidentialityContract \
+    /app/uploads/newContract \
+    /app/uploads/cv
 
 # Exponer el puerto
 EXPOSE 3000

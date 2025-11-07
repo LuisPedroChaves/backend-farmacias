@@ -4,6 +4,7 @@ import xlsx from 'node-xlsx';
 import bluebird from 'bluebird';
 import mongoose from 'mongoose';
 import moment from 'moment-timezone';
+import { getUploadPath } from '../config/paths';
 
 import { mdAuth } from '../middleware/auth';
 import Product from '../models/product';
@@ -616,7 +617,7 @@ TEMP_STORAGE_ROUTER.post('/xlsx/:cellar', (req: Request, res: Response, next: an
     const NEW_NAME_FILE = `${new Date().getMilliseconds()}.${EXT_FILE}`;
 
     // Mover el archivo de la memoria temporal a un path
-    const PATH = `./uploads/temp/${NEW_NAME_FILE}`;
+    const PATH = getUploadPath('temp', NEW_NAME_FILE);
 
     FILE.mv(PATH, async (err: any) => {
 
