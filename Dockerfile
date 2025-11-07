@@ -34,7 +34,6 @@ COPY --from=builder /app/dist ./dist
 # Esto permite que process.cwd() + '/uploads' funcione correctamente
 RUN mkdir -p /app/uploads/saleBalances \
     /app/uploads/internalOrders \
-    /app/uploads/internalOrdersDispatch \
     /app/uploads/products \
     /app/uploads/purchases \
     /app/uploads/accountsPayable \
