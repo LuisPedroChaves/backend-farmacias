@@ -1,0 +1,49 @@
+# Node modules
+node_modules
+npm-debug.log
+
+# Git
+.git
+.gitignore
+
+# Editor directories and files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build output (se compilará en el contenedor)
+dist
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Documentation
+README.md
+*.md
+
+# Docker files
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Logs
+logs
+*.log
+
+# Test files
+test
+tests
+*.test.ts
+*.spec.ts
+
+# Coverage
+coverage
+.nyc_output

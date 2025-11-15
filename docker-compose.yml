@@ -1,9 +1,37 @@
-version: "4.6.1"
-
 services:
-  mongo:
-    image: mongo:latest
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: farmacias-backend
+    restart: unless-stopped
     ports:
-      - 27017:27017
+      - "${EXTERNAL_PORT:-3001}:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - CUSTOMCONNSTR_COSMOS_CONNSTR=${CUSTOMCONNSTR_COSMOS_CONNSTR}
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     volumes:
-      - ../mongo_data:/data/db
+      - uploads_data:/app/uploads
+    networks:
+      - farmacias-network
+      - dokploy-network
+    # healthcheck:
+    #   test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s
+
+volumes:
+  uploads_data:
+    driver: local
+
+networks:
+  farmacias-network:
+    driver: bridge
+  dokploy-network:
+    external: true

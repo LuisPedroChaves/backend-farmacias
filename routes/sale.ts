@@ -3,6 +3,7 @@ import fileUpload from 'express-fileupload';
 import xlsx from 'node-xlsx';
 import bluebird from 'bluebird';
 import moment from 'moment-timezone';
+import { getUploadPath } from '../config/paths';
 
 import { mdAuth } from '../middleware/auth'
 import Sale from '../models/sale';
@@ -245,7 +246,7 @@ SALE_ROUTER.post('/xlsx', (req: Request, res: Response) => {
     const NEW_NAME_FILE = `${new Date().getMilliseconds()}.${EXT_FILE}`;
 
     // Mover el archivo de la memoria temporal a un path
-    const PATH = `./uploads/temp/${NEW_NAME_FILE}`;
+    const PATH = getUploadPath('temp', NEW_NAME_FILE);
 
     FILE.mv(PATH, async (err: any) => {
 

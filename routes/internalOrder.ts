@@ -7,6 +7,7 @@ import { IInternalOrder } from '../models/internalOrder';
 import Cellar from '../models/cellar';
 import User from '../models/user';
 import fs from 'fs';
+import { getUploadPath } from '../config/paths';
 
 // WebSockets Server
 const SERVER = Server.instance;
@@ -457,7 +458,7 @@ internalOrderRouter.put('/delete/:id', mdAuth, (req: Request, res: Response) => 
             }
 
             // Si existe un archivo almacenado anteriormente
-            const oldPath = './uploads/internalOrders/' + internalOrder.file;
+            const oldPath = getUploadPath('internalOrders', internalOrder.file);
 
             if (fs.existsSync(oldPath)) {
                 // Borramos el archivo antiguo

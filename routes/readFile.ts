@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
+import { getUploadPath } from '../config/paths';
 
 const readFileRouter = Router();
 
@@ -7,7 +8,7 @@ readFileRouter.get('/:type/:file', (req: Request, res: Response) => {
     const type = req.params.type;
     const file = req.params.file;
 
-    const path = `./uploads/${type}/${file}`;
+    const path = getUploadPath(type, file);
 
     fs.stat(path, (err, stats) => {
 
