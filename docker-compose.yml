@@ -9,7 +9,7 @@ services:
       - "3000"
     environment:
       - NODE_ENV=production
-      - PORT=3001
+      - PORT=3000
       - CUSTOMCONNSTR_COSMOS_CONNSTR=${CUSTOMCONNSTR_COSMOS_CONNSTR}
     dns:
       - 8.8.8.8
@@ -19,12 +19,18 @@ services:
     networks:
       - farmacias-network
       - dokploy-network
-    # healthcheck:
-    #   test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
-    #   start_period: 40s
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3000', (r) => process.exit(r.statusCode === 200 ? 0 : 1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   uploads_data:
