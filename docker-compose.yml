@@ -10,7 +10,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=dokploy-network"
-      - "traefik.http.routers.farmacias-backend.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.farmacias-backend.rule=Host(`farmacias-backend-old.applitech.com.gt`)"
       - "traefik.http.routers.farmacias-backend.entrypoints=websecure"
       - "traefik.http.routers.farmacias-backend.tls.certresolver=letsencrypt"
       - "traefik.http.services.farmacias-backend.loadbalancer.server.port=3000"
