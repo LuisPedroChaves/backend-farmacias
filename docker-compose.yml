@@ -9,7 +9,7 @@ services:
       - "3000"
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=3001
       - CUSTOMCONNSTR_COSMOS_CONNSTR=${CUSTOMCONNSTR_COSMOS_CONNSTR}
     dns:
       - 8.8.8.8
