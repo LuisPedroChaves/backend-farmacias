@@ -1,16 +1,16 @@
-import { Router, Request, Response } from "express";
+import { Request, Response, Router } from "express";
 import moment from "moment-timezone";
 
-import { mdAuth } from "../middleware/auth";
-import Check, { ICheck } from "../models/check";
-import AccountsPayable, { IAccountsPayable } from "../models/accountsPayable";
-import { UPDATE_BALANCE } from "../functions/provider";
-import { UPDATE_BANK_BALANCE } from "../functions/bank";
-import BankFlow from "../models/bankFlow";
-import CashRequisition, { ICashRequisition } from "../models/cashRequisition";
-import CashFlow, { ICashFlow } from "../models/cashFlow";
-import { UPDATE_CASH_BALANCE } from "../functions/cash";
 import { FilterQuery } from "mongoose";
+import { UPDATE_BANK_BALANCE } from "../functions/bank";
+import { UPDATE_CASH_BALANCE } from "../functions/cash";
+import { UPDATE_BALANCE } from "../functions/provider";
+import { mdAuth } from "../middleware/auth";
+import AccountsPayable, { IAccountsPayable } from "../models/accountsPayable";
+import BankFlow from "../models/bankFlow";
+import CashFlow, { ICashFlow } from "../models/cashFlow";
+import CashRequisition, { ICashRequisition } from "../models/cashRequisition";
+import Check, { ICheck } from "../models/check";
 
 const CHECK_ROUTER = Router();
 
@@ -176,6 +176,14 @@ CHECK_ROUTER.get("/report", mdAuth, (req: Request, res: Response) => {
 
   Check.find(QUERY)
     .populate("_user")
+    .populate({
+      path: "accountsPayables",
+      select: "_provider",
+      populate: {
+        path: "_provider",
+        select: "code nit",
+      },
+    })
     .sort({
       date: 1,
     })
@@ -343,7 +351,7 @@ const PUSH_ACCOUNTS_PAYABLE = async (_check: ICheck): Promise<any> => {
       return AccountsPayable.findByIdAndUpdate(_id, {
         $push: { balance: BALANCE },
       }).exec();
-    })
+    }),
   );
 };
 
@@ -353,8 +361,8 @@ const UPDATE_CASH_REQUISITIONS = async (_check: ICheck): Promise<any> => {
       CashRequisition.findByIdAndUpdate(_id, {
         _check: _check._id,
         updated: moment().tz("America/Guatemala").format(),
-      }).exec()
-    )
+      }).exec(),
+    ),
   );
 };
 
@@ -362,13 +370,13 @@ const REMOVE_ACCOUNTS_PAYABLE = async (_check: ICheck): Promise<any> => {
   return Promise.all(
     _check.accountsPayables.map(async (accountsPayable: IAccountsPayable) => {
       accountsPayable.balance = accountsPayable.balance.filter(
-        (b) => b._check !== _check._id
+        (b) => b._check !== _check._id,
       );
 
       return AccountsPayable.findByIdAndUpdate(accountsPayable._id, {
         balance: accountsPayable.balance,
       }).exec();
-    })
+    }),
   );
 };
 
@@ -377,8 +385,8 @@ const REMOVE_CASH_REQUISITIONS = async (_check: ICheck): Promise<any> => {
     _check.cashRequisitions.map(async (cashRequisition: ICashRequisition) =>
       CashRequisition.findByIdAndUpdate(cashRequisition._id, {
         _check: null,
-      }).exec()
-    )
+      }).exec(),
+    ),
   );
 };
 
@@ -386,21 +394,21 @@ const PAY_ACCOUNTS_PAYABLE = async (_check: ICheck): Promise<any> => {
   return Promise.all(
     _check.accountsPayables.map(async (accountsPayable: IAccountsPayable) => {
       const BALANCE = accountsPayable.balance.find(
-        (b) => b._check === _check._id
+        (b) => b._check === _check._id,
       );
 
       if (BALANCE && accountsPayable.type === "PRODUCTOS") {
         await UPDATE_BALANCE(
           accountsPayable._provider,
           BALANCE.amount,
-          "RESTA"
+          "RESTA",
         );
       }
 
       return AccountsPayable.findByIdAndUpdate(accountsPayable._id, {
         paid: true,
       }).exec();
-    })
+    }),
   );
 };
 
@@ -412,7 +420,7 @@ const PAY_CASH_REQUISITIONS = async (_check: ICheck): Promise<any> => {
       // Sumamos los ingresos
       balance = await UPDATE_CASH_BALANCE(
         cashRequisition._cash,
-        cashRequisition.total
+        cashRequisition.total,
       );
 
       const NEW_CASH_FLOW = new CashFlow({
@@ -436,20 +444,20 @@ const PAY_CASH_REQUISITIONS = async (_check: ICheck): Promise<any> => {
       return CashRequisition.findByIdAndUpdate(cashRequisition._id, {
         paid: true,
       }).exec();
-    })
+    }),
   );
 };
 
 const UPDATE_CASH_FLOWS = async (
-  cashRequisition: ICashRequisition
+  cashRequisition: ICashRequisition,
 ): Promise<any> =>
   Promise.all(
     cashRequisition._cashFlows.map(async (_id: ICashFlow) =>
       CashFlow.findByIdAndUpdate(_id, {
         state: "PAGADO",
         updated: moment().tz("America/Guatemala").format(),
-      }).exec()
-    )
+      }).exec(),
+    ),
   );
 
 export default CHECK_ROUTER;
