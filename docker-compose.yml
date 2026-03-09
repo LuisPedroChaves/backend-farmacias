@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: farmacias-backend
+    container_name: farmacias-backend-old
     restart: unless-stopped
     expose:
       - "3000"
