@@ -87,4 +87,10 @@ const customerSchema: Schema = new Schema({
 	},
 });
 
+customerSchema.index({
+	name: 'text',
+	nit: 'text',
+	phone: 'text',
+});
+
 export default mongoose.model<ICustomer>('Customer', customerSchema);
