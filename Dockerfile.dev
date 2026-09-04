@@ -1,0 +1,15 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# nodemon no está en las dependencias del proyecto
+RUN npm i -g nodemon
+
+# El lockfile es v1 (npm 6): se usa install en lugar de ci
+COPY package*.json ./
+RUN npm install --legacy-peer-deps
+
+EXPOSE 3000
+
+# Compila TypeScript en watch mode y reinicia cuando cambia dist/
+CMD ["sh", "-c", "npx tsc --watch --preserveWatchOutput & nodemon dist/"]

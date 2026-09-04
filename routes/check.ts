@@ -178,7 +178,7 @@ CHECK_ROUTER.get("/report", mdAuth, (req: Request, res: Response) => {
     .populate("_user")
     .populate({
       path: "accountsPayables",
-      select: "_provider",
+      select: "_provider noBill serie docType date total",
       populate: {
         path: "_provider",
         select: "code nit",
