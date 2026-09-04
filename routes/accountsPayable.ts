@@ -230,6 +230,9 @@ ACCOUNTS_PAYABLE_ROUTER.get('/report/duplicates', mdAuth, (req: Request, res: Re
         match._provider = _provider;
     }
 
+    const PAGE = Number(req.query.page) || 0;
+    const SIZE = Number(req.query.size) || 10;
+
     AccountsPayable.aggregate([
         {
             $match: match,
@@ -242,6 +245,7 @@ ACCOUNTS_PAYABLE_ROUTER.get('/report/duplicates', mdAuth, (req: Request, res: Re
                     noBill: '$noBill',
                 },
                 count: { $sum: 1 },
+                lastDate: { $max: '$date' },
                 documents: {
                     $push: {
                         _id: '$_id',
@@ -283,19 +287,38 @@ ACCOUNTS_PAYABLE_ROUTER.get('/report/duplicates', mdAuth, (req: Request, res: Re
                 serie: '$_id.serie',
                 noBill: '$_id.noBill',
                 count: 1,
+                lastDate: 1,
                 documents: 1,
             },
         },
         {
+            // Los grupos con el duplicado más reciente primero
             $sort: {
-                count: -1,
+                lastDate: -1,
+            },
+        },
+        {
+            $facet: {
+                duplicates: [
+                    { $skip: PAGE * SIZE },
+                    { $limit: SIZE },
+                ],
+                total: [
+                    { $count: 'count' },
+                ],
             },
         },
     ])
-        .then(duplicates => {
+        .then(result => {
+            const duplicates = result[0].duplicates;
+            const total = result[0].total[0]?.count || 0;
+
             res.status(200).json({
                 ok: true,
                 duplicates,
+                total,
+                page: PAGE,
+                size: SIZE,
             });
         })
         .catch(err => {
