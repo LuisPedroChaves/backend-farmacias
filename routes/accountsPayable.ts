@@ -206,6 +206,106 @@ ACCOUNTS_PAYABLE_ROUTER.get('/report/:_provider', mdAuth, (req: Request, res: Re
             });
         })
 });
+ACCOUNTS_PAYABLE_ROUTER.get('/report/duplicates', mdAuth, (req: Request, res: Response) => {
+    const { startDate, endDate, _provider } = req.query;
+
+    let match: FilterQuery<IAccountsPayable> = {
+        deleted: false,
+        // ABONO no es un documento facturado sino un pago parcial, no aplica para detectar duplicados
+        docType: { $ne: 'ABONO' },
+    };
+
+    if (startDate && endDate) {
+        let START_DATE = new Date(String(startDate));
+        let END_DATE = new Date(String(endDate));
+        END_DATE.setDate(END_DATE.getDate() + 1); // Sumamos un día para aplicar bien el filtro
+
+        match.date = {
+            $gte: new Date(START_DATE.toDateString()),
+            $lt: new Date(END_DATE.toDateString()),
+        };
+    }
+
+    if (_provider) {
+        match._provider = _provider;
+    }
+
+    AccountsPayable.aggregate([
+        {
+            $match: match,
+        },
+        {
+            $group: {
+                _id: {
+                    _provider: '$_provider',
+                    serie: '$serie',
+                    noBill: '$noBill',
+                },
+                count: { $sum: 1 },
+                documents: {
+                    $push: {
+                        _id: '$_id',
+                        date: '$date',
+                        total: '$total',
+                        paid: '$paid',
+                        docType: '$docType',
+                        _purchase: '$_purchase',
+                        _expense: '$_expense',
+                    },
+                },
+            },
+        },
+        {
+            $match: {
+                count: { $gte: 2 },
+            },
+        },
+        {
+            $lookup: {
+                from: 'providers',
+                localField: '_id._provider',
+                foreignField: '_id',
+                as: '_provider',
+            },
+        },
+        {
+            $unwind: '$_provider',
+        },
+        {
+            $project: {
+                _id: 0,
+                _provider: {
+                    _id: '$_provider._id',
+                    code: '$_provider.code',
+                    nit: '$_provider.nit',
+                    name: '$_provider.name',
+                },
+                serie: '$_id.serie',
+                noBill: '$_id.noBill',
+                count: 1,
+                documents: 1,
+            },
+        },
+        {
+            $sort: {
+                count: -1,
+            },
+        },
+    ])
+        .then(duplicates => {
+            res.status(200).json({
+                ok: true,
+                duplicates,
+            });
+        })
+        .catch(err => {
+            return res.status(500).json({
+                ok: false,
+                mensaje: 'Error generando reporte de documentos duplicados',
+                errors: err,
+            });
+        })
+});
 /* #endregion */
 
 ACCOUNTS_PAYABLE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
