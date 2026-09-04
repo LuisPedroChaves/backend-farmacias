@@ -218,12 +218,15 @@ ACCOUNTS_PAYABLE_ROUTER.get('/report/duplicates', mdAuth, (req: Request, res: Re
     if (startDate && endDate) {
         let START_DATE = new Date(String(startDate));
         let END_DATE = new Date(String(endDate));
-        END_DATE.setDate(END_DATE.getDate() + 1); // Sumamos un día para aplicar bien el filtro
 
-        match.date = {
-            $gte: new Date(START_DATE.toDateString()),
-            $lt: new Date(END_DATE.toDateString()),
-        };
+        if (!isNaN(START_DATE.getTime()) && !isNaN(END_DATE.getTime())) {
+            END_DATE.setDate(END_DATE.getDate() + 1); // Sumamos un día para aplicar bien el filtro
+
+            match.date = {
+                $gte: new Date(START_DATE.toDateString()),
+                $lt: new Date(END_DATE.toDateString()),
+            };
+        }
     }
 
     if (_provider) {
