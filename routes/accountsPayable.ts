@@ -401,7 +401,9 @@ ACCOUNTS_PAYABLE_ROUTER.put('/:id', mdAuth, async (req: Request, res: Response) 
         paid,
     }: IAccountsPayable = BODY;
 
-    const DUPLICATE = await FIND_DUPLICATE_DOCUMENT(String(_provider), serie, noBill, docType, ID);
+    const PROVIDER_ID = (_provider as any)?._id ?? _provider;
+
+    const DUPLICATE = await FIND_DUPLICATE_DOCUMENT(String(PROVIDER_ID), serie, noBill, docType, ID);
 
     if (DUPLICATE) {
         return res.status(400).json({
@@ -532,7 +534,9 @@ ACCOUNTS_PAYABLE_ROUTER.post('/', mdAuth, async (req: Request, res: Response) =>
         paid,
     } = BODY;
 
-    const DUPLICATE = await FIND_DUPLICATE_DOCUMENT(String(_provider), serie, noBill, docType);
+    const PROVIDER_ID = (_provider as any)?._id ?? _provider;
+
+    const DUPLICATE = await FIND_DUPLICATE_DOCUMENT(String(PROVIDER_ID), serie, noBill, docType);
 
     if (DUPLICATE) {
         return res.status(400).json({
