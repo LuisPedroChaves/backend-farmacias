@@ -15,6 +15,39 @@ import Provider from '../models/provider'
 const ACCOUNTS_PAYABLE_ROUTER = Router();
 ACCOUNTS_PAYABLE_ROUTER.use(fileUpload());
 
+// ABONO no es un documento facturado sino un pago parcial, no aplica para detectar duplicados
+const DOC_TYPES_EXCLUDED_FROM_DUPLICATE_CHECK = ['ABONO'];
+
+/**
+ * Busca un documento activo (no anulado/eliminado) con el mismo proveedor, serie y número
+ * de factura. Se usa tanto al crear como al editar para prevenir duplicados.
+ */
+const FIND_DUPLICATE_DOCUMENT = (
+    _provider: string,
+    serie: string,
+    noBill: string,
+    docType: string,
+    excludeId?: string
+) => {
+    if (DOC_TYPES_EXCLUDED_FROM_DUPLICATE_CHECK.includes(docType)) {
+        return Promise.resolve(null);
+    }
+
+    const conditions: FilterQuery<IAccountsPayable> = {
+        _provider,
+        serie: serie?.toUpperCase(),
+        noBill: noBill?.toUpperCase(),
+        docType: { $nin: DOC_TYPES_EXCLUDED_FROM_DUPLICATE_CHECK },
+        deleted: false,
+    };
+
+    if (excludeId) {
+        conditions._id = { $ne: excludeId };
+    }
+
+    return AccountsPayable.findOne(conditions).exec();
+};
+
 /* #region  GET */
 ACCOUNTS_PAYABLE_ROUTER.get('/unpaids', mdAuth, (req: Request, res: Response) => {
     AccountsPayable.find(
@@ -337,7 +370,7 @@ ACCOUNTS_PAYABLE_ROUTER.get('/report/:_provider', mdAuth, (req: Request, res: Re
 });
 /* #endregion */
 
-ACCOUNTS_PAYABLE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
+ACCOUNTS_PAYABLE_ROUTER.put('/:id', mdAuth, async (req: Request, res: Response) => {
     const ID: string = req.params.id;
     const BODY: IAccountsPayable = req.body;
 
@@ -367,6 +400,16 @@ ACCOUNTS_PAYABLE_ROUTER.put('/:id', mdAuth, (req: Request, res: Response) => {
         expirationCredit,
         paid,
     }: IAccountsPayable = BODY;
+
+    const DUPLICATE = await FIND_DUPLICATE_DOCUMENT(String(_provider), serie, noBill, docType, ID);
+
+    if (DUPLICATE) {
+        return res.status(400).json({
+            ok: false,
+            mensaje: `Ya existe un documento activo con la serie ${serie.toUpperCase()} y número ${noBill.toUpperCase()} para este proveedor`,
+            errors: { message: 'Documento duplicado' },
+        });
+    }
 
     AccountsPayable.findByIdAndUpdate(ID, {
         _provider,
@@ -458,7 +501,7 @@ ACCOUNTS_PAYABLE_ROUTER.delete('/:id', mdAuth, (req: any, res: Response) => {
 })
 
 /* #region  POST */
-ACCOUNTS_PAYABLE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
+ACCOUNTS_PAYABLE_ROUTER.post('/', mdAuth, async (req: Request, res: Response) => {
     const BODY: IAccountsPayable = req.body
 
     const {
@@ -488,6 +531,16 @@ ACCOUNTS_PAYABLE_ROUTER.post('/', mdAuth, (req: Request, res: Response) => {
         expirationCredit,
         paid,
     } = BODY;
+
+    const DUPLICATE = await FIND_DUPLICATE_DOCUMENT(String(_provider), serie, noBill, docType);
+
+    if (DUPLICATE) {
+        return res.status(400).json({
+            ok: false,
+            mensaje: `Ya existe un documento activo con la serie ${serie.toUpperCase()} y número ${noBill.toUpperCase()} para este proveedor`,
+            errors: { message: 'Documento duplicado' },
+        });
+    }
 
     const NEW_ACCOUNTS_PAYABLE = new AccountsPayable({
         _user,
