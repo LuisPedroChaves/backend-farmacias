@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { FilterQuery } from 'mongoose';
+import mongoose, { FilterQuery } from 'mongoose';
 import fileUpload from 'express-fileupload';
 import xlsx from 'node-xlsx';
 import bluebird from 'bluebird';
@@ -106,6 +106,341 @@ ACCOUNTS_PAYABLE_ROUTER.get('/tempCredits', mdAuth, (req: Request, res: Response
             });
         })
 })
+
+// Condición de agregación que evalúa si un documento tiene retenciones pendientes
+// según las reglas del proveedor (requiere _provider ya resuelto vía $lookup)
+const WITHHOLDINGS_AGGREGATION_CONDITION = {
+    $or: [
+        {
+            $and: [
+                { $eq: ['$_provider.iva', true] },
+                { $eq: ['$emptyWithholdingIVA', true] },
+            ],
+        },
+        {
+            $and: [
+                { $eq: ['$_provider.isr', true] },
+                { $eq: ['$emptyWithholdingISR', true] },
+            ],
+        },
+    ],
+};
+
+// Construye el pipeline base compartido por /unpaids/paged y /unpaids/counts,
+// para que ambos apliquen exactamente el mismo criterio por pestaña y nunca diverjan.
+// query: subconjunto de req.query (type, _provider, withholdings, pending, search, docType, expired)
+const BUILD_UNPAIDS_PIPELINE = (query: Record<string, any>): any[] => {
+    const { type, _provider, withholdings, pending, search, docType, expired } = query;
+
+    const match: Record<string, any> = {
+        paid: false,
+        deleted: false,
+    };
+
+    if (type === 'PRODUCTOS' || type === 'GASTOS') {
+        match.type = type;
+    }
+
+    if (docType) {
+        match.docType = String(docType);
+    }
+
+    if (_provider) {
+        match._provider = new mongoose.Types.ObjectId(String(_provider));
+    }
+
+    if (pending === 'true') {
+        match['balance.credit'] = { $ne: 'CHEQUE' };
+    } else if (pending === 'false') {
+        match['balance.credit'] = 'CHEQUE';
+    }
+
+    if (expired === 'true') {
+        match.expirationCredit = { $lt: new Date() };
+    }
+
+    const pipeline: any[] = [
+        { $match: match },
+        {
+            $lookup: {
+                from: 'providers',
+                localField: '_provider',
+                foreignField: '_id',
+                as: '_provider',
+            },
+        },
+        { $unwind: '$_provider' },
+    ];
+
+    if (withholdings === 'true') {
+        pipeline.push({
+            $match: {
+                $expr: WITHHOLDINGS_AGGREGATION_CONDITION,
+            },
+        });
+    }
+
+    if (search) {
+        const REGEX = new RegExp(String(search), 'i');
+        pipeline.push({
+            $match: {
+                $or: [
+                    { serie: REGEX },
+                    { noBill: REGEX },
+                    { '_provider.name': REGEX },
+                    { '_provider.nit': REGEX },
+                ],
+            },
+        });
+    }
+
+    return pipeline;
+};
+
+ACCOUNTS_PAYABLE_ROUTER.get('/unpaids/paged', mdAuth, async (req: Request, res: Response) => {
+    try {
+        const PAGE = Math.max(0, parseInt(String(req.query.page), 10) || 0);
+        const SIZE = Math.min(500, Math.max(1, parseInt(String(req.query.size), 10) || 50));
+
+        const pipeline = BUILD_UNPAIDS_PIPELINE(req.query as Record<string, any>);
+
+        pipeline.push(
+            { $sort: { date: -1 } },
+            {
+                $facet: {
+                    data: [
+                        { $skip: PAGE * SIZE },
+                        { $limit: SIZE },
+                    ],
+                    total: [
+                        { $count: 'count' },
+                    ],
+                },
+            },
+        );
+
+        const RESULT = await AccountsPayable.aggregate(pipeline).exec();
+
+        const IDS = (RESULT[0]?.data || []).map((doc: any) => doc._id);
+        const TOTAL = RESULT[0]?.total[0]?.count || 0;
+
+        // Repoblamos usando find + populate con proyección para mantener el mismo
+        // formato de documentos que el resto de la API (Mongoose documents, no POJOs)
+        const ACCOUNTS_PAYABLES = await AccountsPayable.find({ _id: { $in: IDS } })
+            .populate('_provider', 'name nit iva isr checkName')
+            .populate('_user', 'name')
+            .populate('balance._check', 'no date state')
+            .populate('deletedBalance._check', 'no date state')
+            .sort({ date: -1 })
+            .exec();
+
+        res.status(200).json({
+            ok: true,
+            accountsPayables: ACCOUNTS_PAYABLES,
+            total: TOTAL,
+        });
+    } catch (err) {
+        return res.status(500).json({
+            ok: false,
+            mensaje: 'Error listando cuentas por pagar',
+            errors: err,
+        });
+    }
+});
+
+// Cuenta cuántos documentos matchean el mismo pipeline que usaría /unpaids/paged
+// con estos query params (garantiza que counts.X === paged?<mismos params>.total).
+const COUNT_UNPAIDS = async (query: Record<string, any>): Promise<number> => {
+    const pipeline = BUILD_UNPAIDS_PIPELINE(query);
+    pipeline.push({ $count: 'count' });
+    const RESULT = await AccountsPayable.aggregate(pipeline).exec();
+    return RESULT[0]?.count || 0;
+};
+
+ACCOUNTS_PAYABLE_ROUTER.get('/unpaids/counts', mdAuth, async (req: Request, res: Response) => {
+    try {
+        const { search } = req.query;
+
+        const [withholdings, products, expenses, tempCredits] = await Promise.all([
+            COUNT_UNPAIDS({ withholdings: 'true', search }),
+            COUNT_UNPAIDS({ type: 'PRODUCTOS', search }),
+            COUNT_UNPAIDS({ type: 'GASTOS', search }),
+            COUNT_UNPAIDS({ docType: 'CREDITO_TEMP', search }),
+        ]);
+
+        res.status(200).json({
+            ok: true,
+            counts: {
+                withholdings,
+                products,
+                expenses,
+                tempCredits,
+            },
+        });
+    } catch (err) {
+        return res.status(500).json({
+            ok: false,
+            mensaje: 'Error contando cuentas por pagar',
+            errors: err,
+        });
+    }
+});
+
+ACCOUNTS_PAYABLE_ROUTER.get('/provider/:_provider/totals', mdAuth, async (req: Request, res: Response) => {
+    try {
+        const _PROVIDER = new mongoose.Types.ObjectId(req.params._provider);
+        const NOW = new Date();
+
+        const RESULT = await AccountsPayable.aggregate([
+            { $match: { _provider: _PROVIDER, paid: false, deleted: false } },
+            {
+                $lookup: {
+                    from: 'providers',
+                    localField: '_provider',
+                    foreignField: '_id',
+                    as: '_provider',
+                },
+            },
+            { $unwind: '$_provider' },
+            {
+                $addFields: {
+                    checkedAmount: {
+                        $sum: {
+                            $map: {
+                                input: {
+                                    $filter: {
+                                        input: '$balance',
+                                        cond: { $eq: ['$$this.credit', 'CHEQUE'] },
+                                    },
+                                },
+                                in: '$$this.amount',
+                            },
+                        },
+                    },
+                    hasCheque: {
+                        $gt: [
+                            {
+                                $size: {
+                                    $filter: {
+                                        input: '$balance',
+                                        cond: { $eq: ['$$this.credit', 'CHEQUE'] },
+                                    },
+                                },
+                            },
+                            0,
+                        ],
+                    },
+                },
+            },
+            {
+                $facet: {
+                    bills: [
+                        { $match: { docType: { $nin: ['ABONO', 'CREDITO', 'CREDITO_TEMP'] } } },
+                        { $group: { _id: null, sum: { $sum: { $subtract: ['$total', '$checkedAmount'] } } } },
+                    ],
+                    credits: [
+                        { $match: { docType: 'ABONO' } },
+                        { $group: { _id: null, sum: { $sum: '$total' } } },
+                    ],
+                    creditNotes: [
+                        { $match: { docType: { $in: ['CREDITO', 'CREDITO_TEMP'] } } },
+                        { $group: { _id: null, sum: { $sum: '$total' } } },
+                    ],
+                    pending: [
+                        { $match: { hasCheque: false } },
+                        { $count: 'count' },
+                    ],
+                    inProcess: [
+                        { $match: { hasCheque: true } },
+                        { $count: 'count' },
+                    ],
+                    withholdings: [
+                        { $match: { hasCheque: false, $expr: WITHHOLDINGS_AGGREGATION_CONDITION } },
+                        { $count: 'count' },
+                    ],
+                    expired: [
+                        { $match: { hasCheque: false, expirationCredit: { $lt: NOW } } },
+                        { $count: 'count' },
+                    ],
+                },
+            },
+        ]).exec();
+
+        const FACET = RESULT[0] || {};
+
+        res.status(200).json({
+            ok: true,
+            totals: {
+                bills: FACET.bills?.[0]?.sum || 0,
+                credits: FACET.credits?.[0]?.sum || 0,
+                creditNotes: FACET.creditNotes?.[0]?.sum || 0,
+                pending: FACET.pending?.[0]?.count || 0,
+                inProcess: FACET.inProcess?.[0]?.count || 0,
+                withholdings: FACET.withholdings?.[0]?.count || 0,
+                expired: FACET.expired?.[0]?.count || 0,
+            },
+        });
+    } catch (err) {
+        return res.status(500).json({
+            ok: false,
+            mensaje: 'Error calculando totales del proveedor',
+            errors: err,
+        });
+    }
+});
+
+// TEMPORAL: diagnóstico de documentos pendientes cuyo balance ya cubre el total
+// pero nunca se marcaron como paid=true. Solo lectura, no modifica datos.
+// Eliminar esta ruta una vez completado el diagnóstico.
+ACCOUNTS_PAYABLE_ROUTER.get('/diagnostics/coveredButUnpaid', mdAuth, async (req: Request, res: Response) => {
+    try {
+        const RESULT = await AccountsPayable.aggregate([
+            { $match: { paid: false, deleted: false } },
+            {
+                $addFields: {
+                    balanceSum: { $sum: '$balance.amount' },
+                },
+            },
+            {
+                $match: {
+                    $expr: { $gte: ['$balanceSum', '$total'] },
+                },
+            },
+            { $sort: { date: 1 } },
+            {
+                $facet: {
+                    count: [{ $count: 'count' }],
+                    oldest: [
+                        { $limit: 20 },
+                        {
+                            $project: {
+                                _id: 1,
+                                _provider: 1,
+                                serie: 1,
+                                noBill: 1,
+                                date: 1,
+                                total: 1,
+                                balanceSum: 1,
+                            },
+                        },
+                    ],
+                },
+            },
+        ]).exec();
+
+        res.status(200).json({
+            ok: true,
+            count: RESULT[0]?.count[0]?.count || 0,
+            oldest: RESULT[0]?.oldest || [],
+        });
+    } catch (err) {
+        return res.status(500).json({
+            ok: false,
+            mensaje: 'Error en diagnóstico de documentos pendientes',
+            errors: err,
+        });
+    }
+});
 
 ACCOUNTS_PAYABLE_ROUTER.get('/expenses', mdAuth, (req: Request, res: Response) => {
     let startDate = new Date(String(req.query.startDate));

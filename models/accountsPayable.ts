@@ -220,4 +220,8 @@ const ACCOUNTS_PAYABLE_SCHEMA = new Schema({
     },
 });
 
+ACCOUNTS_PAYABLE_SCHEMA.index({ paid: 1, deleted: 1, type: 1, date: -1 });
+ACCOUNTS_PAYABLE_SCHEMA.index({ _provider: 1, paid: 1, deleted: 1 });
+ACCOUNTS_PAYABLE_SCHEMA.index({ serie: 1, noBill: 1 });
+
 export default mongoose.model<IAccountsPayable>('AccountsPayable', ACCOUNTS_PAYABLE_SCHEMA);

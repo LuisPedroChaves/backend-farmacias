@@ -115,4 +115,6 @@ const checkSchema = new Schema({
     },
 })
 
+checkSchema.index({ state: 1, voided: 1, date: -1 });
+
 export default mongoose.model<ICheck>('Check', checkSchema)
