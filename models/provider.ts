@@ -73,4 +73,6 @@ const providerSchema: Schema = new Schema({
 	},
 });
 
+providerSchema.index({ name: 1 });
+
 export default mongoose.model<IProvider>('Provider', providerSchema);

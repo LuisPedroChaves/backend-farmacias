@@ -85,6 +85,103 @@ CHECK_ROUTER.get("/state", mdAuth, (req: Request, res: Response) => {
     });
 });
 
+const CHECK_STATES = ["CREADO", "ACTUALIZADO", "INTERBANCO", "ESPERA", "AUTORIZADO"];
+
+// Construye el filtro base compartido por /state/paged y /state/counts, para que
+// counts[ESTADO] siempre coincida con el total de paged?state=ESTADO.
+// query: subconjunto de req.query (state, search)
+const BUILD_STATE_QUERY = (query: Record<string, any>): FilterQuery<ICheck> => {
+  const { state, search } = query;
+
+  const QUERY: FilterQuery<ICheck> = {
+    $and: [{ state: { $ne: "PAGADO" } }, { state: { $ne: "RECHAZADO" } }],
+    voided: false,
+  };
+
+  if (state && CHECK_STATES.includes(String(state))) {
+    QUERY.state = String(state);
+  }
+
+  if (search) {
+    const REGEX = new RegExp(String(search), "i");
+    (QUERY.$and as any[]).push({
+      $or: [{ no: REGEX }, { name: REGEX }, { note: REGEX }],
+    });
+  }
+
+  return QUERY;
+};
+
+CHECK_ROUTER.get("/state/paged", mdAuth, async (req: Request, res: Response) => {
+  try {
+    const PAGE = Math.max(0, parseInt(String(req.query.page), 10) || 0);
+    const SIZE = Math.min(500, Math.max(1, parseInt(String(req.query.size), 10) || 50));
+
+    const QUERY = BUILD_STATE_QUERY(req.query as Record<string, any>);
+
+    const TOTAL = await Check.countDocuments(QUERY).exec();
+
+    const CHECKS = await Check.find(QUERY)
+      .populate("_user", "name")
+      .populate("_bankAccount", "no name bank")
+      .populate({
+        path: "accountsPayables",
+        select: "serie noBill total docType date _provider",
+        populate: {
+          path: "_provider",
+          select: "name",
+        },
+      })
+      .populate("cashRequisitions", "total created")
+      .skip(PAGE * SIZE)
+      .limit(SIZE)
+      .sort({ name: 1 })
+      .exec();
+
+    res.status(200).json({
+      ok: true,
+      checks: CHECKS,
+      total: TOTAL,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      ok: false,
+      mensaje: "Error listando cheques",
+      errors: err,
+    });
+  }
+});
+
+CHECK_ROUTER.get("/state/counts", mdAuth, async (req: Request, res: Response) => {
+  try {
+    const { search } = req.query;
+
+    const COUNTS_ENTRIES = await Promise.all(
+      CHECK_STATES.map(async (state) => {
+        const QUERY = BUILD_STATE_QUERY({ state, search });
+        const count = await Check.countDocuments(QUERY).exec();
+        return [state, count] as const;
+      }),
+    );
+
+    const COUNTS: Record<string, number> = {};
+    COUNTS_ENTRIES.forEach(([state, count]) => {
+      COUNTS[state] = count;
+    });
+
+    res.status(200).json({
+      ok: true,
+      counts: COUNTS,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      ok: false,
+      mensaje: "Error contando cheques",
+      errors: err,
+    });
+  }
+});
+
 CHECK_ROUTER.get("/deliveries", mdAuth, (req: Request, res: Response) => {
   Check.find({
     $and: [{ state: { $ne: "PAGADO" } }, { state: { $ne: "RECHAZADO" } }],
