@@ -345,35 +345,47 @@ CHECK_ROUTER.put("/state/:id", mdAuth, (req: Request, res: Response) => {
         });
       }
 
-      if (!BODY.voided && BODY.state === "PAGADO") {
-        await PAY_ACCOUNTS_PAYABLE(BODY);
-        await PAY_CASH_REQUISITIONS(BODY);
+      try {
+        if (!BODY.voided && BODY.state === "PAGADO") {
+          await PAY_ACCOUNTS_PAYABLE(BODY);
+          await PAY_CASH_REQUISITIONS(BODY);
 
-        const NEW_BANK_FLOW = new BankFlow({
-          _bankAccount: BODY._bankAccount,
-          _check: check,
-          date: moment().tz("America/Guatemala").format(),
-          document: check.no,
-          details: `Pago de cheque a nombre de ${
-            check.name
-          } con fecha: ${moment(check.date)
-            .tz("America/Guatemala")
-            .format("DD/MM/yyyy")}`,
-          credit: 0,
-          debit: check.amount,
-          balance: 0,
-          type: "Cheque",
+          const NEW_BANK_FLOW = new BankFlow({
+            _bankAccount: BODY._bankAccount,
+            _check: check,
+            date: moment().tz("America/Guatemala").format(),
+            document: check.no,
+            details: `Pago de cheque a nombre de ${
+              check.name
+            } con fecha: ${moment(check.date)
+              .tz("America/Guatemala")
+              .format("DD/MM/yyyy")}`,
+            credit: 0,
+            debit: check.amount,
+            balance: 0,
+            type: "Cheque",
+          });
+
+          await UPDATE_BANK_BALANCE(NEW_BANK_FLOW);
+        }
+        if (BODY.voided || BODY.state === "RECHAZADO") {
+          // Si el cheque es anulado o rechazado
+          // Entonces eliminamos los balances de cada balances con el cheque
+          // para regresear las cuentas a pendientes de pago
+          await REMOVE_ACCOUNTS_PAYABLE(BODY);
+          await REMOVE_CASH_REQUISITIONS(BODY);
+        }
+      } catch (sideEffectErr) {
+        // El cheque ya quedó guardado; las reversiones de AccountsPayable son
+        // idempotentes, así que reintentar este mismo PUT completa lo pendiente.
+        return res.status(500).json({
+          ok: false,
+          mensaje:
+            "El cheque se actualizó pero falló la reversión de cuentas por pagar asociadas. Reintente la operación.",
+          errors: sideEffectErr,
         });
+      }
 
-        await UPDATE_BANK_BALANCE(NEW_BANK_FLOW);
-      }
-      if (BODY.voided || BODY.state === "RECHAZADO") {
-        // Si el cheque es anulado o rechazado
-        // Entonces eliminamos los balances de cada balances con el cheque
-        // para regresear las cuentas a pendientes de pago
-        await REMOVE_ACCOUNTS_PAYABLE(BODY);
-        await REMOVE_CASH_REQUISITIONS(BODY);
-      }
       res.status(200).json({
         ok: true,
         check,
@@ -464,14 +476,39 @@ const UPDATE_CASH_REQUISITIONS = async (_check: ICheck): Promise<any> => {
 };
 
 const REMOVE_ACCOUNTS_PAYABLE = async (_check: ICheck): Promise<any> => {
+  const CHECK_ID = String(_check._id);
+
   return Promise.all(
     _check.accountsPayables.map(async (accountsPayable: IAccountsPayable) => {
-      accountsPayable.balance = accountsPayable.balance.filter(
-        (b) => b._check !== _check._id,
+      // Releemos desde la BD en vez de confiar en el body del request,
+      // que puede traer un balance parcial o desactualizado.
+      const CURRENT = await AccountsPayable.findById(
+        accountsPayable._id,
+      ).exec();
+
+      if (!CURRENT) {
+        return;
+      }
+
+      const REMOVED_BALANCE = CURRENT.balance.filter(
+        (b) => b._check && String(b._check) === CHECK_ID,
+      );
+
+      // Nada que revertir: hace la operación segura de reintentar.
+      if (REMOVED_BALANCE.length === 0) {
+        return;
+      }
+
+      const REMAINING_BALANCE = CURRENT.balance.filter(
+        (b) => !b._check || String(b._check) !== CHECK_ID,
       );
 
       return AccountsPayable.findByIdAndUpdate(accountsPayable._id, {
-        balance: accountsPayable.balance,
+        $set: {
+          balance: REMAINING_BALANCE,
+          paid: false,
+        },
+        $push: { deletedBalance: { $each: REMOVED_BALANCE } },
       }).exec();
     }),
   );
@@ -488,18 +525,26 @@ const REMOVE_CASH_REQUISITIONS = async (_check: ICheck): Promise<any> => {
 };
 
 const PAY_ACCOUNTS_PAYABLE = async (_check: ICheck): Promise<any> => {
+  const CHECK_ID = String(_check._id);
+
   return Promise.all(
     _check.accountsPayables.map(async (accountsPayable: IAccountsPayable) => {
-      const BALANCE = accountsPayable.balance.find(
-        (b) => b._check === _check._id,
+      // Releemos desde la BD en vez de confiar en el body del request,
+      // que puede traer un balance parcial o desactualizado.
+      const CURRENT = await AccountsPayable.findById(
+        accountsPayable._id,
+      ).exec();
+
+      if (!CURRENT) {
+        return;
+      }
+
+      const BALANCE = CURRENT.balance.find(
+        (b) => b._check && String(b._check) === CHECK_ID,
       );
 
-      if (BALANCE && accountsPayable.type === "PRODUCTOS") {
-        await UPDATE_BALANCE(
-          accountsPayable._provider,
-          BALANCE.amount,
-          "RESTA",
-        );
+      if (BALANCE && CURRENT.type === "PRODUCTOS") {
+        await UPDATE_BALANCE(CURRENT._provider, BALANCE.amount, "RESTA");
       }
 
       return AccountsPayable.findByIdAndUpdate(accountsPayable._id, {
